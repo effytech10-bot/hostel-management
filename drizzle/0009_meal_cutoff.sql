@@ -1,0 +1,2 @@
+ALTER TABLE "organizations" ADD COLUMN "meal_cutoff_hour" smallint DEFAULT 22;--> statement-breakpoint
+ALTER TABLE "organizations" ADD CONSTRAINT "organizations_meal_cutoff_hour_range" CHECK ("organizations"."meal_cutoff_hour" between 0 and 23);
