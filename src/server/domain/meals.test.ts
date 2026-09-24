@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
   buildingOnDate,
   countMeals,
+  defaultOn,
+  mealIsOn,
   formatMealUnits,
   firstStudentMealDate,
   formatHour,
@@ -129,5 +131,42 @@ describe("student meal deadline", () => {
     expect(formatHour(18)).toBe("6 PM");
     expect(formatHour(0)).toBe("12 AM");
     expect(formatHour(12)).toBe("12 PM");
+  });
+});
+
+describe("normal meal settings (breakfast off every day)", () => {
+  const defaults = [
+    { slot: "breakfast" as const, fromDate: "2026-10-05", isOn: false },
+    { slot: "breakfast" as const, fromDate: "2026-10-20", isOn: true },
+  ];
+  it("latest setting on or before the date wins", () => {
+    expect(defaultOn(defaults, "breakfast", "2026-10-04")).toBe(true);
+    expect(defaultOn(defaults, "breakfast", "2026-10-05")).toBe(false);
+    expect(defaultOn(defaults, "breakfast", "2026-10-19")).toBe(false);
+    expect(defaultOn(defaults, "breakfast", "2026-10-20")).toBe(true);
+    expect(defaultOn(defaults, "lunch", "2026-10-10")).toBe(true);
+    expect(defaultOn(undefined, "breakfast", "2026-10-10")).toBe(true);
+  });
+  it("counts with exceptions on top", () => {
+    const intervals = [{ start: "2026-10-01", end: null, buildingId: "b" }];
+    const c = countMeals({
+      period: "2026-10",
+      intervals,
+      offs: new Set([mealKey("2026-10-02", "breakfast"), mealKey("2026-10-10", "lunch")]),
+      ons: new Set([mealKey("2026-10-12", "breakfast")]),
+      defaults,
+      holidaysAll: new Set([mealKey("2026-10-13", "breakfast")]),
+      holidaysByBuilding: new Map(),
+    });
+    // Breakfast: days 1,3,4 (4 days before the 5th minus the 2nd off) + 12th (ON exception) + 20..31 (12) = 16
+    expect(c.breakfast).toBe(16);
+    expect(c.lunch).toBe(30);
+    expect(c.dinner).toBe(31);
+  });
+  it("mealIsOn order", () => {
+    expect(mealIsOn({ holiday: true, off: false, on: true, normallyOn: true })).toBe(false);
+    expect(mealIsOn({ holiday: false, off: false, on: true, normallyOn: false })).toBe(true);
+    expect(mealIsOn({ holiday: false, off: true, on: false, normallyOn: true })).toBe(false);
+    expect(mealIsOn({ holiday: false, off: false, on: false, normallyOn: false })).toBe(false);
   });
 });

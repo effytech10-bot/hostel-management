@@ -71,6 +71,13 @@
       "when": 1790228891289,
       "tag": "0009_meal_cutoff",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1790266883737,
+      "tag": "0010_meal_preferences",
+      "breakpoints": true
     }
   ]
 }
