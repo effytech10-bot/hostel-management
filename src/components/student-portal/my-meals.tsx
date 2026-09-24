@@ -1,11 +1,12 @@
 "use client";
 
 import { useActionState, useState, useTransition } from "react";
-import { setMyMealsAction } from "@/app/_actions/student-meals";
+import { setMyDailyMealAction, setMyMealsAction } from "@/app/_actions/student-meals";
 import { Button } from "@/components/ui/button";
 import { FormMessage } from "@/components/ui/form-message";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { formatDate } from "@/lib/dates";
 import { cn } from "@/lib/utils";
 import { MEAL_SLOT_LABEL, MEAL_SLOTS, type MealSlot } from "@/server/domain/meals";
 import type { ActionState } from "@/server/errors";
@@ -183,6 +184,66 @@ export function MealRangeForm({ first, last }: { first: string; last: string }) 
         </Button>
         <FormMessage error={state.error} message={state.message} className="py-1" />
       </div>
+    </form>
+  );
+}
+
+/** "Breakfast every day" switch: OFF = no breakfast every day from the next day that can still be changed. */
+export function DailyMealSwitch({
+  slot,
+  on,
+  since,
+  from,
+  today,
+}: {
+  slot: MealSlot;
+  on: boolean;
+  since: string | null;
+  from: string;
+  today: string;
+}) {
+  const [state, action, pending] = useActionState<ActionState, FormData>(setMyDailyMealAction, {});
+  const label = MEAL_SLOT_LABEL[slot];
+  return (
+    <form action={action} className="flex flex-col gap-3">
+      <input type="hidden" name="slot" value={slot} />
+      <input type="hidden" name="on" value={on ? "false" : "true"} />
+      <div className="flex items-center justify-between gap-4">
+        <div className="text-sm">
+          <p className="font-medium">{label} every day</p>
+          <p className="text-muted-foreground">
+            {on
+              ? `ON. Turn it off to skip ${label.toLowerCase()} every day from ${formatDate(from)}.`
+              : since && since > today
+                ? `OFF every day from ${formatDate(since)}.`
+                : `OFF every day${since ? ` since ${formatDate(since)}` : ""}. Turn it on to eat ${label.toLowerCase()} again from ${formatDate(from)}.`}
+          </p>
+        </div>
+        <button
+          type="submit"
+          role="switch"
+          aria-checked={on}
+          aria-label={`${label} every day`}
+          disabled={pending}
+          className={cn(
+            "relative inline-flex h-8 w-14 shrink-0 items-center rounded-full border-2 transition-colors disabled:opacity-60",
+            on ? "border-emerald-600 bg-emerald-500" : "border-slate-300 bg-slate-200",
+          )}
+        >
+          <span
+            className={cn(
+              "inline-block size-6 rounded-full bg-white shadow transition-transform",
+              on ? "translate-x-6" : "translate-x-0.5",
+            )}
+          />
+        </button>
+      </div>
+      {!on && (
+        <p className="text-muted-foreground text-xs">
+          You can still turn {label.toLowerCase()} on for any single day in the list below.
+        </p>
+      )}
+      <FormMessage error={state.error} message={state.message} className="py-1" />
     </form>
   );
 }

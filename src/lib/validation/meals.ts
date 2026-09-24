@@ -50,3 +50,9 @@ export const myMealsSchema = z
   })
   .refine((v) => v.to >= v.from, { path: ["to"], message: "End date must be on or after the start date" });
 export type MyMealsInput = z.infer<typeof myMealsSchema>;
+
+/** A student's "every day" switch for one meal. */
+export const dailyMealSchema = z.object({
+  slot,
+  on: z.enum(["true", "false"]).transform((v) => v === "true"),
+});

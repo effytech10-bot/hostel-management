@@ -101,3 +101,13 @@ export function formatPeriod(period: Period): string {
     timeZone: "UTC",
   });
 }
+
+/** "2026-09-26" -> "26 Sep 2026" */
+export function formatDate(date: DateString): string {
+  return new Date(`${date}T00:00:00Z`).toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    timeZone: "UTC",
+  });
+}
