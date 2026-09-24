@@ -1,0 +1,62 @@
+@page {
+  size: A4;
+  margin: 8mm;
+}
+
+.token-sheet {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  gap: 6mm;
+  width: 194mm;
+  height: 281mm;
+  margin: 0 auto 10mm;
+  background: white;
+  break-after: page;
+}
+
+.token-sheet:last-child {
+  break-after: auto;
+}
+
+@media screen {
+  .token-sheet {
+    padding: 8mm;
+    box-sizing: content-box;
+    box-shadow: 0 1px 6px rgb(0 0 0 / 0.15);
+  }
+}
+
+@media print {
+  body {
+    background: white !important;
+  }
+  .token-sheet {
+    margin: 0;
+  }
+}
+
+.token-card {
+  border: 1px solid #111;
+  color: #111;
+  font-size: 9.5pt;
+  line-height: 1.25;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.token-card table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.token-card td {
+  border-top: 1px solid #111;
+  padding: 1.2mm 1.5mm;
+  vertical-align: top;
+}
+
+.token-card td + td {
+  border-left: 1px solid #111;
+}
