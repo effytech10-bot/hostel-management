@@ -1,7 +1,8 @@
 /**
  * Meal counting rules. Pure functions: no database, easy to test.
  *
- * - Every meal is ON by default for every day a student has a seat.
+ * - Every meal is ON by default for every day a student has a seat, unless the student changed their
+ *   normal setting (e.g. breakfast off every day from a date). Day-by-day exceptions win over that setting.
  * - A seat interval covers [start, end): the end date belongs to the NEXT seat
  *   (a seat change on the 15th means the new seat's meals start on the 15th).
  * - A meal is not counted when the student turned it OFF, or it is a holiday
@@ -44,10 +45,37 @@ export function buildingOnDate(intervals: readonly SeatInterval[], date: DateStr
   return null;
 }
 
+/** A student's normal setting for one meal from a date onwards ("no breakfast every day from 26 Sep"). */
+export type MealDefault = { slot: MealSlot; fromDate: DateString; isOn: boolean };
+
+/** Is this meal normally ON for the student on `date`? The latest setting on or before the date wins; none = ON. */
+export function defaultOn(defaults: readonly MealDefault[] | undefined, slot: MealSlot, date: DateString): boolean {
+  let best: MealDefault | null = null;
+  for (const d of defaults ?? []) {
+    if (d.slot === slot && d.fromDate <= date && (!best || d.fromDate > best.fromDate)) best = d;
+  }
+  return best ? best.isOn : true;
+}
+
+/**
+ * Whether one meal is eaten: a holiday is always off; a day-by-day exception (OFF or ON) wins over
+ * the student's normal setting; otherwise the normal setting.
+ */
+export function mealIsOn(input: { holiday: boolean; off: boolean; on: boolean; normallyOn: boolean }): boolean {
+  if (input.holiday) return false;
+  if (input.off) return false;
+  if (input.on) return true;
+  return input.normallyOn;
+}
+
 export function countMeals(input: {
   period: Period;
   intervals: readonly SeatInterval[];
   offs: ReadonlySet<string>;
+  /** Day-by-day ON exceptions (on days the meal is normally off). */
+  ons?: ReadonlySet<string>;
+  /** The student's normal settings (e.g. breakfast off every day). */
+  defaults?: readonly MealDefault[];
   holidaysAll: ReadonlySet<string>;
   holidaysByBuilding: ReadonlyMap<string, ReadonlySet<string>>;
   /** Count only up to and including this date (e.g. a student who left mid-month). */
@@ -62,7 +90,13 @@ export function countMeals(input: {
     const buildingHolidays = input.holidaysByBuilding.get(buildingId);
     for (const slot of MEAL_SLOTS) {
       const key = mealKey(date, slot);
-      if (input.offs.has(key) || input.holidaysAll.has(key) || buildingHolidays?.has(key)) continue;
+      const on = mealIsOn({
+        holiday: input.holidaysAll.has(key) || !!buildingHolidays?.has(key),
+        off: input.offs.has(key),
+        on: !!input.ons?.has(key),
+        normallyOn: defaultOn(input.defaults, slot, date),
+      });
+      if (!on) continue;
       counts[slot]++;
       counts.halfUnits += HALF_UNITS[slot];
     }

@@ -10,6 +10,7 @@ import {
   buildings,
   mealHolidays,
   mealOffs,
+  mealPreferences,
   mealSettlements,
   paymentAccounts,
   rooms,
@@ -21,17 +22,20 @@ import { mealCost } from "@/server/domain/billing";
 import {
   buildingOnDate,
   countMeals,
+  defaultOn,
   firstStudentMealDate,
   formatHour,
   MEAL_SLOTS,
   mealDateEditError,
   mealKey,
   shiftDate,
+  type MealDefault,
   type MealSlot,
   type SeatInterval,
 } from "@/server/domain/meals";
 import { AppError } from "@/server/errors";
 import { signedPhotoUrls } from "@/server/storage";
+import { loadMealDefaults } from "./meals";
 import { getMealCutoffHour } from "./org-settings";
 import { assertPeriodOpen, isPeriodLocked } from "./periods";
 import { getEffectiveRates } from "./rates";
@@ -174,7 +178,7 @@ export async function getMyMealMonth(actor: SessionUser, period: Period) {
         ),
       ),
     db()
-      .select({ date: mealOffs.date, slot: mealOffs.slot, createdBy: mealOffs.createdBy })
+      .select({ date: mealOffs.date, slot: mealOffs.slot, turnedOn: mealOffs.turnedOn, createdBy: mealOffs.createdBy })
       .from(mealOffs)
       .where(and(eq(mealOffs.studentId, s.id), gte(mealOffs.date, start), lte(mealOffs.date, end))),
     db()
@@ -193,17 +197,18 @@ export async function getMyMealMonth(actor: SessionUser, period: Period) {
       .limit(1),
     getEffectiveRates(db(), actor.orgId, period),
   ]);
-  const [cutoffHour, locked] = await Promise.all([
+  const [cutoffHour, locked, defaultsMap] = await Promise.all([
     getMealCutoffHour(db(), actor.orgId),
     isPeriodLocked(db(), actor.orgId, period),
+    loadMealDefaults(db(), [s.id], "9999-12-31"),
   ]);
   const rules = mealRules(cutoffHour, s.status === "active");
-  const officeOffs = new Set(
-    offRows.filter((o) => o.createdBy !== actor.membershipId).map((o) => mealKey(o.date, o.slot)),
-  );
+  const defaults = defaultsMap.get(s.id) ?? [];
+  const exceptions = new Map(offRows.map((o) => [mealKey(o.date, o.slot), o]));
 
   const intervals: SeatInterval[] = assignments;
-  const offs = new Set(offRows.map((o) => mealKey(o.date, o.slot)));
+  const offs = new Set(offRows.filter((o) => !o.turnedOn).map((o) => mealKey(o.date, o.slot)));
+  const ons = new Set(offRows.filter((o) => o.turnedOn).map((o) => mealKey(o.date, o.slot)));
   const holidaysAll = new Set<string>();
   const holidaysByBuilding = new Map<string, Set<string>>();
   const holidayNotes = new Map<string, string>();
@@ -225,14 +230,19 @@ export async function getMyMealMonth(actor: SessionUser, period: Period) {
     const slots = {} as Record<MealSlot, MealDayState>;
     for (const slot of MEAL_SLOTS) {
       const key = mealKey(date, slot);
+      const ex = exceptions.get(key);
       slots[slot] =
         holidaysAll.has(key) || (buildingId && holidaysByBuilding.get(buildingId)?.has(key))
           ? "holiday"
-          : officeOffs.has(key)
-            ? "office_off"
-            : offs.has(key)
-              ? "off"
-              : "on";
+          : ex
+            ? ex.turnedOn
+              ? "on"
+              : ex.createdBy !== actor.membershipId
+                ? "office_off"
+                : "off"
+            : defaultOn(defaults, slot, date)
+              ? "on"
+              : "off";
     }
     return {
       date,
@@ -249,7 +259,7 @@ export async function getMyMealMonth(actor: SessionUser, period: Period) {
     };
   });
 
-  const base = { period, intervals, offs, holidaysAll, holidaysByBuilding };
+  const base = { period, intervals, offs, ons, defaults, holidaysAll, holidaysByBuilding };
   const soFarUntil = lastDay && lastDay < today ? lastDay : today;
   const soFar = countMeals({ ...base, until: soFarUntil });
   const wholeMonth = countMeals({ ...base, until: lastDay });
@@ -282,7 +292,88 @@ export async function getMyMealMonth(actor: SessionUser, period: Period) {
       : null,
     admissionDate: s.admissionDate,
     rules,
+    breakfastDaily: dailySetting(defaults, "breakfast", rules.firstEditable ?? today, today),
   };
+}
+
+/**
+ * The student's "every day" switch for a meal: its state for the next day they can change,
+ * and since when a daily OFF has been (or will be) in force.
+ */
+function dailySetting(defaults: MealDefault[], slot: MealSlot, at: DateString, today: DateString) {
+  const on = defaultOn(defaults, slot, at);
+  const inForce = defaults
+    .filter((d) => d.slot === slot && d.fromDate <= at)
+    .sort((a, b) => b.fromDate.localeCompare(a.fromDate))[0];
+  return { on, since: on ? null : (inForce?.fromDate ?? null), onToday: defaultOn(defaults, slot, today) };
+}
+
+/**
+ * The student's switch: breakfast OFF (or back ON) every day, from the next day they can still change.
+ * Their own day-by-day breakfast changes from that day are cleared; the office's changes stay.
+ */
+export async function setMyDailyMeal(
+  actor: SessionUser,
+  input: { slot: MealSlot; on: boolean },
+  now = new Date(),
+): Promise<{ from: DateString; changed: boolean }> {
+  const row = await myStudentRow(actor);
+  const s = row.students;
+  if (s.status !== "active") throw new AppError("VALIDATION", "You have left the hostel.");
+  const cutoffHour = await getMealCutoffHour(db(), actor.orgId);
+  const rules = mealRules(cutoffHour, true, now);
+  if (!rules.firstEditable) {
+    throw new AppError("FORBIDDEN", "Meals are changed by the hostel office. Please tell the office.");
+  }
+  const from = rules.firstEditable;
+  await assertPeriodOpen(db(), actor.orgId, from);
+
+  return db().transaction(async (tx) => {
+    const current = (await loadMealDefaults(tx, [s.id], "9999-12-31")).get(s.id) ?? [];
+    const before = current.filter((d) => !(d.slot === input.slot && d.fromDate >= from));
+    const wasOn = defaultOn(current, input.slot, from);
+
+    // Drop any pending change for this meal from `from` on, then add the new one if it is still a change.
+    await tx
+      .delete(mealPreferences)
+      .where(
+        and(
+          eq(mealPreferences.studentId, s.id),
+          eq(mealPreferences.slot, input.slot),
+          gte(mealPreferences.fromDate, from),
+        ),
+      );
+    if (defaultOn(before, input.slot, from) !== input.on) {
+      await tx.insert(mealPreferences).values({
+        orgId: actor.orgId,
+        studentId: s.id,
+        slot: input.slot,
+        isOn: input.on,
+        fromDate: from,
+        createdBy: actor.membershipId,
+      });
+    }
+    // The switch applies to every day from `from`: clear the student's own day-by-day changes of this meal.
+    await tx
+      .delete(mealOffs)
+      .where(
+        and(
+          eq(mealOffs.studentId, s.id),
+          eq(mealOffs.slot, input.slot),
+          eq(mealOffs.createdBy, actor.membershipId),
+          gte(mealOffs.date, from),
+        ),
+      );
+    await writeAudit(tx, {
+      orgId: actor.orgId,
+      actorMembershipId: actor.membershipId,
+      action: input.on ? "meal.student_daily_on" : "meal.student_daily_off",
+      entityType: "student",
+      entityId: s.id,
+      after: { slot: input.slot, on: input.on, from },
+    });
+    return { from, changed: wasOn !== input.on };
+  });
 }
 
 /**
@@ -358,43 +449,58 @@ export async function setMyMeals(
     if (targets.length === 0) throw new AppError("VALIDATION", "No meals to change on these days.");
     const targetDates = [...new Set(targets.map((t) => t.date))];
 
-    let changed: number;
-    if (!input.on) {
-      const inserted = await tx
-        .insert(mealOffs)
-        .values(
-          targets.map((t) => ({
-            orgId: actor.orgId,
-            studentId: s.id,
-            buildingId: t.buildingId,
-            date: t.date,
-            slot: t.slot,
-            createdBy: actor.membershipId,
-          })),
-        )
-        .onConflictDoNothing()
-        .returning({ id: mealOffs.id });
-      changed = inserted.length;
-    } else {
-      const deleted = await tx
-        .delete(mealOffs)
-        .where(
-          and(
-            eq(mealOffs.studentId, s.id),
-            eq(mealOffs.createdBy, actor.membershipId),
-            inArray(mealOffs.date, targetDates),
-            inArray(mealOffs.slot, slots),
-          ),
-        )
-        .returning({ id: mealOffs.id });
-      changed = deleted.length;
+    const [existing, defaultsMap] = await Promise.all([
+      tx
+        .select({
+          id: mealOffs.id,
+          date: mealOffs.date,
+          slot: mealOffs.slot,
+          turnedOn: mealOffs.turnedOn,
+          createdBy: mealOffs.createdBy,
+        })
+        .from(mealOffs)
+        .where(and(eq(mealOffs.studentId, s.id), inArray(mealOffs.date, targetDates), inArray(mealOffs.slot, slots))),
+      loadMealDefaults(tx, [s.id], input.to),
+    ]);
+    const defaults = defaultsMap.get(s.id);
+    const byKey = new Map(existing.map((e) => [mealKey(e.date, e.slot), e]));
+
+    let changed = 0;
+    let officeKept = 0;
+    const remove: string[] = [];
+    const flip: string[] = [];
+    const add: { date: DateString; slot: MealSlot; buildingId: string }[] = [];
+    for (const t of targets) {
+      const ex = byKey.get(mealKey(t.date, t.slot));
+      if (ex && ex.createdBy !== actor.membershipId) {
+        // The office decided this meal: only the office can change it.
+        if (ex.turnedOn !== input.on) officeKept++;
+        continue;
+      }
+      const normallyOn = defaultOn(defaults, t.slot, t.date);
+      const nowOn = ex ? ex.turnedOn : normallyOn;
+      if (nowOn === input.on) continue;
+      changed++;
+      if (input.on === normallyOn) {
+        if (ex) remove.push(ex.id);
+      } else if (ex) flip.push(ex.id);
+      else add.push(t);
     }
-    const stillOff = input.on
-      ? await tx
-          .select({ id: mealOffs.id })
-          .from(mealOffs)
-          .where(and(eq(mealOffs.studentId, s.id), inArray(mealOffs.date, targetDates), inArray(mealOffs.slot, slots)))
-      : [];
+    if (remove.length) await tx.delete(mealOffs).where(inArray(mealOffs.id, remove));
+    if (flip.length) await tx.update(mealOffs).set({ turnedOn: input.on }).where(inArray(mealOffs.id, flip));
+    if (add.length) {
+      await tx.insert(mealOffs).values(
+        add.map((t) => ({
+          orgId: actor.orgId,
+          studentId: s.id,
+          buildingId: t.buildingId,
+          date: t.date,
+          slot: t.slot,
+          turnedOn: input.on,
+          createdBy: actor.membershipId,
+        })),
+      );
+    }
 
     await writeAudit(tx, {
       orgId: actor.orgId,
@@ -404,7 +510,7 @@ export async function setMyMeals(
       entityId: s.id,
       after: { ...input, changed },
     });
-    return { changed, officeKept: stillOff.length };
+    return { changed, officeKept };
   });
 }
 

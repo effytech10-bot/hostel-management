@@ -118,7 +118,8 @@ export function MealGrid({
 
       {rows.some((r) => r.byStudent.length > 0) && (
         <p className="text-muted-foreground text-xs">
-          &quot;by student&quot; = the student turned this meal off from their phone.
+          &quot;by student&quot; = the student turned this meal off from their phone. &quot;daily off&quot; = the
+          student turned it off for every day.
         </p>
       )}
 
@@ -192,7 +193,9 @@ export function MealGrid({
                       >
                         {holiday ? "HOLIDAY" : off ? "OFF" : "ON"}
                         {off && !holiday && r.byStudent.includes(slot) && (
-                          <span className="block text-[9px] leading-none font-normal">by student</span>
+                          <span className="block text-[9px] leading-none font-normal">
+                            {r.normallyOff.includes(slot) ? "daily off" : "by student"}
+                          </span>
                         )}
                       </button>
                     </td>

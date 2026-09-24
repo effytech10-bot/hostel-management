@@ -2,7 +2,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { PageHeader } from "@/components/layout/app-shell";
-import { MealRangeForm, MyMealCalendar } from "@/components/student-portal/my-meals";
+import { DailyMealSwitch, MealRangeForm, MyMealCalendar } from "@/components/student-portal/my-meals";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { addMonths, currentPeriod, dhakaDate, formatPeriod, isValidPeriod, periodOf } from "@/lib/dates";
@@ -110,7 +110,16 @@ export default async function StudentMealsPage({
           </CardDescription>
         </CardHeader>
         {month.rules.firstEditable && month.rules.lastEditable && (
-          <CardContent>
+          <CardContent className="flex flex-col gap-4">
+            <div className="rounded-lg border p-3" data-daily="breakfast">
+              <DailyMealSwitch
+                slot="breakfast"
+                on={month.breakfastDaily.on}
+                since={month.breakfastDaily.since}
+                from={month.rules.firstEditable}
+                today={today}
+              />
+            </div>
             <details>
               <summary className="text-primary cursor-pointer text-sm select-none">
                 Going home? Turn off several days at once

@@ -6,13 +6,25 @@ import { writeAudit } from "@/server/audit";
 import { assertRole, type SessionUser } from "@/server/auth/session";
 import { db, type DbOrTx } from "@/server/db/client";
 import { isPgError, PG_UNIQUE_VIOLATION } from "@/server/db/errors";
-import { buildings, mealHolidays, mealOffs, rooms, seatAssignments, seats, students } from "@/server/db/schema";
+import {
+  buildings,
+  mealHolidays,
+  mealOffs,
+  mealPreferences,
+  rooms,
+  seatAssignments,
+  seats,
+  students,
+} from "@/server/db/schema";
 import {
   countMeals,
+  defaultOn,
+  MEAL_SLOTS,
   mealDateEditError,
   mealKey,
   shiftDate,
   type MealCounts,
+  type MealDefault,
   type MealSlot,
   type SeatInterval,
 } from "@/server/domain/meals";
@@ -45,6 +57,27 @@ function coversDate(date: DateString): SQL {
   )!;
 }
 
+/** Each student's normal meal settings that started on or before `until` (e.g. breakfast off every day). */
+export async function loadMealDefaults(
+  tx: DbOrTx,
+  studentIds: string[],
+  until: DateString,
+): Promise<Map<string, MealDefault[]>> {
+  const map = new Map<string, MealDefault[]>();
+  if (studentIds.length === 0) return map;
+  const rows = await tx
+    .select({
+      studentId: mealPreferences.studentId,
+      slot: mealPreferences.slot,
+      fromDate: mealPreferences.fromDate,
+      isOn: mealPreferences.isOn,
+    })
+    .from(mealPreferences)
+    .where(and(inArray(mealPreferences.studentId, studentIds), lte(mealPreferences.fromDate, until)));
+  for (const r of rows) map.set(r.studentId, [...(map.get(r.studentId) ?? []), r]);
+  return map;
+}
+
 // ---------------------------------------------------------------------------
 // Daily grid
 // ---------------------------------------------------------------------------
@@ -56,8 +89,10 @@ export type MealDayRow = {
   roomNumber: string;
   seatLabel: string;
   off: MealSlot[];
-  /** OFF meals the student turned off from their own phone. */
+  /** OFF meals the student turned off from their own phone (that day, or every day). */
   byStudent: MealSlot[];
+  /** Meals this student has turned off every day (their normal setting). */
+  normallyOff: MealSlot[];
 };
 
 export async function getMealDay(actor: SessionUser, buildingId: string, date: DateString) {
@@ -79,13 +114,19 @@ export async function getMealDay(actor: SessionUser, buildingId: string, date: D
     .where(and(eq(seatAssignments.orgId, actor.orgId), eq(seatAssignments.buildingId, buildingId), coversDate(date)));
 
   const ids = people.map((p) => p.studentId);
-  const [offRows, holidayRows] = await Promise.all([
+  const [offRows, defaults, holidayRows] = await Promise.all([
     ids.length
       ? db()
-          .select({ studentId: mealOffs.studentId, slot: mealOffs.slot, createdBy: mealOffs.createdBy })
+          .select({
+            studentId: mealOffs.studentId,
+            slot: mealOffs.slot,
+            turnedOn: mealOffs.turnedOn,
+            createdBy: mealOffs.createdBy,
+          })
           .from(mealOffs)
           .where(and(eq(mealOffs.date, date), inArray(mealOffs.studentId, ids)))
       : Promise.resolve([]),
+    loadMealDefaults(db(), ids, date),
     db()
       .select({ slot: mealHolidays.slot, note: mealHolidays.note, buildingId: mealHolidays.buildingId })
       .from(mealHolidays)
@@ -98,26 +139,33 @@ export async function getMealDay(actor: SessionUser, buildingId: string, date: D
       ),
   ]);
 
-  const offsByStudent = new Map<string, MealSlot[]>();
-  for (const o of offRows) offsByStudent.set(o.studentId, [...(offsByStudent.get(o.studentId) ?? []), o.slot]);
-  const membershipOf = new Map(people.map((p) => [p.studentId, p.membershipId]));
-  const selfOffs = new Map<string, MealSlot[]>();
-  for (const o of offRows) {
-    if (o.createdBy && o.createdBy === membershipOf.get(o.studentId)) {
-      selfOffs.set(o.studentId, [...(selfOffs.get(o.studentId) ?? []), o.slot]);
-    }
-  }
+  const exceptions = new Map(offRows.map((o) => [mealKey(o.studentId, o.slot), o]));
 
   const rows: MealDayRow[] = people
-    .map((p) => ({
-      studentId: p.studentId,
-      studentCode: p.studentCode,
-      fullName: p.fullName,
-      roomNumber: p.roomNumber,
-      seatLabel: p.seatLabel,
-      off: offsByStudent.get(p.studentId) ?? [],
-      byStudent: selfOffs.get(p.studentId) ?? [],
-    }))
+    .map((p) => {
+      const off: MealSlot[] = [];
+      const byStudent: MealSlot[] = [];
+      const normallyOff: MealSlot[] = [];
+      for (const slot of MEAL_SLOTS) {
+        const normallyOn = defaultOn(defaults.get(p.studentId), slot, date);
+        if (!normallyOn) normallyOff.push(slot);
+        const ex = exceptions.get(mealKey(p.studentId, slot));
+        const on = ex ? ex.turnedOn : normallyOn;
+        if (on) continue;
+        off.push(slot);
+        if (ex ? ex.createdBy === p.membershipId : true) byStudent.push(slot);
+      }
+      return {
+        studentId: p.studentId,
+        studentCode: p.studentCode,
+        fullName: p.fullName,
+        roomNumber: p.roomNumber,
+        seatLabel: p.seatLabel,
+        off,
+        byStudent,
+        normallyOff,
+      };
+    })
     .sort((a, b) => compareRoomNumbers(a.roomNumber, b.roomNumber) || a.seatLabel.localeCompare(b.seatLabel));
 
   const holidays: Partial<Record<MealSlot, string>> = {};
@@ -136,7 +184,10 @@ export async function getMealDay(actor: SessionUser, buildingId: string, date: D
   };
 }
 
-/** Save the grid: for every student on it, the stored OFF meals for that date become exactly `offs`. */
+/**
+ * Save the grid: for every student on it, the meals OFF that day become exactly `offs`.
+ * Stored as exceptions to each student's normal setting; unchanged cells keep who set them.
+ */
 export async function saveMealDay(actor: SessionUser, input: MealDayInput): Promise<{ offCount: number }> {
   await assertBuildingAccess(actor, input.buildingId);
   const editError = mealDateEditError(input.date, dhakaDate());
@@ -185,26 +236,54 @@ export async function saveMealDay(actor: SessionUser, input: MealDayInput): Prom
       offs.set(mealKey(o.studentId, o.slot), o);
     }
 
-    // Only touch what changed, so meals a student turned off themselves keep "turned off by the student".
-    const existing = await tx
-      .select({ id: mealOffs.id, studentId: mealOffs.studentId, slot: mealOffs.slot })
-      .from(mealOffs)
-      .where(and(eq(mealOffs.date, input.date), inArray(mealOffs.studentId, studentIds)));
-    const existingKeys = new Set(existing.map((e) => mealKey(e.studentId, e.slot)));
-    const removed = existing.filter((e) => !offs.has(mealKey(e.studentId, e.slot))).map((e) => e.id);
-    const added = [...offs.values()].filter((o) => !existingKeys.has(mealKey(o.studentId, o.slot)));
+    const [existing, defaults] = await Promise.all([
+      tx
+        .select({ id: mealOffs.id, studentId: mealOffs.studentId, slot: mealOffs.slot, turnedOn: mealOffs.turnedOn })
+        .from(mealOffs)
+        .where(and(eq(mealOffs.date, input.date), inArray(mealOffs.studentId, studentIds))),
+      loadMealDefaults(tx, studentIds, input.date),
+    ]);
+    const existingByKey = new Map(existing.map((e) => [mealKey(e.studentId, e.slot), e]));
 
-    if (removed.length > 0) await tx.delete(mealOffs).where(inArray(mealOffs.id, removed));
-    if (added.length > 0) {
+    const remove: string[] = [];
+    const flip: { id: string; turnedOn: boolean }[] = [];
+    const add: { studentId: string; slot: MealSlot; turnedOn: boolean }[] = [];
+    for (const studentId of studentIds) {
+      for (const slot of MEAL_SLOTS) {
+        if (holidaySlots.has(slot)) continue;
+        const key = mealKey(studentId, slot);
+        const wantOn = !offs.has(key);
+        const normallyOn = defaultOn(defaults.get(studentId), slot, input.date);
+        const ex = existingByKey.get(key);
+        if (wantOn === normallyOn) {
+          if (ex) remove.push(ex.id);
+        } else if (!ex) {
+          add.push({ studentId, slot, turnedOn: wantOn });
+        } else if (ex.turnedOn !== wantOn) {
+          flip.push({ id: ex.id, turnedOn: wantOn });
+        }
+        // Same exception already stored: keep it, so "by student" stays.
+      }
+    }
+
+    if (remove.length > 0) await tx.delete(mealOffs).where(inArray(mealOffs.id, remove));
+    for (const f of flip) {
+      await tx
+        .update(mealOffs)
+        .set({ turnedOn: f.turnedOn, createdBy: actor.membershipId })
+        .where(eq(mealOffs.id, f.id));
+    }
+    if (add.length > 0) {
       await tx
         .insert(mealOffs)
         .values(
-          added.map((o) => ({
+          add.map((o) => ({
             orgId: actor.orgId,
             studentId: o.studentId,
             buildingId: input.buildingId,
             date: input.date,
             slot: o.slot,
+            turnedOn: o.turnedOn,
             createdBy: actor.membershipId,
           })),
         )
@@ -378,11 +457,12 @@ export async function computeMealCounts(
   const studentIds = [...new Set(assignments.map((a) => a.studentId))];
   if (studentIds.length === 0) return [];
 
-  const [offRows, holidayRows] = await Promise.all([
+  const [offRows, defaults, holidayRows] = await Promise.all([
     tx
-      .select({ studentId: mealOffs.studentId, date: mealOffs.date, slot: mealOffs.slot })
+      .select({ studentId: mealOffs.studentId, date: mealOffs.date, slot: mealOffs.slot, turnedOn: mealOffs.turnedOn })
       .from(mealOffs)
       .where(and(eq(mealOffs.orgId, orgId), gte(mealOffs.date, start), lte(mealOffs.date, end))),
+    loadMealDefaults(tx, studentIds, end),
     tx
       .select({ buildingId: mealHolidays.buildingId, date: mealHolidays.date, slot: mealHolidays.slot })
       .from(mealHolidays)
@@ -390,10 +470,12 @@ export async function computeMealCounts(
   ]);
 
   const offsByStudent = new Map<string, Set<string>>();
+  const onsByStudent = new Map<string, Set<string>>();
   for (const o of offRows) {
-    const set = offsByStudent.get(o.studentId) ?? new Set<string>();
+    const target = o.turnedOn ? onsByStudent : offsByStudent;
+    const set = target.get(o.studentId) ?? new Set<string>();
     set.add(mealKey(o.date, o.slot));
-    offsByStudent.set(o.studentId, set);
+    target.set(o.studentId, set);
   }
   const holidaysAll = new Set<string>();
   const holidaysByBuilding = new Map<string, Set<string>>();
@@ -416,6 +498,8 @@ export async function computeMealCounts(
       period,
       intervals,
       offs: offsByStudent.get(latest.studentId) ?? new Set(),
+      ons: onsByStudent.get(latest.studentId),
+      defaults: defaults.get(latest.studentId),
       holidaysAll,
       holidaysByBuilding,
       until: opts.until ?? latest.leftDate ?? undefined,
