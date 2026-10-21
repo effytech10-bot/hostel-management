@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
-import { formatPeriod, isValidPeriod } from "@/lib/dates";
-import { formatTaka } from "@/lib/money";
+import { TokenCard } from "@/components/tokens/token-card";
+import { isValidPeriod } from "@/lib/dates";
 import { requireUser } from "@/server/auth/session";
 import { getPrintableTokens, type PrintableToken } from "@/server/services/tokens";
 import { PrintBar } from "./print-bar";
@@ -11,113 +11,6 @@ export const metadata: Metadata = { title: "Print tokens" };
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 type SP = Record<string, string | string[] | undefined>;
 const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
-
-function monthTitle(period: string) {
-  return formatPeriod(period).replace(" ", "-");
-}
-
-function Money({ paisa }: { paisa: number }) {
-  return <>{formatTaka(paisa, { symbol: false })}</>;
-}
-
-function TokenCard({
-  token,
-  orgName,
-  accounts,
-}: {
-  token: PrintableToken;
-  orgName: string;
-  accounts: { name: string; details: string | null }[];
-}) {
-  const label = (l: { label: string; detail: string | null }) =>
-    l.detail ? (
-      <>
-        {l.label} <span style={{ fontSize: "7.5pt" }}>({l.detail})</span>
-      </>
-    ) : (
-      l.label
-    );
-  const paidPaisa = token.payments.reduce((s, p) => s + p.amountPaisa, 0);
-  const rows: { label: React.ReactNode; value: React.ReactNode; bold?: boolean }[] = [
-    { label: "Student Name", value: token.studentName, bold: true },
-    { label: "Student ID", value: token.studentCode },
-    { label: "Token ID", value: token.code ?? "", bold: true },
-    { label: "Room / Seat", value: token.seatText },
-    ...token.current.map((l) => ({ label: label(l), value: <Money paisa={l.amountPaisa} /> })),
-    { label: "This month total", value: <Money paisa={token.currentTotalPaisa} />, bold: true },
-    ...token.previous.map((l) => ({ label: label(l), value: <Money paisa={l.amountPaisa} /> })),
-  ];
-
-  return (
-    <div className="token-card">
-      <div style={{ textAlign: "center", padding: "1.5mm", fontWeight: 700 }}>
-        <div style={{ fontSize: "11pt" }}>{orgName}</div>
-        <div>Building No: {token.buildingCode}</div>
-        <div>Token of {monthTitle(token.period)}</div>
-      </div>
-      <table style={{ flex: 1 }}>
-        <tbody>
-          <tr>
-            <td style={{ width: "62%", padding: 0 }}>
-              <table>
-                <tbody>
-                  {rows.map((r, i) => (
-                    <tr key={i}>
-                      <td style={{ width: "55%", borderTop: i === 0 ? "none" : undefined }}>{r.label}</td>
-                      <td
-                        style={{
-                          textAlign: "right",
-                          fontWeight: r.bold ? 700 : 400,
-                          borderTop: i === 0 ? "none" : undefined,
-                        }}
-                      >
-                        {r.value}
-                      </td>
-                    </tr>
-                  ))}
-                  <tr>
-                    <td style={{ fontWeight: 700, fontSize: "10.5pt" }}>
-                      {token.totalPaisa < 0 ? "Credit (nothing to pay)" : "To Be Paid"}
-                    </td>
-                    <td style={{ textAlign: "right", fontWeight: 700, fontSize: "11pt" }}>
-                      <Money paisa={Math.abs(token.totalPaisa)} />
-                    </td>
-                  </tr>
-                  {paidPaisa > 0 && (
-                    <tr>
-                      <td>Paid ({token.payments.map((p) => p.paidDate.slice(5)).join(", ")})</td>
-                      <td style={{ textAlign: "right" }}>
-                        <Money paisa={paidPaisa} />
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </td>
-            <td style={{ fontSize: "8.5pt" }}>
-              <div style={{ fontWeight: 700, marginBottom: "1mm" }}>Pay to</div>
-              {accounts.length === 0 && <div>Hostel office (cash)</div>}
-              {accounts.map((a) => (
-                <div key={a.name} style={{ marginBottom: "1.2mm" }}>
-                  <div style={{ fontWeight: 600 }}>{a.name}</div>
-                  {a.details && <div>{a.details}</div>}
-                </div>
-              ))}
-              {accounts.length > 0 && <div>* Include cash out cost</div>}
-            </td>
-          </tr>
-          <tr>
-            <td style={{ fontSize: "8pt" }}>
-              N.B.: Pay your bill in the 1st week of this month. Otherwise your meal service will be off from the 2nd
-              week.
-            </td>
-            <td style={{ fontSize: "8pt" }}>Write your Token ID as the reference, and collect your money receipt.</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-  );
-}
 
 export default async function PrintTokensPage({ searchParams }: { searchParams: Promise<SP> }) {
   const user = await requireUser();

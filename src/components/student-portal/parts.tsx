@@ -1,11 +1,11 @@
 import { UserRound } from "lucide-react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
-import { formatPeriod } from "@/lib/dates";
 import { formatTaka } from "@/lib/money";
 import { METHOD_LABEL } from "@/lib/validation/payments";
 import type { PrintableToken } from "@/server/services/tokens";
 import type { MyStudent } from "@/server/services/student-portal";
+import { TokenCard } from "@/components/tokens/token-card";
 import { TokenStateBadge } from "@/components/tokens/token-status";
 import type { TokenState } from "@/server/domain/tokens";
 
@@ -76,57 +76,26 @@ export function TokenView({
   token,
   state,
   remainingPaisa,
+  orgName,
+  accounts,
 }: {
   token: PrintableToken;
   state: TokenState;
   remainingPaisa: number;
+  orgName: string;
+  accounts: { name: string; details: string | null }[];
 }) {
-  const section = (title: string, lines: PrintableToken["current"]) =>
-    lines.length > 0 && (
-      <>
-        <li className="text-muted-foreground pt-2 text-xs font-semibold uppercase">{title}</li>
-        {lines.map((l, i) => (
-          <li key={`${title}${i}`} className="flex justify-between gap-4 border-b py-1.5">
-            <span>
-              {l.label}
-              {l.detail && <span className="text-muted-foreground ml-2 text-xs">{l.detail}</span>}
-            </span>
-            <span className="tabular-nums">{formatTaka(l.amountPaisa)}</span>
-          </li>
-        ))}
-      </>
-    );
   return (
     <div className="flex flex-col gap-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="font-medium">
-          <span className="font-mono">{token.code}</span>{" "}
-          <span className="text-muted-foreground font-normal">· {formatPeriod(token.period)}</span>
-        </p>
+        <p className="font-mono font-medium">{token.code}</p>
         <TokenStateBadge state={state} />
       </div>
-      <ul className="flex flex-col text-sm">
-        {section("This month", token.current)}
-        {section("Due", token.previous)}
-        <li className="flex justify-between gap-4 py-2 font-semibold">
-          <span>Total</span>
-          <span className="tabular-nums">{formatTaka(token.totalPaisa)}</span>
-        </li>
-      </ul>
-      {token.payments.length > 0 && (
-        <div className="text-sm">
-          <p className="text-muted-foreground text-xs font-semibold uppercase">Paid</p>
-          {token.payments.map((p, i) => (
-            <div key={i} className="flex justify-between gap-4 py-1">
-              <span>
-                {p.paidDate} · {p.accountName}
-                {p.trxId && <span className="text-muted-foreground ml-1 font-mono text-xs">{p.trxId}</span>}
-              </span>
-              <span className="tabular-nums">{formatTaka(p.amountPaisa)}</span>
-            </div>
-          ))}
+      <div className="overflow-x-auto">
+        <div className="min-w-[520px]">
+          <TokenCard token={token} orgName={orgName} accounts={accounts} />
         </div>
-      )}
+      </div>
       {state !== "paid" && (
         <p className="text-sm">
           Left to pay: <span className="font-semibold tabular-nums">{formatTaka(remainingPaisa)}</span>

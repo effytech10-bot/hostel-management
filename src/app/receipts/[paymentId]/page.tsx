@@ -7,6 +7,8 @@ import { requireUser } from "@/server/auth/session";
 import { HEAD_LABEL } from "@/server/domain/billing";
 import { AppError } from "@/server/errors";
 import { getReceipt } from "@/server/services/payments";
+import { getPrintableTokens } from "@/server/services/tokens";
+import { TokenCard } from "@/components/tokens/token-card";
 import { PrintButton, VoidPaymentForm } from "./receipt-actions";
 
 export const metadata: Metadata = { title: "Receipt" };
@@ -36,6 +38,40 @@ export default async function ReceiptPage({ params }: { params: Promise<{ paymen
   }
   const { payment, student } = r;
   const voided = !!payment.voidedAt;
+
+  // A payment belongs to a token: show the token with this payment in it.
+  if (payment.tokenId) {
+    const { tokens: list, accounts } = await getPrintableTokens(user, { tokenId: payment.tokenId });
+    const token = list[0];
+    if (token) {
+      return (
+        <main className="mx-auto max-w-2xl p-4 print:max-w-none print:p-0">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-2 print:hidden">
+            <p className="text-sm">
+              Receipt <b>{payment.receiptNo}</b> · {formatTaka(payment.amountPaisa)} on {payment.paidDate} (
+              {METHOD_LABEL[payment.method]} · {r.accountName}) · received by {r.receivedByName ?? "—"}
+            </p>
+            <PrintButton />
+          </div>
+          {voided && (
+            <p className="mb-3 rounded-md bg-red-50 p-2 text-sm text-red-800">
+              This payment was voided on {payment.voidedAt!.toISOString().slice(0, 10)}: {payment.voidReason}
+            </p>
+          )}
+          <div className="overflow-x-auto">
+            <div className="min-w-[560px]">
+              <TokenCard token={token} orgName={user.orgName} accounts={accounts} highlightPaymentId={payment.id} />
+            </div>
+          </div>
+          {user.role === "admin" && !voided && (
+            <div className="mt-6 print:hidden">
+              <VoidPaymentForm paymentId={payment.id} />
+            </div>
+          )}
+        </main>
+      );
+    }
+  }
 
   return (
     <main className="mx-auto max-w-md p-4 print:max-w-none print:p-0">

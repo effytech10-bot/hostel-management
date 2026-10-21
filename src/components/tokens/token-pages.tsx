@@ -14,7 +14,14 @@ import { db } from "@/server/db/client";
 import { AppError } from "@/server/errors";
 import { listBuildings } from "@/server/services/buildings";
 import { planTokenRun } from "@/server/services/token-engine";
-import { findLatestToken, getTokenView, listBillingPeriods, listTokens } from "@/server/services/tokens";
+import {
+  findLatestToken,
+  getPrintableTokens,
+  getTokenView,
+  listBillingPeriods,
+  listTokens,
+} from "@/server/services/tokens";
+import { TokenCard } from "./token-card";
 import { MonthEndButton } from "./month-end-button";
 import { TokenPaymentForm } from "./token-payment-form";
 import { TokenStateBadge } from "./token-status";
@@ -349,30 +356,6 @@ export async function TokensPage({
 // One token
 // ---------------------------------------------------------------------------
 
-type Line = { id: string; label: string; detail: string | null; amountPaisa: number };
-
-function Lines({ title, lines }: { title: string; lines: Line[] }) {
-  if (lines.length === 0) return null;
-  return (
-    <div>
-      <p className="text-muted-foreground mb-1 text-xs font-semibold tracking-wide uppercase">{title}</p>
-      <ul className="divide-y rounded-md border">
-        {lines.map((l) => (
-          <li key={l.id} className="flex items-baseline justify-between gap-4 px-3 py-2 text-sm">
-            <span>
-              {l.label}
-              {l.detail && <span className="text-muted-foreground ml-2 text-xs">{l.detail}</span>}
-            </span>
-            <span className={l.amountPaisa < 0 ? "text-emerald-700 tabular-nums" : "tabular-nums"}>
-              {formatTaka(l.amountPaisa)}
-            </span>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-
 export async function TokenDetailPage({
   actor,
   basePath,
@@ -390,6 +373,7 @@ export async function TokenDetailPage({
     throw e;
   }
   const { token, student } = view;
+  const printable = await getPrintableTokens(actor, { tokenId: token.id });
   const isStaff = actor.role === "admin" || actor.role === "cashier";
   const studentsPath = basePath.replace("/tokens", "/students");
   const extraPaisa = view.isLatest ? Math.max(0, view.paidHerePaisa - token.totalPaisa) : 0;
@@ -437,40 +421,20 @@ export async function TokenDetailPage({
 
       <div className="grid gap-6 lg:grid-cols-5">
         <div className="flex flex-col gap-6 lg:col-span-3">
-          <Card>
-            <CardHeader>
-              <CardTitle>Token</CardTitle>
-            </CardHeader>
-            <CardContent className="flex flex-col gap-4">
-              <Lines title="This month" lines={view.current} />
-              <Lines title="Due" lines={view.due} />
-              <div className="flex flex-col gap-1 border-t pt-3 text-sm">
-                <div className="flex justify-between text-base font-semibold">
-                  <span>Total</span>
-                  <span className="tabular-nums">{formatTaka(token.totalPaisa)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Paid on this token</span>
-                  <span className="tabular-nums">{formatTaka(view.paidHerePaisa)}</span>
-                </div>
-                {view.state !== "carried" && (
-                  <div className="flex justify-between font-medium">
-                    <span>Left to pay</span>
-                    <span className="tabular-nums">{formatTaka(view.remainingPaisa)}</span>
-                  </div>
-                )}
-                {extraPaisa > 0 && (
-                  <p className="text-emerald-700">
-                    {formatTaka(extraPaisa)} extra paid. It will show as &quot;Extra paid&quot; on the next token.
-                  </p>
-                )}
-              </div>
-            </CardContent>
-          </Card>
+          <div className="overflow-x-auto">
+            <div className="min-w-[560px]">
+              <TokenCard token={printable.tokens[0]} orgName={actor.orgName} accounts={printable.accounts} />
+            </div>
+          </div>
+          {extraPaisa > 0 && (
+            <p className="text-sm text-emerald-700">
+              {formatTaka(extraPaisa)} extra paid. It will show as &quot;Extra Paid&quot; on the next token.
+            </p>
+          )}
 
           <Card>
             <CardHeader>
-              <CardTitle>Payments on this token</CardTitle>
+              <CardTitle>Payment details</CardTitle>
             </CardHeader>
             <CardContent className="px-0">
               {view.payments.length === 0 ? (

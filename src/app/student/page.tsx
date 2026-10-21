@@ -24,7 +24,8 @@ export default async function StudentHome() {
     getMyMealMonth(user, period),
   ]);
   const latest = tokenList[0] ?? null;
-  const printable = latest ? (await getPrintableTokens(user, { tokenId: latest.id })).tokens[0] : null;
+  const printed = latest ? await getPrintableTokens(user, { tokenId: latest.id }) : null;
+  const printable = printed?.tokens[0] ?? null;
 
   return (
     <div className="mx-auto flex max-w-xl flex-col gap-4">
@@ -37,7 +38,13 @@ export default async function StudentHome() {
         </CardHeader>
         <CardContent>
           {latest && printable ? (
-            <TokenView token={printable} state={latest.state} remainingPaisa={latest.remainingPaisa} />
+            <TokenView
+              token={printable}
+              state={latest.state}
+              remainingPaisa={latest.remainingPaisa}
+              orgName={user.orgName}
+              accounts={printed?.accounts ?? []}
+            />
           ) : (
             <p className="text-muted-foreground text-sm">
               No token yet. Your token appears here at the start of each month.
