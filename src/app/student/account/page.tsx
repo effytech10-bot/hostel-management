@@ -1,11 +1,8 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { PageHeader } from "@/components/layout/app-shell";
 import { AccountSummary, PaymentHistory } from "@/components/payments/account-summary";
-import { TokenStatusBadge } from "@/components/tokens/token-status";
+import { TokenHistory } from "@/components/tokens/student-token-cards";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { formatPeriod } from "@/lib/dates";
-import { formatTaka } from "@/lib/money";
 import { requireRole } from "@/server/auth/session";
 import { getStudentMoney } from "@/server/services/payments";
 import { getMyStudent } from "@/server/services/student-portal";
@@ -38,27 +35,11 @@ export default async function StudentAccountPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Bills (tokens)</CardTitle>
-          <CardDescription>Tap a bill to open it as a paper token.</CardDescription>
+          <CardTitle>Tokens</CardTitle>
+          <CardDescription>Tap a token to see what was in it and what was paid on it.</CardDescription>
         </CardHeader>
         <CardContent>
-          {tokenList.length === 0 ? (
-            <p className="text-muted-foreground text-sm">No bills yet.</p>
-          ) : (
-            <ul className="flex flex-col divide-y text-sm">
-              {tokenList.map((t) => (
-                <li key={t.id} className="flex items-center justify-between gap-3 py-2">
-                  <Link href={`/print/tokens?token=${t.id}`} target="_blank" className="text-primary hover:underline">
-                    {t.kind === "admission" ? "Admission" : formatPeriod(t.period)}
-                  </Link>
-                  <span className="flex items-center gap-2">
-                    <span className="tabular-nums">{formatTaka(t.totalPaisa)}</span>
-                    <TokenStatusBadge status={t.status} />
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
+          <TokenHistory tokens={tokenList} tokensPath="/student/tokens" />
         </CardContent>
       </Card>
 

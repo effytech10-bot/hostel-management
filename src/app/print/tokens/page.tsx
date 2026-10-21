@@ -29,13 +29,23 @@ function TokenCard({
   orgName: string;
   accounts: { name: string; details: string | null }[];
 }) {
-  const rows: { label: string; value: React.ReactNode; bold?: boolean }[] = [
+  const label = (l: { label: string; detail: string | null }) =>
+    l.detail ? (
+      <>
+        {l.label} <span style={{ fontSize: "7.5pt" }}>({l.detail})</span>
+      </>
+    ) : (
+      l.label
+    );
+  const paidPaisa = token.payments.reduce((s, p) => s + p.amountPaisa, 0);
+  const rows: { label: React.ReactNode; value: React.ReactNode; bold?: boolean }[] = [
     { label: "Student Name", value: token.studentName, bold: true },
     { label: "Student ID", value: token.studentCode },
+    { label: "Token ID", value: token.code ?? "", bold: true },
     { label: "Room / Seat", value: token.seatText },
-    ...token.current.map((l) => ({ label: l.label, value: <Money paisa={l.amountPaisa} /> })),
+    ...token.current.map((l) => ({ label: label(l), value: <Money paisa={l.amountPaisa} /> })),
     { label: "This month total", value: <Money paisa={token.currentTotalPaisa} />, bold: true },
-    ...token.previous.map((l) => ({ label: l.label, value: <Money paisa={l.amountPaisa} /> })),
+    ...token.previous.map((l) => ({ label: label(l), value: <Money paisa={l.amountPaisa} /> })),
   ];
 
   return (
@@ -43,9 +53,7 @@ function TokenCard({
       <div style={{ textAlign: "center", padding: "1.5mm", fontWeight: 700 }}>
         <div style={{ fontSize: "11pt" }}>{orgName}</div>
         <div>Building No: {token.buildingCode}</div>
-        <div>
-          {token.kind === "admission" ? "Admission bill" : "Accounts of"} {monthTitle(token.period)}
-        </div>
+        <div>Token of {monthTitle(token.period)}</div>
       </div>
       <table style={{ flex: 1 }}>
         <tbody>
@@ -75,6 +83,14 @@ function TokenCard({
                       <Money paisa={Math.abs(token.totalPaisa)} />
                     </td>
                   </tr>
+                  {paidPaisa > 0 && (
+                    <tr>
+                      <td>Paid ({token.payments.map((p) => p.paidDate.slice(5)).join(", ")})</td>
+                      <td style={{ textAlign: "right" }}>
+                        <Money paisa={paidPaisa} />
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </td>
@@ -95,9 +111,7 @@ function TokenCard({
               N.B.: Pay your bill in the 1st week of this month. Otherwise your meal service will be off from the 2nd
               week.
             </td>
-            <td style={{ fontSize: "8pt" }}>
-              Write your name, Student ID and building as the reference, and collect your money receipt.
-            </td>
+            <td style={{ fontSize: "8pt" }}>Write your Token ID as the reference, and collect your money receipt.</td>
           </tr>
         </tbody>
       </table>

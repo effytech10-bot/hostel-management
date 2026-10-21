@@ -23,8 +23,7 @@ import { AdjustmentForm } from "@/components/payments/adjustment-form";
 import { getStudentMoney, listPaymentAccounts } from "@/server/services/payments";
 import { LeaveForm, RefundForm } from "./leave-forms";
 import { listStudentTokens } from "@/server/services/tokens";
-import { TokenStatusBadge } from "@/components/tokens/token-status";
-import { formatPeriod } from "@/lib/dates";
+import { EarlyTokenCard, LatestTokenCard, TokenHistory } from "@/components/tokens/student-token-cards";
 import { AdmissionForm } from "./admission-form";
 import type { SeatOption } from "./seat-picker";
 import { EditProfileForm, ResetStudentPasswordForm, TransferForm } from "./student-forms";
@@ -245,7 +244,7 @@ export async function StudentDetailPage({
     actor.role === "admin" ? listPaymentAccounts(actor) : Promise.resolve([]),
   ]);
   const accountOptions = accounts.map((a) => ({ id: a.id, name: a.name }));
-  const paymentsPath = basePath.replace("/students", "/payments");
+  const tokensPath = basePath.replace("/students", "/tokens");
   const seatOptions: SeatOption[] = current
     ? [
         {
@@ -304,12 +303,14 @@ export async function StudentDetailPage({
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
+        <LatestTokenCard tokens={studentTokens} tokensPath={tokensPath} canPay={actor.role !== "student"} />
+
         <Card className="lg:col-span-2">
-          <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2">
-            <CardTitle>Account</CardTitle>
-            <Button asChild size="sm">
-              <Link href={`${paymentsPath}/new?student=${student.id}`}>Take payment</Link>
-            </Button>
+          <CardHeader>
+            <CardTitle>Balance</CardTitle>
+            <CardDescription>
+              What the student owes or has extra, by type. The newest token shows the same.
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <AccountSummary
@@ -318,6 +319,15 @@ export async function StudentDetailPage({
               totalPaisa={money.totalPaisa}
               advanceHeldPaisa={money.advanceHeldPaisa}
             />
+          </CardContent>
+        </Card>
+
+        <Card className="lg:col-span-2">
+          <CardHeader>
+            <CardTitle>Tokens</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <TokenHistory tokens={studentTokens} tokensPath={tokensPath} />
           </CardContent>
         </Card>
 
@@ -330,32 +340,11 @@ export async function StudentDetailPage({
           </CardContent>
         </Card>
 
-        <Card className="lg:col-span-3">
-          <CardHeader>
-            <CardTitle>Monthly tokens</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {studentTokens.length === 0 ? (
-              <p className="text-muted-foreground text-sm">No tokens yet. They are made at month-end.</p>
-            ) : (
-              <ul className="flex flex-wrap gap-2">
-                {studentTokens.map((t) => (
-                  <li key={t.id}>
-                    <Link
-                      href={`/print/tokens?token=${t.id}`}
-                      target="_blank"
-                      className="hover:bg-muted inline-flex items-center gap-2 rounded-md border px-3 py-1.5 text-sm"
-                    >
-                      {formatPeriod(t.period)}
-                      <span className="font-medium tabular-nums">{formatTaka(t.totalPaisa)}</span>
-                      <TokenStatusBadge status={t.status} />
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </CardContent>
-        </Card>
+        {actor.role === "admin" && student.status === "active" && current && (
+          <div className="lg:col-span-3">
+            <EarlyTokenCard actor={actor} studentId={student.id} tokensPath={tokensPath} />
+          </div>
+        )}
 
         {actor.role === "admin" && money.totalPaisa < 0 && accountOptions.length > 0 && (
           <Card className="lg:col-span-3">
@@ -376,8 +365,8 @@ export async function StudentDetailPage({
             <CardHeader>
               <CardTitle>Student leaving (admin)</CardTitle>
               <CardDescription>
-                Settles this month&apos;s meals, gives back unused days (if the rule in Settings is “by days”), returns
-                the paid advance against dues, frees the seat and stops future tokens. Preview first.
+                Settles meals since the last token, gives back unused days (if the rule in Settings is “by days”),
+                returns the paid advance against dues, frees the seat and stops future tokens. Preview first.
               </CardDescription>
             </CardHeader>
             <CardContent>

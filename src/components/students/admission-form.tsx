@@ -48,29 +48,41 @@ export function AdmissionForm({
             The student logs in with their phone number or Student ID and this password, then chooses their own
             password. If they forget it, reset it from the student&apos;s page.
           </p>
-          {a.firstBill && (
-            <div className="rounded-lg border p-4 text-sm">
-              <p className="mb-2 font-semibold">First bill</p>
-              {a.firstBill.lines.map((l) => (
-                <div key={l.label} className="flex justify-between gap-4">
-                  <span>{l.label}</span>
-                  <span className="tabular-nums">{formatTaka(l.amountPaisa)}</span>
-                </div>
-              ))}
-              <div className="mt-2 flex justify-between gap-4 border-t pt-2 font-semibold">
-                <span>To be paid</span>
-                <span className="tabular-nums">{formatTaka(a.firstBill.totalPaisa)}</span>
+          <div className="rounded-lg border p-4 text-sm">
+            <p className="mb-1 font-semibold">
+              Token <span className="font-mono">{a.firstBill.code}</span>
+            </p>
+            {(["current", "due"] as const).map((section) => (
+              <div key={section} className="mt-2">
+                <p className="text-muted-foreground text-xs font-semibold uppercase">
+                  {section === "current" ? "This month" : "Due"}
+                </p>
+                {a.firstBill.lines
+                  .filter((l) => l.section === section)
+                  .map((l) => (
+                    <div key={l.label} className="flex justify-between gap-4">
+                      <span>
+                        {l.label}
+                        {l.detail && <span className="text-muted-foreground ml-2 text-xs">{l.detail}</span>}
+                      </span>
+                      <span className="tabular-nums">{formatTaka(l.amountPaisa)}</span>
+                    </div>
+                  ))}
               </div>
+            ))}
+            <div className="mt-2 flex justify-between gap-4 border-t pt-2 font-semibold">
+              <span>Total</span>
+              <span className="tabular-nums">{formatTaka(a.firstBill.totalPaisa)}</span>
             </div>
-          )}
+          </div>
           {a.photoWarning && <FormMessage error={a.photoWarning} />}
           <div className="flex flex-wrap gap-2">
             <Button asChild>
               <Link href={`${basePath}/${a.studentId}`}>Open student</Link>
             </Button>
             <Button asChild variant="outline">
-              <Link href={`${basePath.replace("/students", "/payments")}/new?student=${a.studentId}`}>
-                Take payment
+              <Link href={`${basePath.replace("/students", "/tokens")}/${a.firstBill.code}`}>
+                Open token & take payment
               </Link>
             </Button>
             <Button
@@ -117,19 +129,12 @@ export function AdmissionForm({
       </fieldset>
 
       <fieldset className="flex flex-col gap-4">
-        <legend className="mb-3 text-sm font-semibold">Photo, first bill & login</legend>
+        <legend className="mb-3 text-sm font-semibold">Photo, first token & login</legend>
         <PhotoInput />
-        <label className="flex items-start gap-2 text-sm">
-          <input type="checkbox" name="firstBill" defaultChecked className="mt-0.5" />
-          <span>
-            <span className="font-medium">Make the first bill now</span>
-            <span className="text-muted-foreground block">
-              Advance (months of rent from Settings) + this month&apos;s rent, meal deposit and baburchi. Joining after
-              the 1st is charged by days if the Settings rule says so. Untick only when bringing in an existing student
-              whose dues you will enter separately.
-            </span>
-          </span>
-        </label>
+        <p className="text-muted-foreground text-sm">
+          A token for next month is made right away: next month&apos;s rent and meal deposit, the rest of this month
+          (rent + meals, with dates), the advance and the one-time service charge.
+        </p>
         <p className="text-muted-foreground text-sm">
           Login: the student uses their phone number (or Student ID). The first password is the last 6 digits of their
           phone number; they must set their own password at the first login.

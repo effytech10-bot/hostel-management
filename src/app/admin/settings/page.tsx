@@ -92,7 +92,6 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
                   <TableHead className="text-right">Lunch</TableHead>
                   <TableHead className="text-right">Dinner</TableHead>
                   <TableHead className="text-right">Meal deposit</TableHead>
-                  <TableHead className="text-right">Baburchi</TableHead>
                   <TableHead className="text-right">Service charge</TableHead>
                   <TableHead className="text-right">Advance</TableHead>
                   <TableHead>Notes</TableHead>
@@ -110,11 +109,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
                     <TableCell className="text-right tabular-nums">{formatTaka(r.lunchRatePaisa)}</TableCell>
                     <TableCell className="text-right tabular-nums">{formatTaka(r.dinnerRatePaisa)}</TableCell>
                     <TableCell className="text-right tabular-nums">{formatTaka(r.mealDepositPaisa)}</TableCell>
-                    <TableCell className="text-right tabular-nums">{formatTaka(r.baburchiPaisa)}</TableCell>
-                    <TableCell className="text-right tabular-nums">
-                      {formatTaka(r.serviceChargePaisa)}
-                      {r.serviceChargeThisMonth && <Badge className="ml-2">billed</Badge>}
-                    </TableCell>
+                    <TableCell className="text-right tabular-nums">{formatTaka(r.serviceChargePaisa)}</TableCell>
                     <TableCell className="text-right tabular-nums">{r.advanceMonths} mo</TableCell>
                     <TableCell className="text-muted-foreground max-w-48 truncate">{r.notes ?? ""}</TableCell>
                   </TableRow>

@@ -117,14 +117,14 @@ export function DashboardView({ data, area, isAdmin }: { data: Data; area: strin
               ) : (
                 <CheckCircle2 className="size-5 text-emerald-600" />
               )}
-              Month-end
+              Monthly tokens
             </CardTitle>
             <CardDescription>
               {monthEnd.neverRun
-                ? "Month-end has never been run. The first time must be done by the admin from Tokens."
+                ? "Tokens have never been made. The first run must be done by the admin from Tokens."
                 : monthEnd.needsClosing
-                  ? `${formatPeriod(monthEnd.needsClosing)} is not closed yet. Close it from Tokens so meals are settled and this month's tokens are made.`
-                  : `Up to date. Last closed: ${formatPeriod(monthEnd.lastClosed!)}.`}
+                  ? `${formatPeriod(monthEnd.needsClosing)} is not closed yet. Make this month's tokens from Tokens (meals up to the end of last month go in their pre meal).`
+                  : `Up to date. Last month locked: ${formatPeriod(monthEnd.lastClosed!)}.`}
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-wrap gap-3 text-sm">

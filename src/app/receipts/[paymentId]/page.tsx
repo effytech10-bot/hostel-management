@@ -67,6 +67,7 @@ export default async function ReceiptPage({ params }: { params: Promise<{ paymen
         <section className="mb-3 border-b pb-3">
           <Row label="Student" value={student.fullName} />
           <Row label="Student ID" value={student.studentCode} />
+          {r.tokenCode && <Row label="Token ID" value={r.tokenCode} />}
           <Row
             label="Building / seat"
             value={`${r.buildingCode ?? "—"}${r.seat ? ` · ${r.seat.roomNumber}-${r.seat.seatLabel}` : ""}`}

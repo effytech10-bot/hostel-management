@@ -87,7 +87,7 @@ export function LeaveForm({ studentId, accounts }: { studentId: string; accounts
           <p className="mb-1 font-semibold">Final statement if the last day is {s.lastDay}</p>
           {s.meal && (
             <Line
-              label={`Meals this month (${s.meal.breakfast} breakfast, ${s.meal.lunch} lunch, ${s.meal.dinner} dinner): ${formatTaka(s.meal.costPaisa)} vs deposit ${formatTaka(s.meal.depositPaisa)}`}
+              label={`Pre meal${s.meal.range ? ` ${s.meal.range}` : ""} (${s.meal.breakfast} breakfast, ${s.meal.lunch} lunch, ${s.meal.dinner} dinner): ${formatTaka(s.meal.costPaisa)} − deposit ${formatTaka(s.meal.depositPaisa)}`}
               value={
                 s.meal.differencePaisa >= 0
                   ? `+${formatTaka(s.meal.differencePaisa)}`
@@ -97,7 +97,7 @@ export function LeaveForm({ studentId, accounts }: { studentId: string; accounts
           )}
           {(s.rentBackPaisa > 0 || s.baburchiBackPaisa > 0) && (
             <Line
-              label={`${s.unusedDays} unused day(s) of rent and baburchi given back`}
+              label={`${s.unusedDays} unused day(s) of rent given back`}
               value={`−${formatTaka(s.rentBackPaisa + s.baburchiBackPaisa)}`}
             />
           )}
