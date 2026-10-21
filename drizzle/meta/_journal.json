@@ -78,6 +78,13 @@
       "when": 1790266883737,
       "tag": "0010_meal_preferences",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1792584214461,
+      "tag": "0011_token_payments",
+      "breakpoints": true
     }
   ]
 }
