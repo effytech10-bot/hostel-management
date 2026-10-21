@@ -26,40 +26,33 @@ describe("dates", () => {
 });
 
 describe("admission token", () => {
-  it("25 Sep: October token with the rest of September as due", () => {
-    const t = admissionDrafts({
-      admissionDate: "2026-09-25",
-      rentPaisa: 600000,
-      restOfMonthMealsPaisa: 6 * 13750,
-      mealDepositPaisa: 420000,
-      advanceMonths: 2,
-      serviceChargePaisa: 600000,
-      rule: "prorata",
-    });
-    expect(t.period).toBe("2026-10");
-    expect(t.restDays).toBe(6);
-    expect(t.lines.map((l) => [l.section, l.label, l.detail, l.amountPaisa])).toEqual([
-      ["current", "Month rent", "Oct 2026", 600000],
-      ["current", "Meal deposit", "Oct 2026", 420000],
-      ["due", "Monthly due", "25 – 30 Sep", 120000],
-      ["due", "Pre meal", "25 – 30 Sep", 82500],
-      ["due", "Advance", "2 months rent", 1200000],
-      ["due", "Service charge", "One time", 600000],
-    ]);
-    expect(totalOf(t.lines)).toBe(600000 + 420000 + 120000 + 82500 + 1200000 + 600000);
+  it("any day of the month: that month's token, full rent, advance + service charge", () => {
+    for (const day of ["2026-11-01", "2026-11-15", "2026-11-28"]) {
+      const t = admissionDrafts({
+        admissionDate: day,
+        rentPaisa: 600000,
+        mealDepositPaisa: 420000,
+        advanceMonths: 2,
+        serviceChargePaisa: 600000,
+      });
+      expect(t.period).toBe("2026-11");
+      expect(t.lines.map((l) => [l.section, l.label, l.detail, l.amountPaisa])).toEqual([
+        ["current", "Month rent", "Nov 2026", 600000],
+        ["current", "Meal deposit", "Nov 2026", 420000],
+        ["due", "Advance", "2 months rent", 1200000],
+        ["due", "Service charge", "One time", 600000],
+      ]);
+      expect(totalOf(t.lines)).toBe(2820000);
+    }
   });
-  it("1 Oct: the whole of October is due and the token is for November", () => {
+  it("no service charge line when it is 0", () => {
     const t = admissionDrafts({
-      admissionDate: "2026-10-01",
+      admissionDate: "2026-10-20",
       rentPaisa: 600000,
-      restOfMonthMealsPaisa: 0,
       mealDepositPaisa: 420000,
       advanceMonths: 2,
       serviceChargePaisa: 0,
-      rule: "prorata",
     });
-    expect(t.period).toBe("2026-11");
-    expect(t.lines.find((l) => l.label === "Monthly due")).toMatchObject({ detail: "1 – 31 Oct", amountPaisa: 600000 });
     expect(t.lines.some((l) => l.head === "service_charge")).toBe(false);
   });
 });

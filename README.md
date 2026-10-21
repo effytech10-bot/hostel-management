@@ -68,7 +68,7 @@ A token is the student's bill for one month **and** the place where their paymen
 
 - **One token per student per month**, ID `YYMM-<building><room><seat>-<last 3 of Student ID>`,
   e.g. `2610-207601A-001` (October 2026, building 207, room 601, seat A, student …001).
-- **Sections:** *This month* = month rent + meal deposit. *Due* = Monthly due (unpaid rent, with months or days),
+- **Sections:** _This month_ = month rent + meal deposit. _Due_ = Monthly due (unpaid rent, with months or days),
   Pre meal (meals eaten minus the meal deposit, with the date range), Meal due (meal money unpaid from older tokens),
   Advance due, Service charge due, Extra paid (money paid beyond the last token, a minus line).
 - **Made automatically on the 1st at 12:05 AM** (`/api/cron/month-end`, Vercel cron) once the admin has done the
@@ -85,9 +85,10 @@ A token is the student's bill for one month **and** the place where their paymen
 
 ## Joining and leaving
 
-- **Admission** always makes the first token, for the **next** month: next month's rent + meal deposit, the rest of
-  the admission month (Monthly due + Pre meal, with dates), the advance (months of rent from Settings) and the
-  one-time service charge. Settings → "Joining or leaving in the middle of the month" decides: by days, or full month.
+- **Admission** (any day of the month) makes the token for **that** month: the full month's rent + meal deposit,
+  the advance (months of rent from Settings) and the one-time service charge. No other due. Meals from the admission
+  date are settled as Pre meal on next month's automatic token.
+  Settings → "Leaving in the middle of the month" decides how unused days are given back: by days, or not at all.
 - **Leaving** (admin, student page): preview, then confirm. Settles meals since the newest token up to the last day, gives back
   unused days (by-days rule), cancels the advance charge so the paid advance pays the dues, frees the seat and stops
   future tokens. If the hostel owes money back, record the refund (now or later).

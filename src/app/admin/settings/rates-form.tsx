@@ -92,7 +92,7 @@ export function RatesForm({ period, defaults, locked }: { period: string; defaul
         </div>
 
         <div className="flex flex-col gap-2 sm:max-w-md">
-          <Label htmlFor="midMonthRule">Joining or leaving in the middle of the month</Label>
+          <Label htmlFor="midMonthRule">Leaving in the middle of the month</Label>
           <Select id="midMonthRule" name="midMonthRule" defaultValue={defaults.midMonthRule}>
             <option value="prorata">Charge only the days stayed</option>
             <option value="full">Charge the full month</option>
