@@ -46,7 +46,7 @@ export function TokenPaymentForm({
         <div className="flex flex-wrap gap-2">
           <Button asChild>
             <Link href={`/receipts/${r.paymentId}`} target="_blank">
-              Open / print receipt
+              Open / print token with this payment
             </Link>
           </Button>
           <Button variant="outline" onClick={() => window.location.reload()}>

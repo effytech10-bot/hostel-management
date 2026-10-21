@@ -10,7 +10,7 @@ import type { ActionState } from "@/server/errors";
 export function PrintButton() {
   return (
     <Button onClick={() => window.print()} size="sm">
-      Print receipt
+      Print token
     </Button>
   );
 }

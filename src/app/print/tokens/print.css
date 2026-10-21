@@ -35,28 +35,3 @@
     margin: 0;
   }
 }
-
-.token-card {
-  border: 1px solid #111;
-  color: #111;
-  font-size: 9.5pt;
-  line-height: 1.25;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-.token-card table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.token-card td {
-  border-top: 1px solid #111;
-  padding: 1.2mm 1.5mm;
-  vertical-align: top;
-}
-
-.token-card td + td {
-  border-left: 1px solid #111;
-}

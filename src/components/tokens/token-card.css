@@ -1,0 +1,75 @@
+.token-card {
+  border: 1px solid #111;
+  color: #111;
+  background: white;
+  font-family: "Times New Roman", Times, serif;
+  font-size: 10pt;
+  line-height: 1.25;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.token-card table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.token-card td {
+  border-top: 1px solid #111;
+  padding: 1mm 1.5mm;
+  vertical-align: middle;
+}
+
+.token-card td + td {
+  border-left: 1px solid #111;
+}
+
+.token-card-head {
+  text-align: center;
+  font-weight: 700;
+  padding: 1mm;
+}
+
+.token-card-sub {
+  border-top: 1px solid #111;
+}
+
+.token-card-label {
+  width: 37%;
+}
+
+.token-card-value {
+  width: 30%;
+  text-align: center;
+}
+
+.token-card-code {
+  font-size: 9pt;
+  white-space: nowrap;
+}
+
+.token-card-pay {
+  font-size: 9pt;
+  vertical-align: top !important;
+}
+
+.token-card-big {
+  font-size: 11pt;
+  font-weight: 700;
+}
+
+.token-card-detail {
+  font-size: 7.5pt;
+  font-weight: 400;
+}
+
+.token-card-note {
+  font-size: 9pt;
+  vertical-align: top !important;
+}
+
+.token-card-hl td {
+  background: #fff7cc;
+}

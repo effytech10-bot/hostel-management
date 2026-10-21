@@ -375,9 +375,16 @@ export type PrintableToken = {
   currentTotalPaisa: number;
   previousTotalPaisa: number;
   totalPaisa: number;
-  current: { label: string; detail: string | null; amountPaisa: number }[];
-  previous: { label: string; detail: string | null; amountPaisa: number }[];
-  payments: { paidDate: string; amountPaisa: number; accountName: string; trxId: string | null }[];
+  current: { head: string; label: string; detail: string | null; amountPaisa: number }[];
+  previous: { head: string; label: string; detail: string | null; amountPaisa: number }[];
+  payments: {
+    id: string;
+    receiptNo: string;
+    paidDate: string;
+    amountPaisa: number;
+    accountName: string;
+    trxId: string | null;
+  }[];
 };
 
 /** Tokens to print: a whole month (optionally one building), or one token. Students only get their own. */
@@ -430,6 +437,8 @@ export async function getPrintableTokens(
     ids.length
       ? db()
           .select({
+            id: payments.id,
+            receiptNo: payments.receiptNo,
             tokenId: payments.tokenId,
             paidDate: payments.paidDate,
             amountPaisa: payments.amountPaisa,
