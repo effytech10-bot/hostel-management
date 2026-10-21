@@ -260,24 +260,6 @@ function duePeriodsDetail(lines: LedgerLine[], head: LedgerHead): string | null 
   return months.length ? months.map(shortMonth).join(", ") : null;
 }
 
-/** "25 – 30 Sep" when the only rent due is the rest of the admission month, else the months. */
-function rentDueDetail(lines: LedgerLine[], admissionDate: DateString): string | null {
-  const months = [
-    ...new Set(
-      openDues(lines)
-        .filter((d) => d.head === "rent")
-        .map((d) => d.period),
-    ),
-  ].sort();
-  if (months.length === 0) return null;
-  const admissionMonth = periodOf(admissionDate);
-  return months
-    .map((m) =>
-      m === admissionMonth && admissionDate.slice(8) !== "01" ? dayRange(admissionDate, periodEnd(m)) : shortMonth(m),
-    )
-    .join(", ");
-}
-
 export async function planTokens(
   tx: DbOrTx,
   orgId: string,
@@ -333,7 +315,7 @@ export async function planTokens(
       const balances = balancesByHead(lines);
       // Meal money still unpaid from older tokens ("Meal due") is kept apart from this pre meal.
       const oldMealPaisa = balances.meal ?? 0;
-      const due = dueLines({ ...balances, meal: 0 }, { rent: rentDueDetail(lines, s.admissionDate) });
+      const due = dueLines({ ...balances, meal: 0 }, { rent: duePeriodsDetail(lines, "rent") });
       const mealDue: TokenLineDraft[] = [];
       if (meal && meal.differencePaisa !== 0) {
         mealDue.push({
@@ -567,29 +549,23 @@ export async function createAdmissionToken(
   const [student] = await loadSeatInfo(tx, orgId, [studentId]);
   if (!student) throw new AppError("VALIDATION", "The student has no seat.");
   const admissionMonth = periodOf(admissionDate);
-  const tokenMonth = addMonths(admissionMonth, 1);
-  const [ratesA, ratesT] = await Promise.all([
-    getEffectiveRates(tx, orgId, admissionMonth),
-    getEffectiveRates(tx, orgId, tokenMonth),
-  ]);
-  if (!ratesA || !ratesT) {
+  const rates = await getEffectiveRates(tx, orgId, admissionMonth);
+  if (!rates) {
     throw new AppError("VALIDATION", `Set the rates for ${formatPeriod(admissionMonth)} in Settings first.`);
   }
-  const blockers = new Set<string>();
-  const meals = await mealCostsFor(
-    tx,
-    orgId,
-    [{ studentId, from: admissionDate, to: periodEnd(admissionMonth) }],
-    blockers,
-  );
+  const latest = (await latestTokens(tx, [studentId])).get(studentId);
+  if (latest && latest.period >= admissionMonth) {
+    throw new AppError(
+      "CONFLICT",
+      `This student already has the ${formatPeriod(latest.period)} token (${latest.code}).`,
+    );
+  }
   const drafts = admissionDrafts({
     admissionDate,
     rentPaisa: student.rentPaisa,
-    restOfMonthMealsPaisa: meals.get(studentId)?.costPaisa ?? 0,
-    mealDepositPaisa: ratesT.rates.mealDepositPaisa,
-    advanceMonths: ratesT.rates.advanceMonths,
-    serviceChargePaisa: ratesT.rates.serviceChargePaisa,
-    rule: ratesA.rates.midMonthRule,
+    mealDepositPaisa: rates.rates.mealDepositPaisa,
+    advanceMonths: rates.rates.advanceMonths,
+    serviceChargePaisa: rates.rates.serviceChargePaisa,
   });
   const code = tokenCode({
     period: drafts.period,
@@ -606,7 +582,7 @@ export async function createAdmissionToken(
     early: false,
     lines: drafts.lines,
     mealFrom: null,
-    // The admission token settles no meals; the next token starts on the admission date.
+    // The admission token settles no meals; the next token's pre meal starts on the admission date.
     mealTo: shiftDate(admissionDate, -1),
     actorMembershipId,
   });
@@ -616,7 +592,7 @@ export async function createAdmissionToken(
       orgId,
       studentId,
       buildingId: student.buildingId,
-      period: l.section === "current" ? drafts.period : admissionMonth,
+      period: drafts.period,
       entryDate: admissionDate,
       head: l.head,
       amountPaisa: l.amountPaisa,

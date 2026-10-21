@@ -7,14 +7,13 @@
  *   advance / service charge, extra paid).
  * - Pre meal = meals eaten from the day after the previous token's meal days up to the token's cut-off,
  *   minus the meal money billed on the previous token. Days after the cut-off go to the next token.
- * - Admission (any day): the token is for the NEXT month. The rest of the admission month
- *   (rent by days + its meals) is shown as due with the dates, with the advance and the one-time
- *   service charge.
+ * - Admission (any day of the month): the token is for THAT month, with the full month's rent and
+ *   meal deposit, plus the advance and the one-time service charge. No other due. Meals from the
+ *   admission date are settled as pre meal on the next month's (automatic) token.
  */
-import { addMonths, daysInPeriod, periodEnd, periodOf, type DateString, type Period } from "@/lib/dates";
+import { addMonths, periodEnd, periodOf, type DateString, type Period } from "@/lib/dates";
 import type { Paisa } from "@/lib/money";
-import { advanceAmount, type LedgerHead, type MidMonthRule } from "./billing";
-import { daysFrom, prorate } from "./stay";
+import { advanceAmount, type LedgerHead } from "./billing";
 
 const MON = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
@@ -108,41 +107,24 @@ export function dueLines(
   }));
 }
 
-/** The month an admission token is for: always the month after the admission date. */
-export const admissionTokenPeriod = (admissionDate: DateString): Period => addMonths(periodOf(admissionDate), 1);
+/** The month an admission token is for: the admission month itself, whatever the day. */
+export const admissionTokenPeriod = (admissionDate: DateString): Period => periodOf(admissionDate);
 
 /**
- * Lines of the first token at admission. All are new charges (posted):
- * this month = next month's rent + meal deposit;
- * due = rent for the rest of the admission month (by days), those days' meals, advance, service charge.
+ * Lines of the first token at admission (all new charges, posted). Any day of the month:
+ * this month = the full month's rent + meal deposit; due = advance + the one-time service charge.
+ * Meals from the admission date are settled as Pre meal on the next month's token.
  */
 export function admissionDrafts(input: {
   admissionDate: DateString;
   rentPaisa: Paisa;
-  /** Meals planned from the admission date to the month end × that month's rates. */
-  restOfMonthMealsPaisa: Paisa;
   mealDepositPaisa: Paisa;
   advanceMonths: number;
   serviceChargePaisa: Paisa;
-  rule: MidMonthRule;
-}): { period: Period; lines: TokenLineDraft[]; restDays: number; monthDays: number } {
+}): { period: Period; lines: TokenLineDraft[] } {
   const period = admissionTokenPeriod(input.admissionDate);
-  const admissionMonth = periodOf(input.admissionDate);
-  const monthDays = daysInPeriod(admissionMonth);
-  const restDays = daysFrom(input.admissionDate);
-  const range = dayRange(input.admissionDate, periodEnd(admissionMonth));
-  const restRent = input.rule === "full" ? input.rentPaisa : prorate(input.rentPaisa, restDays, monthDays);
   const lines: TokenLineDraft[] = [
     ...monthLines({ period, rentPaisa: input.rentPaisa, mealDepositPaisa: input.mealDepositPaisa }),
-    { section: "due", head: "rent", label: "Monthly due", detail: range, amountPaisa: restRent, post: true },
-    {
-      section: "due",
-      head: "meal",
-      label: "Pre meal",
-      detail: range,
-      amountPaisa: input.restOfMonthMealsPaisa,
-      post: true,
-    },
     {
       section: "due",
       head: "advance",
@@ -160,7 +142,7 @@ export function admissionDrafts(input: {
       post: true,
     },
   ];
-  return { period, lines: lines.filter((l) => l.amountPaisa > 0), restDays, monthDays };
+  return { period, lines: lines.filter((l) => l.amountPaisa > 0) };
 }
 
 export const totalOf = (lines: readonly TokenLineDraft[]) => lines.reduce((s, l) => s + l.amountPaisa, 0);

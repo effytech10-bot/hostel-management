@@ -132,8 +132,8 @@ export function AdmissionForm({
         <legend className="mb-3 text-sm font-semibold">Photo, first token & login</legend>
         <PhotoInput />
         <p className="text-muted-foreground text-sm">
-          A token for next month is made right away: next month&apos;s rent and meal deposit, the rest of this month
-          (rent + meals, with dates), the advance and the one-time service charge.
+          The token for the admission month is made right away, whatever the day: the full month&apos;s rent, the meal
+          deposit, the advance and the one-time service charge. From next month tokens are made automatically.
         </p>
         <p className="text-muted-foreground text-sm">
           Login: the student uses their phone number (or Student ID). The first password is the last 6 digits of their
