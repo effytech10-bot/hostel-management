@@ -1,4 +1,17 @@
-import { index, integer, pgEnum, pgTable, smallint, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
+import {
+  boolean,
+  date,
+  index,
+  integer,
+  pgEnum,
+  pgTable,
+  smallint,
+  text,
+  timestamp,
+  uniqueIndex,
+  uuid,
+} from "drizzle-orm/pg-core";
 import { id, paisa } from "./columns";
 import { ledgerHead } from "./billing";
 import { memberships } from "./memberships";
@@ -28,7 +41,11 @@ export const billingPeriods = pgTable(
   (t) => [uniqueIndex("billing_periods_org_period_uq").on(t.orgId, t.period)],
 ).enableRLS();
 
-/** Month-end meal settlement for one student: meals eaten × rates vs the deposit billed. */
+/**
+ * Meal settlement for one student over a range of days ("pre meal" on a token):
+ * meals eaten × rates vs the meal money already billed on the previous token.
+ * token_id = the token that shows it; NULL when it was made on leaving.
+ */
 export const mealSettlements = pgTable(
   "meal_settlements",
   {
@@ -41,6 +58,9 @@ export const mealSettlements = pgTable(
       .references(() => students.id, { onDelete: "restrict" }),
     buildingId: uuid("building_id").references(() => buildings.id, { onDelete: "restrict" }),
     period: text("period").notNull(),
+    tokenId: uuid("token_id"),
+    fromDate: date("from_date", { mode: "string" }),
+    toDate: date("to_date", { mode: "string" }),
     breakfast: smallint("breakfast").notNull(),
     lunch: smallint("lunch").notNull(),
     dinner: smallint("dinner").notNull(),
@@ -51,7 +71,10 @@ export const mealSettlements = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
-    uniqueIndex("meal_settlements_student_period_uq").on(t.studentId, t.period),
+    index("meal_settlements_student_idx").on(t.studentId, t.period),
+    uniqueIndex("meal_settlements_token_uq")
+      .on(t.tokenId)
+      .where(sql`${t.tokenId} IS NOT NULL`),
     index("meal_settlements_org_period_idx").on(t.orgId, t.period),
   ],
 ).enableRLS();
@@ -60,9 +83,11 @@ export const tokenKinds = ["monthly", "admission"] as const;
 export const tokenKind = pgEnum("token_kind", tokenKinds);
 
 /**
- * The monthly bill as printed and shown to the student. A snapshot: the ledger stays the source of truth.
- * kind "admission" = the first bill made at admission (advance + first month); a student never gets both
- * an admission bill and a monthly token for the same month.
+ * A token = the month's bill AND where its payments are recorded. One per student per month.
+ * A snapshot of what was asked; the ledger stays the source of truth for what is still due.
+ * kind "admission" = the first token, made at admission for the month after (with the rest of the
+ * admission month, advance and service charge as dues). early = made by the admin before the 1st.
+ * meal_from..meal_to = the days whose meals are settled on this token ("pre meal").
  */
 export const tokens = pgTable(
   "tokens",
@@ -76,7 +101,13 @@ export const tokens = pgTable(
       .references(() => students.id, { onDelete: "restrict" }),
     buildingId: uuid("building_id").references(() => buildings.id, { onDelete: "restrict" }),
     period: text("period").notNull(),
+    /** Human token ID, e.g. 2611-207601A-001 (year+month, building+room+seat, last 3 of Student ID). */
+    code: text("code"),
     kind: tokenKind("kind").notNull().default("monthly"),
+    early: boolean("early").notNull().default(false),
+    mealFrom: date("meal_from", { mode: "string" }),
+    mealTo: date("meal_to", { mode: "string" }),
+    createdBy: uuid("created_by").references(() => memberships.id, { onDelete: "set null" }),
     seatText: text("seat_text"),
     rentPaisa: paisa("rent_paisa").notNull(),
     currentTotalPaisa: paisa("current_total_paisa").notNull(),
@@ -86,11 +117,13 @@ export const tokens = pgTable(
   },
   (t) => [
     uniqueIndex("tokens_student_period_uq").on(t.studentId, t.period),
+    uniqueIndex("tokens_org_code_uq").on(t.orgId, t.code),
     index("tokens_org_period_idx").on(t.orgId, t.period),
     index("tokens_building_period_idx").on(t.buildingId, t.period),
   ],
 ).enableRLS();
 
+/** current = "this month", previous = "due" (what was still owed when the token was made). */
 export const tokenLineKinds = ["current", "previous"] as const;
 export const tokenLineKind = pgEnum("token_line_kind", tokenLineKinds);
 
@@ -107,6 +140,8 @@ export const tokenLines = pgTable(
     kind: tokenLineKind("kind").notNull(),
     head: ledgerHead("head").notNull(),
     label: text("label").notNull(),
+    /** Extra info shown under the label, e.g. the days it covers ("25 – 30 Sep"). */
+    detail: text("detail"),
     amountPaisa: paisa("amount_paisa").notNull(),
     sort: smallint("sort").notNull(),
   },

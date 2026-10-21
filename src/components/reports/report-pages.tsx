@@ -425,8 +425,8 @@ async function MealsReport({ actor, area, p, buildings = [] }: Props) {
       {data.rows.length === 0 ? (
         <Card>
           <CardContent className="text-muted-foreground py-6 text-sm">
-            No meal settlement for {formatPeriod(p.month)} yet. It is made when the month is closed (Tokens → month-end)
-            or when a student leaves.
+            No meal settlement for {formatPeriod(p.month)} yet. It is made when the next tokens are made (Tokens) or
+            when a student leaves.
           </CardContent>
         </Card>
       ) : (

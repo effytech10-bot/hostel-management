@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { PageHeader } from "@/components/layout/app-shell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -13,10 +13,9 @@ import { parseDateParam } from "@/lib/validation/payments";
 import type { SessionUser } from "@/server/auth/session";
 import { AppError } from "@/server/errors";
 import { listBuildings } from "@/server/services/buildings";
-import { getStudentMoney, listCollections, listPaymentAccounts } from "@/server/services/payments";
+import { listCollections, listPaymentAccounts } from "@/server/services/payments";
 import { getStudentDetail, listStudents } from "@/server/services/students";
-import { AccountSummary, PaymentHistory } from "./account-summary";
-import { PaymentForm } from "./payment-form";
+import { openTokenFromSearch, TokenSearch } from "@/components/tokens/token-pages";
 
 type SearchParams = Record<string, string | string[] | undefined>;
 const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
@@ -113,6 +112,7 @@ export async function PaymentsListPage({
                 <TableRow>
                   <TableHead>Receipt</TableHead>
                   <TableHead>Date</TableHead>
+                  <TableHead>Token</TableHead>
                   <TableHead>Student</TableHead>
                   <TableHead>Building</TableHead>
                   <TableHead>Received in</TableHead>
@@ -139,6 +139,18 @@ export async function PaymentsListPage({
                       )}
                     </TableCell>
                     <TableCell className="tabular-nums">{r.paidDate}</TableCell>
+                    <TableCell className="font-mono text-xs whitespace-nowrap">
+                      {r.tokenCode ? (
+                        <Link
+                          href={`${basePath.replace("/payments", "/tokens")}/${r.tokenCode}`}
+                          className="text-primary hover:underline"
+                        >
+                          {r.tokenCode}
+                        </Link>
+                      ) : (
+                        "—"
+                      )}
+                    </TableCell>
                     <TableCell>
                       <Link
                         href={`${basePath.replace("/payments", "/students")}/${r.studentId}`}
@@ -169,7 +181,7 @@ export async function PaymentsListPage({
 }
 
 // ---------------------------------------------------------------------------
-// Take a payment
+// Take a payment: find the student's newest token, payments are taken there
 // ---------------------------------------------------------------------------
 
 export async function TakePaymentPage({
@@ -181,115 +193,64 @@ export async function TakePaymentPage({
   basePath: string;
   searchParams: SearchParams;
 }) {
-  const studentsPath = basePath.replace("/payments", "/students");
+  const tokensPath = basePath.replace("/payments", "/tokens");
   const studentParam = one(searchParams.student);
-  const q = one(searchParams.q);
-
-  if (!studentParam || !UUID_RE.test(studentParam)) {
-    const results = q ? await listStudents(actor, { q, status: "all" }) : null;
-    return (
-      <>
-        <PageHeader title="Take payment" description="Find the student first." />
-        <form method="get" className="mb-4 flex gap-2">
-          <Input
-            name="q"
-            defaultValue={q}
-            placeholder="Name, Student ID, phone or room"
-            autoFocus
-            className="sm:max-w-md"
-          />
-          <Button type="submit">Search</Button>
-        </form>
-        {results && (
-          <Card className="py-0">
-            <CardContent className="px-0">
-              {results.rows.length === 0 ? (
-                <p className="text-muted-foreground p-6 text-sm">No student found.</p>
-              ) : (
-                <ul className="divide-y">
-                  {results.rows.map((s) => (
-                    <li key={s.id}>
-                      <Link
-                        href={`${basePath}/new?student=${s.id}`}
-                        className="hover:bg-muted/50 flex items-center justify-between gap-3 px-4 py-3"
-                      >
-                        <span>
-                          <span className="font-medium">{s.fullName}</span>{" "}
-                          <span className="text-muted-foreground text-sm">
-                            ID {s.studentCode} · {s.phone}
-                          </span>
-                        </span>
-                        <span className="text-muted-foreground text-sm">
-                          {s.buildingCode} {s.roomNumber ? `· ${s.roomNumber}-${s.seatLabel}` : ""}
-                          {s.status === "left" && " · Left"}
-                        </span>
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </CardContent>
-          </Card>
-        )}
-      </>
-    );
+  if (studentParam && UUID_RE.test(studentParam)) {
+    let studentCode: string | null = null;
+    try {
+      studentCode = (await getStudentDetail(actor, studentParam)).student.studentCode;
+    } catch (e) {
+      if (e instanceof AppError && (e.code === "NOT_FOUND" || e.code === "FORBIDDEN")) notFound();
+      throw e;
+    }
+    redirect(`${basePath}/new?find=${encodeURIComponent(studentCode)}`);
   }
 
-  let detail, money;
-  try {
-    [detail, money] = await Promise.all([getStudentDetail(actor, studentParam), getStudentMoney(actor, studentParam)]);
-  } catch (e) {
-    if (e instanceof AppError && (e.code === "NOT_FOUND" || e.code === "FORBIDDEN")) notFound();
-    throw e;
-  }
-  const accounts = await listPaymentAccounts(actor);
-  const { student, current } = detail;
+  const find = one(searchParams.find);
+  const findError = await openTokenFromSearch(actor, tokensPath, find);
+  // Nothing matched exactly: try a name / room search.
+  const results = find && findError ? await listStudents(actor, { q: find, status: "all" }) : null;
 
   return (
     <>
-      <p className="mb-2 text-sm">
-        <Link href={`${basePath}/new`} className="text-muted-foreground hover:underline">
-          ← Choose another student
-        </Link>
-      </p>
       <PageHeader
-        title={`Payment from ${student.fullName}`}
-        description={`ID ${student.studentCode} · ${student.phone}${current ? ` · ${current.buildingCode} ${current.roomNumber}-${current.seatLabel}` : ""}`}
+        title="Take payment"
+        description="Type the token ID (or Student ID / phone). The student's newest token opens and the payment is taken there."
       />
-      <div className="grid gap-6 lg:grid-cols-5">
-        <Card className="lg:col-span-3">
-          <CardHeader>
-            <CardTitle>Payment</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <PaymentForm
-              studentId={student.id}
-              dues={money.dues}
-              totalPaisa={money.totalPaisa}
-              accounts={accounts.map((a) => ({ id: a.id, name: a.name, method: a.method }))}
-              studentsPath={studentsPath}
-            />
+      <div className="mb-4">
+        <TokenSearch
+          action={`${basePath}/new`}
+          defaultValue={find}
+          error={results?.rows.length && findError?.startsWith("No token or student") ? undefined : findError}
+        />
+      </div>
+      {results && results.rows.length > 0 && (
+        <Card className="py-0">
+          <CardContent className="px-0">
+            <ul className="divide-y">
+              {results.rows.map((s) => (
+                <li key={s.id}>
+                  <Link
+                    href={`${basePath}/new?find=${encodeURIComponent(s.studentCode)}`}
+                    className="hover:bg-muted/50 flex items-center justify-between gap-3 px-4 py-3"
+                  >
+                    <span>
+                      <span className="font-medium">{s.fullName}</span>{" "}
+                      <span className="text-muted-foreground text-sm">
+                        ID {s.studentCode} · {s.phone}
+                      </span>
+                    </span>
+                    <span className="text-muted-foreground text-sm">
+                      {s.buildingCode} {s.roomNumber ? `· ${s.roomNumber}-${s.seatLabel}` : ""}
+                      {s.status === "left" && " · Left"}
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
           </CardContent>
         </Card>
-        <div className="flex flex-col gap-6 lg:col-span-2">
-          <Card>
-            <CardHeader>
-              <CardTitle>Account</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <AccountSummary balances={money.balances} dues={money.dues} totalPaisa={money.totalPaisa} />
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader>
-              <CardTitle>Recent payments</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <PaymentHistory payments={money.payments.slice(0, 5)} />
-            </CardContent>
-          </Card>
-        </div>
-      </div>
+      )}
     </>
   );
 }

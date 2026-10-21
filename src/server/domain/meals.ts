@@ -80,10 +80,13 @@ export function countMeals(input: {
   holidaysByBuilding: ReadonlyMap<string, ReadonlySet<string>>;
   /** Count only up to and including this date (e.g. a student who left mid-month). */
   until?: DateString;
+  /** Count only from this date (e.g. the day after the previous token's meal days). */
+  from?: DateString;
 }): MealCounts {
   const counts: MealCounts = { breakfast: 0, lunch: 0, dinner: 0, days: 0, halfUnits: 0 };
   for (const date of datesInPeriod(input.period)) {
     if (input.until && date > input.until) break;
+    if (input.from && date < input.from) continue;
     const buildingId = buildingOnDate(input.intervals, date);
     if (!buildingId) continue;
     counts.days++;

@@ -59,19 +59,12 @@ export function RatesForm({ period, defaults, locked }: { period: string; defaul
               label="Meal deposit (৳)"
               inputMode="decimal"
               defaultValue={taka(defaults.mealDepositPaisa)}
-              hint="Taken at the start of the month; settled against meals eaten at month end"
+              hint="On every token; meals eaten minus this deposit shows as Pre meal on the next token"
               required
               errors={e}
             />
-            <Field
-              name="baburchi"
-              label="Baburchi bill (৳)"
-              inputMode="decimal"
-              defaultValue={taka(defaults.baburchiPaisa)}
-              hint="Separate monthly charge; 0 if not charged"
-              required
-              errors={e}
-            />
+            {/* Baburchi is covered by the meal rates (meal deposit + pre meal). */}
+            <input type="hidden" name="baburchi" value="0" />
           </div>
         </div>
 
@@ -80,7 +73,8 @@ export function RatesForm({ period, defaults, locked }: { period: string; defaul
           <div className="grid gap-4 sm:grid-cols-2">
             <Field
               name="serviceCharge"
-              label="Yearly service charge (৳)"
+              label="Service charge (৳)"
+              hint="One time, on the admission token only"
               inputMode="decimal"
               defaultValue={taka(defaults.serviceChargePaisa)}
               required
@@ -95,26 +89,12 @@ export function RatesForm({ period, defaults, locked }: { period: string; defaul
               errors={e}
             />
           </div>
-          <label className="mt-4 flex items-start gap-2 text-sm">
-            <input
-              type="checkbox"
-              name="serviceChargeThisMonth"
-              defaultChecked={defaults.serviceChargeThisMonth}
-              className="mt-0.5"
-            />
-            <span>
-              <span className="font-medium">Bill the yearly service charge in this month&apos;s token</span>
-              <span className="text-muted-foreground block">
-                Tick only for the month it is collected. It is not carried to later months.
-              </span>
-            </span>
-          </label>
         </div>
 
         <div className="flex flex-col gap-2 sm:max-w-md">
           <Label htmlFor="midMonthRule">Joining or leaving in the middle of the month</Label>
           <Select id="midMonthRule" name="midMonthRule" defaultValue={defaults.midMonthRule}>
-            <option value="prorata">Charge only the days stayed (rent, meal deposit, baburchi)</option>
+            <option value="prorata">Charge only the days stayed</option>
             <option value="full">Charge the full month</option>
           </Select>
         </div>

@@ -1,16 +1,17 @@
 import { and, eq, isNotNull } from "drizzle-orm";
 import { NextResponse, type NextRequest } from "next/server";
-import { currentPeriod, previousPeriod } from "@/lib/dates";
+import { currentPeriod, dhakaDate, previousPeriod } from "@/lib/dates";
 import { db } from "@/server/db/client";
 import { billingPeriods, organizations } from "@/server/db/schema";
-import { runMonthEnd } from "@/server/services/month-end";
+import { runTokenRun } from "@/server/services/token-engine";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
 
 /**
- * Runs every night (vercel.json). For each hostel: if this month's tokens are not made yet, close last month
- * and make them. Automatic mode only starts after an admin has done one month-end by hand
+ * Runs every night at 00:05 Dhaka (vercel.json). For each hostel: if this month's tokens are not made yet,
+ * make them (students who already have this month's token, made early or at admission, are skipped)
+ * and lock last month. Automatic mode only starts after an admin has done one run by hand
  * (so going live never bills anyone by surprise). Safe to run many times.
  */
 export async function GET(request: NextRequest) {
@@ -39,7 +40,7 @@ export async function GET(request: NextRequest) {
       continue;
     }
     try {
-      results.push({ org: org.slug, status: "done", ...(await runMonthEnd(org.id, period, null)) });
+      results.push({ org: org.slug, status: "done", ...(await runTokenRun(org.id, period, null, dhakaDate())) });
     } catch (error) {
       console.error(`month-end failed for ${org.slug}`, error);
       results.push({ org: org.slug, status: "failed", error: (error as Error).message });

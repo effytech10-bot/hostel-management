@@ -5,6 +5,7 @@ import { memberships } from "./memberships";
 import { organizations } from "./organizations";
 import { buildings } from "./property";
 import { students } from "./students";
+import { tokens } from "./tokens";
 
 export const paymentMethods = ["cash", "bkash", "nagad", "bank", "other"] as const;
 export type PaymentMethod = (typeof paymentMethods)[number];
@@ -46,6 +47,8 @@ export const payments = pgTable(
       .notNull()
       .references(() => students.id, { onDelete: "restrict" }),
     buildingId: uuid("building_id").references(() => buildings.id, { onDelete: "restrict" }),
+    /** The token this money was paid on (always the student's latest token at that time). */
+    tokenId: uuid("token_id").references(() => tokens.id, { onDelete: "restrict" }),
     receiptNo: text("receipt_no").notNull(),
     amountPaisa: paisa("amount_paisa").notNull(),
     method: paymentMethod("method").notNull(),
@@ -74,6 +77,7 @@ export const payments = pgTable(
       .where(sql`${t.trxId} IS NOT NULL AND ${t.voidedAt} IS NULL`),
     index("payments_org_date_idx").on(t.orgId, t.paidDate),
     index("payments_student_idx").on(t.studentId),
+    index("payments_token_idx").on(t.tokenId),
     index("payments_building_date_idx").on(t.buildingId, t.paidDate),
     check("payments_amount_positive", sql`${t.amountPaisa} > 0`),
   ],

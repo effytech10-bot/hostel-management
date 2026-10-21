@@ -33,14 +33,14 @@ export default async function StudentHome() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Latest bill (token)</CardTitle>
+          <CardTitle>Latest token</CardTitle>
         </CardHeader>
         <CardContent>
           {latest && printable ? (
-            <TokenView token={printable} status={latest.status} remainingPaisa={latest.remainingPaisa} />
+            <TokenView token={printable} state={latest.state} remainingPaisa={latest.remainingPaisa} />
           ) : (
             <p className="text-muted-foreground text-sm">
-              No bill yet. Your monthly bill appears here at the start of each month.
+              No token yet. Your token appears here at the start of each month.
             </p>
           )}
         </CardContent>
@@ -52,7 +52,7 @@ export default async function StudentHome() {
             <CardTitle>How to pay</CardTitle>
           </CardHeader>
           <CardContent>
-            <HowToPay accounts={accounts} studentCode={me.studentCode} />
+            <HowToPay accounts={accounts} studentCode={me.studentCode} tokenCode={latest?.code} />
           </CardContent>
         </Card>
       )}
@@ -88,7 +88,7 @@ export default async function StudentHome() {
         <CardContent className="flex flex-col gap-2">
           <PaymentHistory payments={money.payments.slice(0, 5)} refunds={money.refunds.slice(0, 2)} />
           <Link href="/student/account" className="text-primary text-sm hover:underline">
-            Full account and all bills
+            Full account and all tokens
           </Link>
         </CardContent>
       </Card>

@@ -62,33 +62,47 @@ drizzle/                SQL migrations (commit these)
 7. **Dates:** calendar dates are `YYYY-MM-DD` strings in Asia/Dhaka, billing months are `YYYY-MM` (`src/lib/dates.ts`). Timestamps are stored in UTC.
 8. Files under `src/server/` that touch the database or secrets start with `import "server-only"`.
 
-## Month-end (tokens)
+## Tokens and payments
 
-Admin → Tokens shows a preview, then **closes last month** (meal settlement: meals × that month's rates vs the
-meal deposit billed; the month is locked) and **makes this month's token** for every active student.
-The first month-end must be done by hand; after that `/api/cron/month-end` (Vercel cron, 00:05 Dhaka every night)
-does it automatically. Running it again only adds missing tokens. Set `CRON_SECRET` in Vercel.
+A token is the student's bill for one month **and** the place where their payments are recorded.
+
+- **One token per student per month**, ID `YYMM-<building><room><seat>-<last 3 of Student ID>`,
+  e.g. `2610-207601A-001` (October 2026, building 207, room 601, seat A, student …001).
+- **Sections:** *This month* = month rent + meal deposit. *Due* = Monthly due (unpaid rent, with months or days),
+  Pre meal (meals eaten minus the meal deposit, with the date range), Meal due (meal money unpaid from older tokens),
+  Advance due, Service charge due, Extra paid (money paid beyond the last token, a minus line).
+- **Made automatically on the 1st at 12:05 AM** (`/api/cron/month-end`, Vercel cron) once the admin has done the
+  first run by hand (Admin → Tokens). The run also locks the month before. Students who already have that month's
+  token are skipped.
+- **Pre meal window:** from the day after the previous token's meal days up to the end of last month (or up to the day
+  an early token is made). `tokens.meal_from / meal_to` keep the window; meals inside it can no longer be changed.
+- **Early token (admin, student page):** "Make next month's token now" for a student who wants to pay early.
+  Meals up to that day go in its pre meal; later days go in the following token. The 1st's run skips that student.
+- **Payments:** cashier/admin types a token ID, Student ID or phone (Tokens, or Payments → Take payment). The student's
+  **newest** token opens and the payment is saved on it (`payments.token_id`), any amount, any number of times.
+  Older tokens show "Carried": their unpaid money is part of the newest token's Due. Overpayment shows as
+  "Extra paid" on the next token.
 
 ## Joining and leaving
 
-- **Admission** can make the first bill: advance (months of rent from Settings) + this month's rent, meal deposit and
-  baburchi. Settings → "Joining or leaving in the middle of the month" decides: by days, or full month.
-  The first bill is stored as an "admission" token, so the student never also gets a monthly token for that month.
-- **Leaving** (admin, student page): preview, then confirm. Settles the month's meals up to the last day, gives back
+- **Admission** always makes the first token, for the **next** month: next month's rent + meal deposit, the rest of
+  the admission month (Monthly due + Pre meal, with dates), the advance (months of rent from Settings) and the
+  one-time service charge. Settings → "Joining or leaving in the middle of the month" decides: by days, or full month.
+- **Leaving** (admin, student page): preview, then confirm. Settles meals since the newest token up to the last day, gives back
   unused days (by-days rule), cancels the advance charge so the paid advance pays the dues, frees the seat and stops
   future tokens. If the hostel owes money back, record the refund (now or later).
 - **Meals on/off by students**: a student can turn their own meals off (or back on) from their phone until the hour
   the admin picks in Settings (6–11 PM, the night before). After that only the office can change that day. Meals the
   office turned off stay off until the office turns them on. "Not allowed" in Settings = office only.
 - **Reports** (admin, and cashier for their own buildings): dues & credit & student advance (current / former /
-  batch), collections by day / account / building / person, meal settlement of a closed month, month summary per
+  batch), collections by day / account / building / person, meal settlements (pre meal), month summary per
   building, and (admin only) the audit log. Each has an "Excel (CSV)" download (`/api/reports/csv`).
 - **Go-live** (admin → Dashboard → "Go-live checklist", or `/admin/go-live`): checklist of what must be ready.
   **Import** (`/admin/import`): download the Excel template, fill one row per student, upload, check, import.
   Missing buildings/rooms/seats are created. Seats start on the 1st of the chosen start month; the dues columns are
   posted as the opening balance of the month before (ledger `opening`; advance already paid = `opening_payment`),
   so they show as "previous due" on the first token. Re-uploading the same file skips students already imported.
-  Then run the first month-end by hand on the 1st of the start month.
+  Then make the first tokens by hand (Admin → Tokens) on the 1st of the start month.
 
 ## Deployment
 

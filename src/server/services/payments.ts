@@ -19,6 +19,7 @@ import {
   seatAssignments,
   seats,
   students,
+  tokens,
   type PaymentMethod,
 } from "@/server/db/schema";
 import { allocatePayment, type Allocation, type LedgerHead } from "@/server/domain/billing";
@@ -27,6 +28,7 @@ import { accessibleBuildingIds } from "./buildings";
 import { postLedger, studentAccount } from "./ledger";
 import { assertPeriodOpen } from "./periods";
 import { advanceHeld, listStudentRefunds } from "./leave";
+import { latestTokens } from "./token-engine";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -183,7 +185,7 @@ export async function getStudentMoney(actor: SessionUser, studentId: string) {
 // Record a payment
 // ---------------------------------------------------------------------------
 
-export type RecordedPayment = { paymentId: string; receiptNo: string; duplicate: boolean };
+export type RecordedPayment = { paymentId: string; receiptNo: string; tokenCode: string | null; duplicate: boolean };
 
 export async function recordPayment(actor: SessionUser, input: PaymentInput): Promise<RecordedPayment> {
   assertRole(actor, "admin", "cashier");
@@ -192,17 +194,25 @@ export async function recordPayment(actor: SessionUser, input: PaymentInput): Pr
 
   // Same form submitted twice (double click, network retry): return the first result.
   const [existing] = await db()
-    .select({ id: payments.id, receiptNo: payments.receiptNo })
+    .select({ id: payments.id, receiptNo: payments.receiptNo, tokenCode: tokens.code })
     .from(payments)
+    .leftJoin(tokens, eq(tokens.id, payments.tokenId))
     .where(and(eq(payments.orgId, actor.orgId), eq(payments.requestId, input.requestId)))
     .limit(1);
-  if (existing) return { paymentId: existing.id, receiptNo: existing.receiptNo, duplicate: true };
+  if (existing) {
+    return { paymentId: existing.id, receiptNo: existing.receiptNo, tokenCode: existing.tokenCode, duplicate: true };
+  }
 
   await assertPeriodOpen(db(), actor.orgId, input.paidDate);
 
   try {
     return await db().transaction(async (tx) => {
       const student = await loadStudentForMoney(tx, actor, input.studentId);
+      // Money is always paid on the student's newest token: older tokens' dues are carried into it.
+      const latest = (await latestTokens(tx, [student.id])).get(student.id);
+      if (!latest) {
+        throw new AppError("VALIDATION", "This student has no token yet. Tokens are made at admission and on the 1st.");
+      }
 
       const [account] = await tx
         .select()
@@ -224,6 +234,7 @@ export async function recordPayment(actor: SessionUser, input: PaymentInput): Pr
           orgId: actor.orgId,
           studentId: student.id,
           buildingId: student.buildingId,
+          tokenId: latest.id,
           receiptNo,
           amountPaisa: input.amount,
           method: account.method,
@@ -270,6 +281,7 @@ export async function recordPayment(actor: SessionUser, input: PaymentInput): Pr
         entityId: payment.id,
         after: {
           receiptNo,
+          token: latest.code,
           amountPaisa: input.amount,
           account: account.name,
           trxId: input.trxId,
@@ -277,7 +289,7 @@ export async function recordPayment(actor: SessionUser, input: PaymentInput): Pr
           leftoverPaisa,
         },
       });
-      return { paymentId: payment.id, receiptNo, duplicate: false };
+      return { paymentId: payment.id, receiptNo, tokenCode: latest.code, duplicate: false };
     });
   } catch (e) {
     if (isPgError(e, PG_UNIQUE_VIOLATION)) {
@@ -391,12 +403,14 @@ export async function getReceipt(actor: SessionUser, paymentId: string) {
       student: students,
       buildingCode: buildings.code,
       receivedByName: memberships.fullName,
+      tokenCode: tokens.code,
     })
     .from(payments)
     .innerJoin(students, eq(students.id, payments.studentId))
     .innerJoin(paymentAccounts, eq(paymentAccounts.id, payments.accountId))
     .leftJoin(buildings, eq(buildings.id, payments.buildingId))
     .leftJoin(memberships, eq(memberships.id, payments.receivedBy))
+    .leftJoin(tokens, eq(tokens.id, payments.tokenId))
     .where(and(eq(payments.id, paymentId), eq(payments.orgId, actor.orgId)))
     .limit(1);
   if (!row) throw new AppError("NOT_FOUND", "Receipt not found.");
@@ -471,12 +485,14 @@ export async function listCollections(actor: SessionUser, filters: CollectionFil
       studentCode: students.studentCode,
       buildingCode: buildings.code,
       receivedByName: memberships.fullName,
+      tokenCode: tokens.code,
     })
     .from(payments)
     .innerJoin(students, eq(students.id, payments.studentId))
     .innerJoin(paymentAccounts, eq(paymentAccounts.id, payments.accountId))
     .leftJoin(buildings, eq(buildings.id, payments.buildingId))
     .leftJoin(memberships, eq(memberships.id, payments.receivedBy))
+    .leftJoin(tokens, eq(tokens.id, payments.tokenId))
     .where(and(...where))
     .orderBy(desc(payments.paidDate), desc(payments.createdAt))
     .limit(500);

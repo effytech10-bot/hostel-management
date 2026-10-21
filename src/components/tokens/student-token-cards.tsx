@@ -1,0 +1,147 @@
+import Link from "next/link";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { dhakaDate, formatPeriod } from "@/lib/dates";
+import { formatTaka } from "@/lib/money";
+import type { SessionUser } from "@/server/auth/session";
+import { db } from "@/server/db/client";
+import { planEarlyToken } from "@/server/services/token-engine";
+import type { listStudentTokens } from "@/server/services/tokens";
+import { EarlyTokenButton } from "./early-token-button";
+import { TokenStateBadge } from "./token-status";
+
+type StudentTokens = Awaited<ReturnType<typeof listStudentTokens>>;
+
+/** Newest token with what is left to pay, and a button to open it (payments are taken there). */
+export function LatestTokenCard({
+  tokens,
+  tokensPath,
+  canPay,
+}: {
+  tokens: StudentTokens;
+  tokensPath: string;
+  canPay: boolean;
+}) {
+  const latest = tokens[0];
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Latest token</CardTitle>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-3">
+        {!latest || !latest.code ? (
+          <p className="text-muted-foreground text-sm">No token yet.</p>
+        ) : (
+          <>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="font-mono text-lg font-semibold">{latest.code}</span>
+              <TokenStateBadge state={latest.state} />
+              {latest.early && <Badge variant="outline">Early</Badge>}
+            </div>
+            <dl className="grid grid-cols-3 gap-2 text-sm">
+              <div>
+                <dt className="text-muted-foreground text-xs">Month</dt>
+                <dd>{formatPeriod(latest.period)}</dd>
+              </div>
+              <div>
+                <dt className="text-muted-foreground text-xs">Total</dt>
+                <dd className="tabular-nums">{formatTaka(latest.totalPaisa)}</dd>
+              </div>
+              <div>
+                <dt className="text-muted-foreground text-xs">Left to pay</dt>
+                <dd className="font-semibold tabular-nums">{formatTaka(latest.remainingPaisa)}</dd>
+              </div>
+            </dl>
+            <Button asChild className="w-fit">
+              <Link href={`${tokensPath}/${latest.code}`}>{canPay ? "Open token & take payment" : "Open token"}</Link>
+            </Button>
+          </>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+/** Every token of the student, newest first. */
+export function TokenHistory({ tokens, tokensPath }: { tokens: StudentTokens; tokensPath: string }) {
+  if (tokens.length === 0) return <p className="text-muted-foreground text-sm">No tokens yet.</p>;
+  return (
+    <ul className="divide-y rounded-md border">
+      {tokens.map((t) => (
+        <li key={t.id}>
+          <Link
+            href={t.code ? `${tokensPath}/${t.code}` : `/print/tokens?token=${t.id}`}
+            className="hover:bg-muted/50 flex flex-wrap items-center justify-between gap-2 px-3 py-2 text-sm"
+          >
+            <span className="flex items-center gap-2">
+              <span className="font-mono">{t.code ?? "—"}</span>
+              <span className="text-muted-foreground">{formatPeriod(t.period)}</span>
+            </span>
+            <span className="flex items-center gap-3">
+              <span className="tabular-nums">{formatTaka(t.totalPaisa)}</span>
+              <span className="text-muted-foreground text-xs tabular-nums">paid {formatTaka(t.paidHerePaisa)}</span>
+              <TokenStateBadge state={t.state} />
+            </span>
+          </Link>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/** Admin: preview and make next month's token now. That month's automatic run then skips this student. */
+export async function EarlyTokenCard({
+  actor,
+  studentId,
+  tokensPath,
+}: {
+  actor: SessionUser;
+  studentId: string;
+  tokensPath: string;
+}) {
+  const { plan, error } = await planEarlyToken(db(), actor.orgId, studentId, dhakaDate());
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Make next month&apos;s token now (admin)</CardTitle>
+        <CardDescription>
+          For a student who wants to pay early. Meals up to today go in its pre meal; later days go in the token after
+          it. The automatic run on the 1st will skip this student.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-3">
+        {!plan ? (
+          <p className="text-muted-foreground text-sm">{error}</p>
+        ) : (
+          <>
+            <p className="text-sm">
+              <span className="font-mono font-semibold">{plan.code}</span> · {formatPeriod(plan.period)}
+            </p>
+            <ul className="divide-y rounded-md border text-sm">
+              {plan.lines.map((l, i) => (
+                <li key={i} className="flex justify-between gap-4 px-3 py-1.5">
+                  <span>
+                    {l.label}
+                    {l.detail && <span className="text-muted-foreground ml-2 text-xs">{l.detail}</span>}
+                  </span>
+                  <span className="tabular-nums">{formatTaka(l.amountPaisa)}</span>
+                </li>
+              ))}
+              <li className="flex justify-between gap-4 px-3 py-1.5 font-semibold">
+                <span>Total</span>
+                <span className="tabular-nums">{formatTaka(plan.totalPaisa)}</span>
+              </li>
+            </ul>
+            <EarlyTokenButton
+              studentId={studentId}
+              tokensPath={tokensPath}
+              label={`Make ${plan.code}`}
+              confirmText={`Make the ${formatPeriod(plan.period)} token ${plan.code} now? It cannot be undone.`}
+            />
+          </>
+        )}
+      </CardContent>
+    </Card>
+  );
+}

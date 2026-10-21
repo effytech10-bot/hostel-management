@@ -37,11 +37,6 @@ export const admissionSchema = z.object({
   seatId: z.uuid({ message: "Choose a seat" }),
   rent: requiredTaka("monthly rent"),
   admissionDate: dateField(),
-  /** Create the first bill (advance + first month). Off only when bringing in existing students. */
-  firstBill: z
-    .string()
-    .optional()
-    .transform((v) => v === "on" || v === "true"),
 });
 export type AdmissionInput = z.infer<typeof admissionSchema>;
 

@@ -1,51 +1,47 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useMemo, useState } from "react";
+import { useActionState, useState } from "react";
 import { recordPaymentAction, type PaymentState } from "@/app/_actions/payments";
 import { Field } from "@/components/forms/field";
 import { Button } from "@/components/ui/button";
 import { FieldError, FormMessage } from "@/components/ui/form-message";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
-import { dhakaDate, formatPeriod } from "@/lib/dates";
+import { dhakaDate } from "@/lib/dates";
 import { formatTaka, tryParseTaka } from "@/lib/money";
 import { METHOD_LABEL } from "@/lib/validation/payments";
-import { allocatePayment, HEAD_LABEL, type Due } from "@/server/domain/billing";
 
 type Account = { id: string; name: string; method: keyof typeof METHOD_LABEL };
 
-export function PaymentForm({
+/** Take a payment on the student's newest token. Any amount; extra money shows as "Extra paid" on the next token. */
+export function TokenPaymentForm({
   studentId,
-  dues,
-  totalPaisa,
+  tokenCode,
+  remainingPaisa,
   accounts,
-  studentsPath,
 }: {
   studentId: string;
-  dues: Due[];
-  totalPaisa: number;
+  tokenCode: string;
+  remainingPaisa: number;
   accounts: Account[];
-  studentsPath: string;
 }) {
   const [requestId] = useState(() => crypto.randomUUID());
   const [state, formAction, pending] = useActionState<PaymentState, FormData>(recordPaymentAction, {});
-  const [amount, setAmount] = useState(totalPaisa > 0 ? formatTaka(totalPaisa, { symbol: false }) : "");
+  const [amount, setAmount] = useState(remainingPaisa > 0 ? formatTaka(remainingPaisa, { symbol: false }) : "");
   const [accountId, setAccountId] = useState(accounts.find((a) => a.method === "cash")?.id ?? accounts[0]?.id ?? "");
   const account = accounts.find((a) => a.id === accountId);
   const e = state.fieldErrors;
-
   const amountPaisa = tryParseTaka(amount);
-  const preview = useMemo(() => {
-    if (amountPaisa === null || amountPaisa <= 0) return null;
-    return allocatePayment(dues, amountPaisa);
-  }, [dues, amountPaisa]);
+  const after = amountPaisa !== null && amountPaisa > 0 ? remainingPaisa - amountPaisa : null;
 
   if (state.recorded) {
     const r = state.recorded;
     return (
       <div className="flex flex-col gap-4 rounded-lg border border-emerald-300 bg-emerald-50 p-4">
-        <p className="text-lg font-semibold text-emerald-900">Payment saved ✓ Receipt {r.receiptNo}</p>
+        <p className="text-lg font-semibold text-emerald-900">
+          Payment saved on {r.tokenCode ?? tokenCode} ✓ Receipt {r.receiptNo}
+        </p>
         {r.duplicate && <p className="text-sm">This form was already submitted; no second payment was made.</p>}
         <div className="flex flex-wrap gap-2">
           <Button asChild>
@@ -53,11 +49,8 @@ export function PaymentForm({
               Open / print receipt
             </Link>
           </Button>
-          <Button asChild variant="outline">
-            <Link href={`${studentsPath}/${studentId}`}>Back to student</Link>
-          </Button>
           <Button variant="outline" onClick={() => window.location.reload()}>
-            Take another payment
+            Done
           </Button>
         </div>
       </div>
@@ -65,10 +58,9 @@ export function PaymentForm({
   }
 
   return (
-    <form action={formAction} className="flex flex-col gap-5">
+    <form action={formAction} className="flex flex-col gap-4">
       <input type="hidden" name="requestId" value={requestId} />
       <input type="hidden" name="studentId" value={studentId} />
-
       <div className="grid gap-4 sm:grid-cols-2">
         <Field
           name="amount"
@@ -111,36 +103,14 @@ export function PaymentForm({
         <Field name="note" label="Note" placeholder="Optional" errors={e} wrapperClassName="sm:col-span-2" />
       </div>
 
-      {preview && (
-        <div className="bg-muted/40 rounded-lg border p-3 text-sm">
-          <p className="mb-2 font-medium">This payment will clear:</p>
-          {preview.allocations.length === 0 && <p className="text-muted-foreground">Nothing is due.</p>}
-          <ul className="flex flex-col gap-1">
-            {preview.allocations.map((a) => (
-              <li key={`${a.period}-${a.head}`} className="flex justify-between gap-4">
-                <span>
-                  {HEAD_LABEL[a.head]} · {formatPeriod(a.period)}
-                </span>
-                <span className="tabular-nums">{formatTaka(a.amountPaisa)}</span>
-              </li>
-            ))}
-            {preview.leftoverPaisa > 0 && (
-              <li className="flex justify-between gap-4 text-emerald-700">
-                <span>Extra, kept as credit for the next bill</span>
-                <span className="tabular-nums">{formatTaka(preview.leftoverPaisa)}</span>
-              </li>
-            )}
-          </ul>
-          {amountPaisa !== null && (
-            <p className="mt-2 border-t pt-2 font-medium">
-              {totalPaisa - amountPaisa > 0
-                ? `Still due after this: ${formatTaka(totalPaisa - amountPaisa)}`
-                : totalPaisa - amountPaisa < 0
-                  ? `Credit after this: ${formatTaka(amountPaisa - totalPaisa)}`
-                  : "Fully paid after this"}
-            </p>
-          )}
-        </div>
+      {after !== null && (
+        <p className="bg-muted/40 rounded-md border p-3 text-sm font-medium">
+          {after > 0
+            ? `Still due on this token after this: ${formatTaka(after)}`
+            : after < 0
+              ? `Fully paid. ${formatTaka(-after)} extra will show as "Extra paid" on the next token.`
+              : "Fully paid after this."}
+        </p>
       )}
 
       <FormMessage error={state.error} />

@@ -1,27 +1,21 @@
 import "server-only";
-import { and, eq, gt, isNull, lte, or, sql } from "drizzle-orm";
-import { addMonths, dhakaDate, formatPeriod, periodEnd, periodOf, periodStart, type DateString } from "@/lib/dates";
+import { and, eq, isNull, sql } from "drizzle-orm";
+import { dhakaDate, formatPeriod, periodOf, type DateString } from "@/lib/dates";
 import type { Paisa } from "@/lib/money";
 import type { LeaveInput, RefundInput } from "@/lib/validation/leave";
 import { writeAudit } from "@/server/audit";
 import { assertRole, type SessionUser } from "@/server/auth/session";
 import { db, type DbOrTx, type Transaction } from "@/server/db/client";
 import { mealSettlements, paymentAccounts, refunds, seatAssignments, students } from "@/server/db/schema";
-import {
-  balancesByHead,
-  LEDGER_HEADS,
-  mealSettlement,
-  netCredits,
-  type LedgerHead,
-  type MidMonthRule,
-} from "@/server/domain/billing";
+import { balancesByHead, LEDGER_HEADS, netCredits, type LedgerHead, type MidMonthRule } from "@/server/domain/billing";
 import { shiftDate } from "@/server/domain/meals";
+import { dayRange } from "@/server/domain/tokens";
 import { unusedDaysCredit } from "@/server/domain/stay";
 import { AppError } from "@/server/errors";
 import { postLedger, studentLedger, type NewLedgerEntry } from "./ledger";
-import { computeMealCounts } from "./meals";
-import { assertPeriodOpen, isPeriodLocked } from "./periods";
+import { assertPeriodOpen } from "./periods";
 import { getEffectiveRates } from "./rates";
+import { latestTokens, mealChargesOf, mealCostsFor } from "./token-engine";
 
 export type LeaveStatement = {
   studentId: string;
@@ -30,6 +24,8 @@ export type LeaveStatement = {
   period: string;
   rule: MidMonthRule;
   meal: {
+    /** "21 Nov – 10 Jan": the meal days not on any token yet. */
+    range: string | null;
     breakfast: number;
     lunch: number;
     dinner: number;
@@ -80,26 +76,13 @@ async function planLeave(tx: DbOrTx, actor: SessionUser, input: LeaveInput, lock
   }
 
   const period = periodOf(lastDay);
-  // The month before must be settled first, or its meals would be missing from the final statement.
-  const previous = addMonths(period, -1);
-  if (!(await isPeriodLocked(tx, actor.orgId, previous))) {
-    const [hadSeat] = await tx
-      .select({ id: seatAssignments.id })
-      .from(seatAssignments)
-      .where(
-        and(
-          eq(seatAssignments.studentId, student.id),
-          lte(seatAssignments.startDate, periodEnd(previous)),
-          or(isNull(seatAssignments.endDate), gt(seatAssignments.endDate, periodStart(previous))),
-        ),
-      )
-      .limit(1);
-    if (hadSeat) {
-      throw new AppError(
-        "VALIDATION",
-        `Close ${formatPeriod(previous)} first (Tokens → Month-end), then record the leave.`,
-      );
-    }
+  // Meals already settled on a token cannot be taken back.
+  const latest = (await latestTokens(tx, [student.id])).get(student.id) ?? null;
+  if (latest?.mealTo && lastDay < latest.mealTo) {
+    throw new AppError(
+      "VALIDATION",
+      `Meals up to ${latest.mealTo} are already on token ${latest.code}. The last day cannot be before that.`,
+    );
   }
 
   const effective = await getEffectiveRates(tx, actor.orgId, period);
@@ -107,12 +90,6 @@ async function planLeave(tx: DbOrTx, actor: SessionUser, input: LeaveInput, lock
   const rule = effective.rates.midMonthRule;
 
   const lines = await studentLedger(tx, actor.orgId, student.id);
-  const inPeriod = (head: LedgerHead) =>
-    lines
-      .filter(
-        (l) => l.period === period && l.head === head && (l.sourceType === "token" || l.sourceType === "admission"),
-      )
-      .reduce((s, l) => s + l.debitPaisa, 0);
 
   const base = {
     orgId: actor.orgId,
@@ -124,70 +101,85 @@ async function planLeave(tx: DbOrTx, actor: SessionUser, input: LeaveInput, lock
   };
   const entries: NewLedgerEntry[] = [];
 
-  // 1. Meals of the last month, up to the last day
+  // 1. Meals since the newest token's meal days, up to the last day, against that token's meal money
   let meal: LeaveStatement["meal"] = null;
   let settlementRow: Plan["settlementRow"] = null;
-  const [alreadySettled] = await tx
-    .select({ id: mealSettlements.id })
-    .from(mealSettlements)
-    .where(and(eq(mealSettlements.studentId, student.id), eq(mealSettlements.period, period)))
-    .limit(1);
-  if (!alreadySettled) {
-    const [counts] = await computeMealCounts(tx, actor.orgId, period, null, {
-      studentIds: [student.id],
-      until: lastDay,
-    });
-    const c = counts ?? { breakfast: 0, lunch: 0, dinner: 0 };
-    const s = mealSettlement({ counts: c, depositPaisa: inPeriod("meal"), rates: effective.rates });
-    meal = {
-      breakfast: c.breakfast,
-      lunch: c.lunch,
-      dinner: c.dinner,
-      costPaisa: s.costPaisa,
-      depositPaisa: s.depositPaisa,
-      differencePaisa: s.differencePaisa,
-    };
-    settlementRow = {
-      orgId: actor.orgId,
-      studentId: student.id,
-      buildingId: current.buildingId,
-      period,
-      breakfast: c.breakfast,
-      lunch: c.lunch,
-      dinner: c.dinner,
-      costPaisa: s.costPaisa,
-      depositPaisa: s.depositPaisa,
-      differencePaisa: s.differencePaisa,
-    };
-    entries.push({
-      ...base,
-      head: "meal",
-      amountPaisa: s.differencePaisa,
-      sourceType: "meal_settlement",
-      description: `Meals until ${lastDay} (leaving)`,
-    });
+  {
+    const [first] = await tx
+      .select({ first: sql<string>`min(${seatAssignments.startDate})` })
+      .from(seatAssignments)
+      .where(eq(seatAssignments.studentId, student.id));
+    const from = latest?.mealTo ? shiftDate(latest.mealTo, 1) : String(first?.first ?? current.startDate).slice(0, 10);
+    const deposit = latest ? ((await mealChargesOf(tx, [latest.id])).get(latest.id) ?? 0) : 0;
+    const blockers = new Set<string>();
+    const costs = await mealCostsFor(tx, actor.orgId, [{ studentId: student.id, from, to: lastDay }], blockers);
+    if (blockers.size) throw new AppError("VALIDATION", [...blockers].join(" "));
+    const c = costs.get(student.id) ?? { breakfast: 0, lunch: 0, dinner: 0, costPaisa: 0 };
+    const differencePaisa = c.costPaisa - deposit;
+    if (from <= lastDay || deposit !== 0) {
+      meal = {
+        range: from <= lastDay ? dayRange(from, lastDay) : null,
+        breakfast: c.breakfast,
+        lunch: c.lunch,
+        dinner: c.dinner,
+        costPaisa: c.costPaisa,
+        depositPaisa: deposit,
+        differencePaisa,
+      };
+      settlementRow = {
+        orgId: actor.orgId,
+        studentId: student.id,
+        buildingId: current.buildingId,
+        period,
+        tokenId: null,
+        fromDate: from <= lastDay ? from : null,
+        toDate: from <= lastDay ? lastDay : null,
+        breakfast: c.breakfast,
+        lunch: c.lunch,
+        dinner: c.dinner,
+        costPaisa: c.costPaisa,
+        depositPaisa: deposit,
+        differencePaisa,
+      };
+      entries.push({
+        ...base,
+        period: latest?.period ?? period,
+        head: "meal",
+        amountPaisa: differencePaisa,
+        sourceType: "meal_settlement",
+        description: `Meals ${from <= lastDay ? dayRange(from, lastDay) : ""} (leaving)`.replace("  ", " "),
+      });
+    }
   }
 
-  // 2. Unused days of this month's rent and baburchi
+  // 2. Rent (and old-style baburchi) billed for days after the last day comes back
+  const charged = (head: LedgerHead, p: string) =>
+    lines
+      .filter((l) => l.period === p && l.head === head && (l.sourceType === "token" || l.sourceType === "admission"))
+      .reduce((s, l) => s + l.debitPaisa - l.creditPaisa, 0);
+  const laterPeriods = [...new Set(lines.filter((l) => l.period > period).map((l) => l.period))];
   const back = unusedDaysCredit({
     lastDay,
-    chargedRentPaisa: inPeriod("rent"),
-    chargedBaburchiPaisa: inPeriod("baburchi"),
+    chargedRentPaisa: current.rentPaisa,
+    chargedBaburchiPaisa: charged("baburchi", period),
     rule,
   });
+  const rentBack =
+    Math.min(back.rentPaisa, charged("rent", period)) + laterPeriods.reduce((s, p) => s + charged("rent", p), 0);
+  const baburchiBack = back.baburchiPaisa + laterPeriods.reduce((s, p) => s + charged("baburchi", p), 0);
   entries.push({
     ...base,
     head: "rent",
-    amountPaisa: -back.rentPaisa,
+    amountPaisa: -rentBack,
     sourceType: "leave",
-    description: `${back.unusedDays} unused day(s) of rent`,
+    description: `Rent after the last day (${back.unusedDays} day(s)${laterPeriods.length ? " + later months" : ""})`,
   });
   entries.push({
     ...base,
     head: "baburchi",
-    amountPaisa: -back.baburchiPaisa,
+    amountPaisa: -baburchiBack,
     sourceType: "leave",
-    description: `${back.unusedDays} unused day(s) of baburchi`,
+    description: "Baburchi after the last day",
   });
 
   // 3. Advance: cancel the advance charge. What was paid becomes the student's money and pays their dues.
@@ -239,8 +231,8 @@ async function planLeave(tx: DbOrTx, actor: SessionUser, input: LeaveInput, lock
       rule,
       meal,
       unusedDays: back.unusedDays,
-      rentBackPaisa: back.rentPaisa,
-      baburchiBackPaisa: back.baburchiPaisa,
+      rentBackPaisa: rentBack,
+      baburchiBackPaisa: baburchiBack,
       advanceChargedPaisa: advanceCharged,
       advanceHeldPaisa: Math.max(0, advanceCharged - Math.max(0, advanceBalance)),
       balanceBeforePaisa: sum(before),
@@ -400,7 +392,9 @@ export function advanceHeld(
   return Math.max(
     0,
     lines
-      .filter((l) => l.head === "advance" && ["payment", "payment_void", "netting", "opening_payment"].includes(l.sourceType))
+      .filter(
+        (l) => l.head === "advance" && ["payment", "payment_void", "netting", "opening_payment"].includes(l.sourceType),
+      )
       .reduce((s, l) => s + l.creditPaisa - l.debitPaisa, 0),
   );
 }

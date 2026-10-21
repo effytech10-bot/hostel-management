@@ -105,8 +105,8 @@ export async function goLiveChecklist(actor: SessionUser, start: Period): Promis
       title: `Rates for ${formatPeriod(start)}`,
       status: rates ? "done" : "todo",
       detail: rates
-        ? `Meal ${formatTaka(rates.rates.lunchRatePaisa)} (lunch/dinner), deposit ${formatTaka(rates.rates.mealDepositPaisa)}, baburchi ${formatTaka(rates.rates.baburchiPaisa)}${rates.fromPeriod !== start ? ` (from ${formatPeriod(rates.fromPeriod)})` : ""}.`
-        : "Needed for the first tokens. Set meal rates, meal deposit, baburchi, service charge and advance months.",
+        ? `Meal ${formatTaka(rates.rates.lunchRatePaisa)} (lunch/dinner), deposit ${formatTaka(rates.rates.mealDepositPaisa)}${rates.fromPeriod !== start ? ` (from ${formatPeriod(rates.fromPeriod)})` : ""}.`
+        : "Needed for the first tokens. Set meal rates, meal deposit, service charge and advance months.",
       href: `/admin/settings?month=${start}`,
       action: "Settings",
     },
@@ -158,19 +158,19 @@ export async function goLiveChecklist(actor: SessionUser, start: Period): Promis
     steps.push({
       title: "Students with a seat before the start",
       status: "warn",
-      detail: `${earlySeats.n} student(s) have a seat from before ${startDate} (added by hand or for testing). At the first month-end their ${formatPeriod(opening)} meals will be charged. If they are test entries, mark them as left, or ask your developer to remove them.`,
+      detail: `${earlySeats.n} student(s) have a seat from before ${startDate} (added by hand or for testing). In the first token run their ${formatPeriod(opening)} meals will be charged. If they are test entries, mark them as left, or ask your developer to remove them.`,
       href: "/admin/students",
       action: "Students",
     });
   }
 
   steps.push({
-    title: `First month-end on 1 ${formatPeriod(start)}`,
+    title: `First token run on 1 ${formatPeriod(start)}`,
     status: startTokens.n > 0 ? "done" : "todo",
     detail:
       startTokens.n > 0
-        ? `${startTokens.n} tokens made for ${formatPeriod(start)}. From now on month-end runs by itself every month.`
-        : `On 1 ${formatPeriod(start)}, open Tokens, look at the preview and run month-end. It makes every student's first token (this month's charges + opening dues).`,
+        ? `${startTokens.n} tokens made for ${formatPeriod(start)}. From now on tokens are made by themselves on the 1st of every month.`
+        : `On 1 ${formatPeriod(start)}, open Tokens, look at the preview and make the tokens. Every student gets their first token (this month's rent and meal deposit + opening dues).`,
     href: "/admin/tokens",
     action: "Tokens",
   });
