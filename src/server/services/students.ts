@@ -28,12 +28,8 @@ import { signedPhotoUrls, uploadStudentPhoto } from "@/server/storage";
 import { supabaseAdmin } from "@/server/supabase/admin";
 import { accessibleBuildingIds } from "./buildings";
 import { makeAuthEmail } from "./members";
+import { createAdmissionToken } from "./token-engine";
 import { assertPeriodOpen } from "./periods";
-import { getEffectiveRates } from "./rates";
-import { postLedger } from "./ledger";
-import { admissionLines } from "@/server/domain/stay";
-import { formatPeriod, periodOf } from "@/lib/dates";
-import { tokenLines, tokens } from "@/server/db/schema";
 
 export const STUDENT_CODE_START = 10001;
 export const STUDENTS_PAGE_SIZE = 50;
@@ -315,7 +311,14 @@ export type AdmissionResult = {
   seatText: string;
   photoWarning?: string;
   /** The first bill, when one was made. */
-  firstBill?: { tokenId: string; lines: { label: string; amountPaisa: number }[]; totalPaisa: number };
+  /** The first token, made at admission. */
+  firstBill: {
+    tokenId: string;
+    code: string;
+    period: string;
+    lines: { section: "current" | "due"; label: string; detail: string | null; amountPaisa: number }[];
+    totalPaisa: number;
+  };
 };
 
 /**
@@ -408,72 +411,20 @@ export async function admitStudent(
 
       const seatText = `${seat.buildingCode} · Room ${seat.roomNumber} · Seat ${seat.label}`;
 
-      // First bill: advance + this month's rent, meal deposit and baburchi.
-      let firstBill: AdmissionResult["firstBill"];
-      if (input.firstBill) {
-        const period = periodOf(input.admissionDate);
-        const effective = await getEffectiveRates(tx, actor.orgId, period);
-        if (!effective) {
-          throw new AppError(
-            "VALIDATION",
-            `Set the rates for ${formatPeriod(period)} in Settings first (needed for the first bill).`,
-          );
-        }
-        const { lines } = admissionLines({
-          admissionDate: input.admissionDate,
-          rentPaisa: input.rent,
-          rates: effective.rates,
-          rule: effective.rates.midMonthRule,
-        });
-        const totalPaisa = lines.reduce((s, l) => s + l.amountPaisa, 0);
-        const [token] = await tx
-          .insert(tokens)
-          .values({
-            orgId: actor.orgId,
-            studentId: student.id,
-            buildingId: seat.buildingId,
-            period,
-            kind: "admission",
-            seatText: `${seat.buildingCode} · ${seat.roomNumber}-${seat.label}`,
-            rentPaisa: input.rent,
-            currentTotalPaisa: totalPaisa,
-            previousTotalPaisa: 0,
-            totalPaisa,
-          })
-          .returning({ id: tokens.id });
-        await tx.insert(tokenLines).values(
-          lines.map((l, i) => ({
-            orgId: actor.orgId,
-            tokenId: token.id,
-            kind: "current" as const,
-            head: l.head,
-            label: l.label,
-            amountPaisa: l.amountPaisa,
-            sort: i,
-          })),
-        );
-        await postLedger(
-          tx,
-          lines.map((l) => ({
-            orgId: actor.orgId,
-            studentId: student.id,
-            buildingId: seat.buildingId,
-            period,
-            entryDate: input.admissionDate,
-            head: l.head,
-            amountPaisa: l.amountPaisa,
-            sourceType: "admission" as const,
-            sourceId: token.id,
-            description: l.label,
-            createdBy: actor.membershipId,
-          })),
-        );
-        firstBill = {
-          tokenId: token.id,
-          lines: lines.map((l) => ({ label: l.label, amountPaisa: l.amountPaisa })),
-          totalPaisa,
-        };
-      }
+      // First token (for the month after admission): rest of this month as due, advance, service charge.
+      const first = await createAdmissionToken(tx, actor.orgId, student.id, input.admissionDate, actor.membershipId);
+      const firstBill: AdmissionResult["firstBill"] = {
+        tokenId: first.tokenId,
+        code: first.code,
+        period: first.period,
+        lines: first.lines.map((l) => ({
+          section: l.section,
+          label: l.label,
+          detail: l.detail,
+          amountPaisa: l.amountPaisa,
+        })),
+        totalPaisa: first.totalPaisa,
+      };
       await writeAudit(tx, {
         orgId: actor.orgId,
         actorMembershipId: actor.membershipId,

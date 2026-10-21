@@ -32,6 +32,7 @@ import { compareRoomNumbers } from "@/server/domain/rooms";
 import { AppError } from "@/server/errors";
 import { accessibleBuildingIds } from "./buildings";
 import { assertPeriodOpen, isPeriodLocked } from "./periods";
+import { anyMealLockedOn, mealLockDates } from "./token-engine";
 
 const MAX_HOLIDAY_DAYS = 31;
 
@@ -93,6 +94,8 @@ export type MealDayRow = {
   byStudent: MealSlot[];
   /** Meals this student has turned off every day (their normal setting). */
   normallyOff: MealSlot[];
+  /** This day's meals are already settled on a token for this student: read only. */
+  locked: boolean;
 };
 
 export async function getMealDay(actor: SessionUser, buildingId: string, date: DateString) {
@@ -114,7 +117,7 @@ export async function getMealDay(actor: SessionUser, buildingId: string, date: D
     .where(and(eq(seatAssignments.orgId, actor.orgId), eq(seatAssignments.buildingId, buildingId), coversDate(date)));
 
   const ids = people.map((p) => p.studentId);
-  const [offRows, defaults, holidayRows] = await Promise.all([
+  const [offRows, defaults, locks, holidayRows] = await Promise.all([
     ids.length
       ? db()
           .select({
@@ -127,6 +130,7 @@ export async function getMealDay(actor: SessionUser, buildingId: string, date: D
           .where(and(eq(mealOffs.date, date), inArray(mealOffs.studentId, ids)))
       : Promise.resolve([]),
     loadMealDefaults(db(), ids, date),
+    mealLockDates(db(), ids),
     db()
       .select({ slot: mealHolidays.slot, note: mealHolidays.note, buildingId: mealHolidays.buildingId })
       .from(mealHolidays)
@@ -164,6 +168,7 @@ export async function getMealDay(actor: SessionUser, buildingId: string, date: D
         off,
         byStudent,
         normallyOff,
+        locked: (locks.get(p.studentId) ?? "") >= date,
       };
     })
     .sort((a, b) => compareRoomNumbers(a.roomNumber, b.roomNumber) || a.seatLabel.localeCompare(b.seatLabel));
@@ -244,6 +249,7 @@ export async function saveMealDay(actor: SessionUser, input: MealDayInput): Prom
       loadMealDefaults(tx, studentIds, input.date),
     ]);
     const existingByKey = new Map(existing.map((e) => [mealKey(e.studentId, e.slot), e]));
+    const locks = await mealLockDates(tx, studentIds);
 
     const remove: string[] = [];
     const flip: { id: string; turnedOn: boolean }[] = [];
@@ -255,6 +261,13 @@ export async function saveMealDay(actor: SessionUser, input: MealDayInput): Prom
         const wantOn = !offs.has(key);
         const normallyOn = defaultOn(defaults.get(studentId), slot, input.date);
         const ex = existingByKey.get(key);
+        const nowOn = ex ? ex.turnedOn : normallyOn;
+        if (wantOn !== nowOn && (locks.get(studentId) ?? "") >= input.date) {
+          throw new AppError(
+            "VALIDATION",
+            "Some of these meals are already settled on a token and cannot change. Reload the page.",
+          );
+        }
         if (wantOn === normallyOn) {
           if (ex) remove.push(ex.id);
         } else if (!ex) {
@@ -335,6 +348,12 @@ export async function addHolidays(actor: SessionUser, input: HolidayInput): Prom
   const editError = mealDateEditError(input.from, dhakaDate()) ?? mealDateEditError(input.to, dhakaDate());
   if (editError) throw new AppError("VALIDATION", editError);
   await assertPeriodOpen(db(), actor.orgId, input.from);
+  if (await anyMealLockedOn(db(), actor.orgId, input.from)) {
+    throw new AppError(
+      "VALIDATION",
+      `Some students' meals up to ${input.from} are already on an early token. Choose a later date.`,
+    );
+  }
 
   const values = dates.flatMap((date) =>
     input.slots.map((slot) => ({
@@ -382,6 +401,9 @@ export async function deleteHoliday(actor: SessionUser, holidayId: string): Prom
     const editError = mealDateEditError(h.date, dhakaDate());
     if (editError) throw new AppError("VALIDATION", editError);
     await assertPeriodOpen(tx, actor.orgId, h.date);
+    if (await anyMealLockedOn(tx, actor.orgId, h.date)) {
+      throw new AppError("VALIDATION", "Some students' meals on this day are already on a token.");
+    }
     await tx.delete(mealHolidays).where(eq(mealHolidays.id, h.id));
     await writeAudit(tx, {
       orgId: actor.orgId,
@@ -419,7 +441,7 @@ export async function computeMealCounts(
   orgId: string,
   period: Period,
   buildingIds: string[] | null,
-  opts: { studentIds?: string[]; until?: DateString } = {},
+  opts: { studentIds?: string[]; until?: DateString; from?: DateString } = {},
 ): Promise<MealReportRow[]> {
   if (buildingIds && buildingIds.length === 0) return [];
   const start = periodStart(period);
@@ -503,6 +525,7 @@ export async function computeMealCounts(
       holidaysAll,
       holidaysByBuilding,
       until: opts.until ?? latest.leftDate ?? undefined,
+      from: opts.from,
     });
     return {
       ...counts,
