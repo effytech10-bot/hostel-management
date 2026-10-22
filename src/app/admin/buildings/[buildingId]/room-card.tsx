@@ -14,36 +14,36 @@ import { addSeatAction, deleteRoomAction, deleteSeatAction, reserveSeatAction, u
 
 export function RoomCard({ room }: { room: RoomWithSeats }) {
   return (
-    <div className="bg-card rounded-lg border p-3">
+    <div className="rounded-[12px] border border-line bg-surface shadow-card p-3.5">
       <div className="flex items-baseline justify-between gap-2">
-        <p className="font-semibold">Room {room.number}</p>
-        <p className="text-muted-foreground text-xs">
+        <p className="font-bold text-ink text-[14px]">Room {room.number}</p>
+        <p className="text-muted text-xs tabular-nums">
           {room.defaultRentPaisa != null ? formatTaka(room.defaultRentPaisa) : "No default rent"}
         </p>
       </div>
 
-      <div className="mt-2 flex flex-wrap gap-1.5">
-        {room.seats.length === 0 && <span className="text-muted-foreground text-xs">No seats</span>}
+      <div className="mt-2.5 flex flex-wrap gap-1.5">
+        {room.seats.length === 0 && <span className="text-muted text-xs">No seats</span>}
         {room.seats.map((seat) =>
           seat.occupant ? (
             <Link
               key={seat.id}
               href={`/admin/students/${seat.occupant.studentId}`}
               title={`${seat.occupant.name} (ID ${seat.occupant.code})`}
-              className="inline-flex h-7 max-w-40 items-center gap-1 rounded-md border border-blue-300 bg-blue-50 px-2 text-xs font-medium text-blue-800 hover:bg-blue-100"
+              className="inline-flex h-7 max-w-40 items-center gap-1 rounded-md border border-brand-100 bg-brand-50 px-2 text-xs font-semibold text-brand hover:bg-brand-100/70 transition-colors"
             >
-              {seat.label}
-              <span className="truncate font-normal">· {seat.occupant.name}</span>
+              <span>{seat.label}</span>
+              <span className="truncate font-normal text-ink-2">· {seat.occupant.name}</span>
             </Link>
           ) : (
             <span
               key={seat.id}
               title={seat.isReserved ? `Reserved${seat.reservedNote ? `: ${seat.reservedNote}` : ""}` : "Vacant"}
               className={cn(
-                "inline-flex h-7 min-w-9 items-center justify-center rounded-md border px-2 text-xs font-medium",
+                "inline-flex h-7 min-w-8 items-center justify-center rounded-md border px-2 text-xs font-semibold",
                 seat.isReserved
-                  ? "border-amber-300 bg-amber-50 text-amber-800"
-                  : "border-emerald-300 bg-emerald-50 text-emerald-800",
+                  ? "border-warn-line bg-warn-bg text-warn"
+                  : "border-ok-line bg-ok-bg text-ok",
               )}
             >
               {seat.label}
@@ -53,17 +53,19 @@ export function RoomCard({ room }: { room: RoomWithSeats }) {
       </div>
 
       <details className="group mt-3">
-        <summary className="text-primary cursor-pointer text-xs select-none">Manage room</summary>
-        <div className="mt-3 flex flex-col gap-4 border-t pt-3">
+        <summary className="text-brand font-semibold cursor-pointer text-xs select-none hover:underline">
+          Manage room
+        </summary>
+        <div className="mt-3 flex flex-col gap-4 border-t border-line-2 pt-3">
           <EditRoomForm room={room} />
 
           <div className="flex flex-col gap-2">
-            <p className="text-muted-foreground text-xs font-medium">Seats</p>
+            <p className="text-muted text-xs font-semibold">Seats</p>
             {room.seats.map((seat) => (
               <div key={seat.id} className="flex flex-wrap items-center gap-2">
-                <span className="w-8 text-sm font-medium">{seat.label}</span>
+                <span className="w-8 text-sm font-bold text-ink">{seat.label}</span>
                 {seat.occupant ? (
-                  <span className="text-muted-foreground text-xs">Occupied by {seat.occupant.name}</span>
+                  <span className="text-muted text-xs">Occupied by {seat.occupant.name}</span>
                 ) : (
                   <>
                     <ActionButton

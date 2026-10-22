@@ -19,14 +19,14 @@ export function ResetPasswordForm({ membershipId }: { membershipId: string }) {
         placeholder="New password"
         minLength={PASSWORD_MIN}
         required
-        className="h-8 w-36"
+        className="h-8 w-36 text-xs"
         aria-label="New password"
       />
-      <Button type="submit" size="sm" variant="outline" disabled={pending}>
+      <Button type="submit" size="sm" variant="outline" disabled={pending} className="h-8 text-xs">
         {pending ? "Saving…" : "Reset"}
       </Button>
-      {state.error && <span className="text-xs text-red-600">{state.error}</span>}
-      {state.ok && <span className="text-xs text-emerald-700">{state.message}</span>}
+      {state.error && <span className="text-xs text-bad font-semibold">{state.error}</span>}
+      {state.ok && <span className="text-xs text-ok font-semibold">{state.message}</span>}
     </form>
   );
 }

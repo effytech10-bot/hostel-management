@@ -42,8 +42,8 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
           <Link href={`/admin/settings?month=${addMonths(period, -1)}`}>← {formatPeriod(addMonths(period, -1))}</Link>
         </Button>
         <form method="get" className="flex items-center gap-2">
-          <Input type="month" name="month" defaultValue={period} className="w-auto" />
-          <Button type="submit" variant="outline" size="sm">
+          <Input type="month" name="month" defaultValue={period} className="w-auto h-9 text-[13.5px]" />
+          <Button type="submit" variant="outline" size="sm" className="h-9">
             Open
           </Button>
         </form>
@@ -82,7 +82,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
         </CardHeader>
         <CardContent>
           {history.length === 0 ? (
-            <p className="text-muted-foreground text-sm">Nothing saved yet.</p>
+            <p className="text-muted text-sm py-4">Nothing saved yet.</p>
           ) : (
             <Table>
               <TableHeader>
@@ -101,7 +101,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
                 {history.map((r) => (
                   <TableRow key={r.id}>
                     <TableCell>
-                      <Link href={`/admin/settings?month=${r.period}`} className="text-primary hover:underline">
+                      <Link href={`/admin/settings?month=${r.period}`} className="text-brand font-medium hover:underline">
                         {formatPeriod(r.period)}
                       </Link>
                     </TableCell>
@@ -111,7 +111,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
                     <TableCell className="text-right tabular-nums">{formatTaka(r.mealDepositPaisa)}</TableCell>
                     <TableCell className="text-right tabular-nums">{formatTaka(r.serviceChargePaisa)}</TableCell>
                     <TableCell className="text-right tabular-nums">{r.advanceMonths} mo</TableCell>
-                    <TableCell className="text-muted-foreground max-w-48 truncate">{r.notes ?? ""}</TableCell>
+                    <TableCell className="text-muted max-w-48 truncate">{r.notes ?? ""}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -119,13 +119,13 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
           )}
         </CardContent>
       </Card>
+
       <Card className="mt-6">
         <CardHeader>
           <CardTitle>Meal on/off by students</CardTitle>
           <CardDescription>
             Students can turn their own meals off (or back on) from their phone until this time on the night before.
-            After that only the office can change that day. Meals the office turns off can only be turned on by the
-            office.
+            After that only the office can change that day.
           </CardDescription>
         </CardHeader>
         <CardContent>

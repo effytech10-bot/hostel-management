@@ -23,7 +23,7 @@ export default async function BuildingsPage() {
         </CardHeader>
         <CardContent>
           {list.length === 0 ? (
-            <p className="text-muted-foreground text-sm">No buildings yet. Add the first one below.</p>
+            <p className="text-muted text-sm py-4">No buildings yet. Add the first one below.</p>
           ) : (
             <Table>
               <TableHeader>
@@ -40,16 +40,16 @@ export default async function BuildingsPage() {
                 {list.map((b) => (
                   <TableRow key={b.id}>
                     <TableCell>
-                      <Link href={`/admin/buildings/${b.id}`} className="text-primary font-medium hover:underline">
+                      <Link href={`/admin/buildings/${b.id}`} className="text-brand font-bold hover:underline">
                         {b.code}
                       </Link>
-                      {b.name && <span className="text-muted-foreground ml-2">{b.name}</span>}
+                      {b.name && <span className="text-muted text-xs ml-2">{b.name}</span>}
                     </TableCell>
-                    <TableCell className="text-muted-foreground max-w-64 truncate">{b.address ?? "—"}</TableCell>
+                    <TableCell className="text-muted max-w-64 truncate">{b.address ?? "—"}</TableCell>
                     <TableCell className="text-right tabular-nums">{b.rooms}</TableCell>
-                    <TableCell className="text-right tabular-nums">{b.seats}</TableCell>
-                    <TableCell className="text-right tabular-nums">{b.occupied}</TableCell>
-                    <TableCell className="text-right tabular-nums">{b.seats - b.occupied - b.reserved}</TableCell>
+                    <TableCell className="text-right tabular-nums font-semibold text-ink">{b.seats}</TableCell>
+                    <TableCell className="text-right tabular-nums text-brand font-semibold">{b.occupied}</TableCell>
+                    <TableCell className="text-right tabular-nums text-ok font-semibold">{b.seats - b.occupied - b.reserved}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>

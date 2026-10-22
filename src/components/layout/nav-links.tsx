@@ -37,25 +37,31 @@ export function NavLinks({ items, orientation }: { items: NavItem[]; orientation
   const homeHref = items.reduce((a, b) => (a.href.length <= b.href.length ? a : b)).href;
 
   return (
-    <nav className={cn("flex gap-1", orientation === "vertical" ? "flex-col" : "flex-row overflow-x-auto")}>
+    <nav className={cn(orientation === "vertical" ? "flex flex-col gap-[2px]" : "flex flex-wrap items-center gap-1.5")}>
       {items.map((item) => {
         const Icon = ICONS[item.icon];
         const active =
           item.href === homeHref
             ? pathname === item.href
             : pathname === item.href || pathname.startsWith(`${item.href}/`);
-        const base = "flex items-center gap-2 rounded-md px-3 py-2 text-sm whitespace-nowrap";
+
+        const base = cn(
+          "flex items-center gap-2.5 rounded-[9px] text-[14px] transition-colors whitespace-nowrap select-none",
+          orientation === "vertical" ? "p-[9px_11px]" : "px-3 py-1.5",
+        );
 
         if (item.soon) {
           return (
             <span
               key={item.href}
-              className={cn(base, "text-muted-foreground/60 cursor-not-allowed")}
+              className={cn(base, "text-muted-foreground/50 cursor-not-allowed font-medium")}
               title="Coming soon"
             >
-              <Icon className="size-4" />
-              {item.label}
-              <span className="bg-muted ml-auto rounded px-1.5 text-[10px] uppercase">soon</span>
+              <Icon className="size-[18px] shrink-0 opacity-40" />
+              <span>{item.label}</span>
+              <span className="bg-surface-3 text-ink-2 ml-auto rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase">
+                soon
+              </span>
             </span>
           );
         }
@@ -67,12 +73,12 @@ export function NavLinks({ items, orientation }: { items: NavItem[]; orientation
             className={cn(
               base,
               active
-                ? "bg-primary text-primary-foreground"
-                : "text-foreground hover:bg-accent hover:text-accent-foreground",
+                ? "bg-brand-50 text-brand font-[650] [&_svg]:opacity-100"
+                : "text-ink-2 hover:bg-surface-2 font-medium [&_svg]:opacity-80",
             )}
           >
-            <Icon className="size-4" />
-            {item.label}
+            <Icon className="size-[18px] shrink-0" />
+            <span>{item.label}</span>
           </Link>
         );
       })}

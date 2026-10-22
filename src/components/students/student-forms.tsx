@@ -5,6 +5,7 @@ import { resetStudentPasswordAction, transferSeatAction, updateStudentAction } f
 import { Field } from "@/components/forms/field";
 import { Button } from "@/components/ui/button";
 import { FormMessage } from "@/components/ui/form-message";
+import { Note } from "@/components/ui/note";
 import { dhakaDate } from "@/lib/dates";
 import { formatTaka } from "@/lib/money";
 import type { ActionState } from "@/server/errors";
@@ -98,10 +99,10 @@ export function ResetStudentPasswordForm({ studentId }: { studentId: string }) {
         errors={state.fieldErrors}
       />
       {state.ok && state.message && (
-        <p className="rounded-md bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
-          Temporary password: <span className="font-mono text-base font-semibold">{state.message}</span>. The student
+        <Note variant="ok" className="text-xs">
+          Temporary password: <span className="font-mono text-sm font-bold text-ok">{state.message}</span>. The student
           sets their own password after logging in.
-        </p>
+        </Note>
       )}
       <FormMessage error={state.error} />
       <Button type="submit" variant="outline" size="sm" disabled={pending} className="w-fit">

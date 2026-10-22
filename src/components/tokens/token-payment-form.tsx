@@ -7,6 +7,7 @@ import { Field } from "@/components/forms/field";
 import { Button } from "@/components/ui/button";
 import { FieldError, FormMessage } from "@/components/ui/form-message";
 import { Label } from "@/components/ui/label";
+import { Note } from "@/components/ui/note";
 import { Select } from "@/components/ui/select";
 import { dhakaDate } from "@/lib/dates";
 import { formatTaka, tryParseTaka } from "@/lib/money";
@@ -38,22 +39,22 @@ export function TokenPaymentForm({
   if (state.recorded) {
     const r = state.recorded;
     return (
-      <div className="flex flex-col gap-4 rounded-lg border border-emerald-300 bg-emerald-50 p-4">
-        <p className="text-lg font-semibold text-emerald-900">
+      <Note variant="ok" className="flex flex-col items-start gap-3 p-4">
+        <p className="text-[15px] font-bold text-ok">
           Payment saved on {r.tokenCode ?? tokenCode} ✓ Receipt {r.receiptNo}
         </p>
-        {r.duplicate && <p className="text-sm">This form was already submitted; no second payment was made.</p>}
-        <div className="flex flex-wrap gap-2">
-          <Button asChild>
+        {r.duplicate && <p className="text-muted-foreground text-xs">This form was already submitted; no second payment was made.</p>}
+        <div className="flex flex-wrap gap-2 pt-1">
+          <Button asChild size="sm">
             <Link href={`/receipts/${r.paymentId}`} target="_blank">
               Open / print token with this payment
             </Link>
           </Button>
-          <Button variant="outline" onClick={() => window.location.reload()}>
+          <Button variant="outline" size="sm" onClick={() => window.location.reload()}>
             Done
           </Button>
         </div>
-      </div>
+      </Note>
     );
   }
 
@@ -61,25 +62,27 @@ export function TokenPaymentForm({
     <form action={formAction} className="flex flex-col gap-4">
       <input type="hidden" name="requestId" value={requestId} />
       <input type="hidden" name="studentId" value={studentId} />
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid gap-3.5 sm:grid-cols-2">
         <Field
           name="amount"
           label="Amount received (৳)"
           inputMode="decimal"
           value={amount}
           onChange={(ev) => setAmount(ev.target.value)}
-          className="h-12 text-xl font-semibold"
+          className="h-10 text-lg font-bold tabular-nums"
           required
           errors={e}
         />
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="accountId">Received in</Label>
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="accountId" className="text-[12.5px] font-semibold text-ink-2">
+            Received in
+          </Label>
           <Select
             id="accountId"
             name="accountId"
             value={accountId}
             onChange={(ev) => setAccountId(ev.target.value)}
-            className="h-12"
+            className="h-10 text-[14px]"
           >
             {accounts.map((a) => (
               <option key={a.id} value={a.id}>
@@ -95,6 +98,7 @@ export function TokenPaymentForm({
             label="Transaction ID *"
             placeholder="e.g. 9JK7H2LM4P"
             autoCapitalize="characters"
+            className="font-mono text-[13.5px]"
             required
             errors={e}
           />
@@ -104,17 +108,17 @@ export function TokenPaymentForm({
       </div>
 
       {after !== null && (
-        <p className="bg-muted/40 rounded-md border p-3 text-sm font-medium">
+        <Note variant={after > 0 ? "warn" : "ok"} className="font-medium text-[13px]">
           {after > 0
             ? `Still due on this token after this: ${formatTaka(after)}`
             : after < 0
               ? `Fully paid. ${formatTaka(-after)} extra will show as "Extra paid" on the next token.`
               : "Fully paid after this."}
-        </p>
+        </Note>
       )}
 
       <FormMessage error={state.error} />
-      <Button type="submit" size="lg" disabled={pending || accounts.length === 0} className="w-fit">
+      <Button type="submit" size="default" disabled={pending || accounts.length === 0} className="w-fit">
         {pending ? "Saving…" : "Save payment & make receipt"}
       </Button>
     </form>

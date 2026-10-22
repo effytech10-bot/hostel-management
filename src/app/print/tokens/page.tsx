@@ -29,9 +29,9 @@ export default async function PrintTokensPage({ searchParams }: { searchParams: 
   for (let i = 0; i < tokens.length; i += 4) sheets.push(tokens.slice(i, i + 4));
 
   return (
-    <div className="bg-muted min-h-dvh py-6 print:bg-white print:py-0">
+    <div className="bg-bg min-h-dvh py-6 print:bg-white print:py-0">
       <PrintBar count={tokens.length} />
-      {tokens.length === 0 && <p className="text-center text-sm">No tokens found.</p>}
+      {tokens.length === 0 && <p className="text-center text-sm text-muted">No tokens found.</p>}
       {sheets.map((sheet, i) => (
         <section key={i} className="token-sheet">
           {sheet.map((t) => (

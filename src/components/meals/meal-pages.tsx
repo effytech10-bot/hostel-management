@@ -1,11 +1,14 @@
 import Link from "next/link";
 import { PageHeader } from "@/components/layout/app-shell";
 import { ActionButton } from "@/components/forms/action-button";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { KpiTile } from "@/components/ui/kpi";
 import { Select } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { TabsNav } from "@/components/ui/tabs-nav";
 import {
   addMonths,
   currentPeriod,
@@ -16,7 +19,6 @@ import {
   periodEnd,
   periodStart,
 } from "@/lib/dates";
-import { cn } from "@/lib/utils";
 import type { SessionUser } from "@/server/auth/session";
 import { formatMealUnits, MEAL_SLOT_LABEL, shiftDate } from "@/server/domain/meals";
 import { listBuildings } from "@/server/services/buildings";
@@ -34,28 +36,11 @@ const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
 
 function MealTabs({ basePath, active, isAdmin }: { basePath: string; active: string; isAdmin: boolean }) {
   const tabs = [
-    { href: basePath, label: "Daily entry", key: "day" },
-    { href: `${basePath}/report`, label: "Monthly count", key: "report" },
-    ...(isAdmin ? [{ href: `${basePath}/holidays`, label: "Holidays", key: "holidays" }] : []),
+    { href: basePath, label: "Daily entry", key: "day", active: active === "day" },
+    { href: `${basePath}/report`, label: "Monthly count", key: "report", active: active === "report" },
+    ...(isAdmin ? [{ href: `${basePath}/holidays`, label: "Holidays", key: "holidays", active: active === "holidays" }] : []),
   ];
-  return (
-    <div className="mb-6 flex gap-1 border-b">
-      {tabs.map((t) => (
-        <Link
-          key={t.key}
-          href={t.href}
-          className={cn(
-            "-mb-px border-b-2 px-3 py-2 text-sm",
-            active === t.key
-              ? "border-primary text-foreground font-medium"
-              : "text-muted-foreground border-transparent",
-          )}
-        >
-          {t.label}
-        </Link>
-      ))}
-    </div>
-  );
+  return <TabsNav items={tabs} className="mb-6" />;
 }
 
 function formatDay(date: string): string {
@@ -102,17 +87,23 @@ export async function MealDayPage({
         <p className="text-muted-foreground text-sm">No buildings available to you.</p>
       ) : (
         <>
-          <form method="get" className="mb-4 flex flex-wrap items-end gap-2">
-            <Select name="building" defaultValue={building?.id ?? ""} className="w-auto min-w-40">
-              <option value="">Choose building…</option>
-              {buildingList.map((b) => (
-                <option key={b.id} value={b.id}>
-                  {b.code}
-                </option>
-              ))}
-            </Select>
-            <Input type="date" name="date" defaultValue={date} className="w-auto" />
-            <Button type="submit" variant="outline">
+          <form method="get" className="mb-4 flex flex-wrap items-end gap-2.5">
+            <div className="flex flex-col gap-1">
+              <label className="text-[12.5px] font-semibold text-ink-2">Building</label>
+              <Select name="building" defaultValue={building?.id ?? ""} className="w-auto min-w-40 h-9 text-[13.5px]">
+                <option value="">Choose building…</option>
+                {buildingList.map((b) => (
+                  <option key={b.id} value={b.id}>
+                    {b.code}
+                  </option>
+                ))}
+              </Select>
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-[12.5px] font-semibold text-ink-2">Date</label>
+              <Input type="date" name="date" defaultValue={date} className="w-auto h-9 text-[13.5px]" />
+            </div>
+            <Button type="submit" variant="outline" size="sm" className="h-9">
               Open
             </Button>
           </form>
@@ -123,16 +114,16 @@ export async function MealDayPage({
                 <Button asChild variant="outline" size="sm">
                   <Link href={hrefFor(shiftDate(date, -1))}>← Previous day</Link>
                 </Button>
-                <p className="px-2 font-medium">
-                  {formatDay(date)}
-                  {date === today && <span className="text-primary ml-2 text-xs">Today</span>}
-                  {date === shiftDate(today, 1) && <span className="text-primary ml-2 text-xs">Tomorrow</span>}
-                </p>
+                <div className="flex items-center gap-2 px-2 font-semibold text-[14.5px] text-ink">
+                  <span>{formatDay(date)}</span>
+                  {date === today && <Badge variant="info">Today</Badge>}
+                  {date === shiftDate(today, 1) && <Badge variant="info">Tomorrow</Badge>}
+                </div>
                 <Button asChild variant="outline" size="sm">
                   <Link href={hrefFor(shiftDate(date, 1))}>Next day →</Link>
                 </Button>
                 {date !== today && (
-                  <Button asChild variant="ghost" size="sm">
+                  <Button asChild variant="ghost" size="sm" className="text-brand hover:text-brand-600">
                     <Link href={hrefFor(today)}>Go to today</Link>
                   </Button>
                 )}
@@ -186,20 +177,26 @@ export async function MealReportPage({
       />
       <MealTabs basePath={basePath} active="report" isAdmin={actor.role === "admin"} />
 
-      <form method="get" className="mb-4 flex flex-wrap items-end gap-2">
-        <Input type="month" name="month" defaultValue={period} className="w-auto" />
-        <Select name="building" defaultValue={buildingId ?? ""} className="w-auto min-w-40">
-          <option value="">All my buildings</option>
-          {buildingList.map((b) => (
-            <option key={b.id} value={b.id}>
-              {b.code}
-            </option>
-          ))}
-        </Select>
-        <Button type="submit" variant="outline">
+      <form method="get" className="mb-4 flex flex-wrap items-end gap-2.5">
+        <div className="flex flex-col gap-1">
+          <label className="text-[12.5px] font-semibold text-ink-2">Month</label>
+          <Input type="month" name="month" defaultValue={period} className="w-auto h-9 text-[13.5px]" />
+        </div>
+        <div className="flex flex-col gap-1">
+          <label className="text-[12.5px] font-semibold text-ink-2">Building</label>
+          <Select name="building" defaultValue={buildingId ?? ""} className="w-auto min-w-40 h-9 text-[13.5px]">
+            <option value="">All my buildings</option>
+            {buildingList.map((b) => (
+              <option key={b.id} value={b.id}>
+                {b.code}
+              </option>
+            ))}
+          </Select>
+        </div>
+        <Button type="submit" variant="outline" size="sm" className="h-9">
           Show
         </Button>
-        <Button asChild variant="ghost" size="sm">
+        <Button asChild variant="ghost" size="sm" className="h-9 text-brand hover:text-brand-600">
           <Link
             href={`${basePath}/report?month=${addMonths(period, -1)}${buildingId ? `&building=${buildingId}` : ""}`}
           >
@@ -208,24 +205,15 @@ export async function MealReportPage({
         </Button>
       </form>
 
-      <div className="mb-4 grid grid-cols-2 gap-3 md:grid-cols-4">
-        {[
-          { label: "Breakfasts (½ meal)", value: totals.breakfast },
-          { label: "Lunches", value: totals.lunch },
-          { label: "Dinners", value: totals.dinner },
-          { label: "Total meals", value: formatMealUnits(totals.halfUnits) },
-        ].map((s) => (
-          <Card key={s.label} className="gap-1 py-4">
-            <CardHeader className="px-4">
-              <CardDescription>{s.label}</CardDescription>
-              <CardTitle className="text-2xl tabular-nums">{s.value}</CardTitle>
-            </CardHeader>
-          </Card>
-        ))}
+      <div className="mb-4 grid grid-cols-2 lg:grid-cols-4 gap-3.5">
+        <KpiTile label="Breakfasts (½ meal)" value={totals.breakfast} />
+        <KpiTile label="Lunches" value={totals.lunch} />
+        <KpiTile label="Dinners" value={totals.dinner} />
+        <KpiTile label="Total meals" value={formatMealUnits(totals.halfUnits)} />
       </div>
 
-      <Card className="py-0">
-        <CardContent className="px-0">
+      <Card>
+        <CardContent>
           {rows.length === 0 ? (
             <p className="text-muted-foreground p-6 text-sm">No students in this month.</p>
           ) : (
@@ -247,19 +235,19 @@ export async function MealReportPage({
               <TableBody>
                 {rows.map((r) => (
                   <TableRow key={r.studentId}>
-                    <TableCell className="tabular-nums">{r.studentCode}</TableCell>
-                    <TableCell className="font-medium">{r.fullName}</TableCell>
+                    <TableCell className="font-mono text-xs tabular-nums">{r.studentCode}</TableCell>
+                    <TableCell className="font-semibold text-ink">{r.fullName}</TableCell>
                     <TableCell>{r.buildingCode}</TableCell>
-                    <TableCell>{r.seatText}</TableCell>
+                    <TableCell className="font-mono text-xs">{r.seatText}</TableCell>
                     <TableCell className="text-right tabular-nums">{r.days}</TableCell>
                     <TableCell className="text-right tabular-nums">{r.breakfast}</TableCell>
                     <TableCell className="text-right tabular-nums">{r.lunch}</TableCell>
                     <TableCell className="text-right tabular-nums">{r.dinner}</TableCell>
-                    <TableCell className="text-right font-medium tabular-nums">
+                    <TableCell className="text-right font-bold tabular-nums">
                       {formatMealUnits(r.halfUnits)}
                     </TableCell>
                     {rates && (
-                      <TableCell className="text-right tabular-nums">{formatTaka(mealCost(r, rates))}</TableCell>
+                      <TableCell className="text-right font-semibold tabular-nums text-ink">{formatTaka(mealCost(r, rates))}</TableCell>
                     )}
                   </TableRow>
                 ))}
@@ -268,7 +256,7 @@ export async function MealReportPage({
           )}
         </CardContent>
       </Card>
-      <p className="text-muted-foreground mt-3 text-xs">
+      <p className="text-muted-foreground mt-3 text-xs leading-normal">
         Meals = lunches + dinners + half of breakfasts.{" "}
         {rates
           ? `Meal cost uses the rates for ${formatPeriod(period)}: breakfast ${formatTaka(rates.breakfastRatePaisa)}, lunch ${formatTaka(rates.lunchRatePaisa)}, dinner ${formatTaka(rates.dinnerRatePaisa)}.`
@@ -327,10 +315,10 @@ export async function MealHolidaysPage({ actor, basePath }: { actor: SessionUser
               <TableBody>
                 {holidays.map((h) => (
                   <TableRow key={h.id}>
-                    <TableCell className="tabular-nums">{h.date}</TableCell>
-                    <TableCell>{MEAL_SLOT_LABEL[h.slot]}</TableCell>
+                    <TableCell className="font-mono text-xs tabular-nums">{h.date}</TableCell>
+                    <TableCell className="font-medium">{MEAL_SLOT_LABEL[h.slot]}</TableCell>
                     <TableCell>{h.buildingCode ?? "All buildings"}</TableCell>
-                    <TableCell className="text-muted-foreground">{h.note ?? ""}</TableCell>
+                    <TableCell className="text-muted-foreground text-xs">{h.note ?? ""}</TableCell>
                     <TableCell className="text-right">
                       <ActionButton
                         action={deleteHolidayAction}
@@ -338,6 +326,7 @@ export async function MealHolidaysPage({ actor, basePath }: { actor: SessionUser
                         variant="ghost"
                         confirm="Remove this holiday? The meal will count again."
                         pendingLabel="Removing…"
+                        className="text-bad hover:text-bad hover:bg-bad-bg/60"
                       >
                         Remove
                       </ActionButton>

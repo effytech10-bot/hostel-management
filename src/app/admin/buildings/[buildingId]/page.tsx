@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PageHeader } from "@/components/layout/app-shell";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { KpiTile } from "@/components/ui/kpi";
 import { requireRole } from "@/server/auth/session";
 import { AppError } from "@/server/errors";
 import { getBuildingDetail, type RoomWithSeats } from "@/server/services/buildings";
@@ -51,18 +52,12 @@ export default async function BuildingPage({ params }: { params: Promise<{ build
   const seatCount = rooms.reduce((n, r) => n + r.seats.length, 0);
   const occupied = rooms.reduce((n, r) => n + r.seats.filter((s) => s.occupant).length, 0);
   const reserved = rooms.reduce((n, r) => n + r.seats.filter((s) => !s.occupant && s.isReserved).length, 0);
-  const stats = [
-    { label: "Rooms", value: rooms.length },
-    { label: "Seats", value: seatCount },
-    { label: "Occupied", value: occupied },
-    { label: "Vacant", value: seatCount - occupied - reserved },
-    { label: "Reserved", value: reserved },
-  ];
+  const vacant = seatCount - occupied - reserved;
 
   return (
     <>
       <p className="mb-2 text-sm">
-        <Link href="/admin/buildings" className="text-muted-foreground hover:underline">
+        <Link href="/admin/buildings" className="text-muted hover:text-ink hover:underline">
           ← All buildings
         </Link>
       </p>
@@ -71,15 +66,12 @@ export default async function BuildingPage({ params }: { params: Promise<{ build
         description={[building.name, building.address].filter(Boolean).join(" · ") || undefined}
       />
 
-      <div className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-5">
-        {stats.map((s) => (
-          <Card key={s.label} className="gap-1 py-4">
-            <CardHeader className="px-4">
-              <CardDescription>{s.label}</CardDescription>
-              <CardTitle className="text-2xl tabular-nums">{s.value}</CardTitle>
-            </CardHeader>
-          </Card>
-        ))}
+      <div className="mb-6 grid grid-cols-2 gap-3.5 sm:grid-cols-3 md:grid-cols-5">
+        <KpiTile label="Rooms" value={String(rooms.length)} />
+        <KpiTile label="Seats" value={String(seatCount)} />
+        <KpiTile label="Occupied" value={String(occupied)} tone={occupied > 0 ? "default" : undefined} />
+        <KpiTile label="Vacant" value={String(vacant)} tone={vacant > 0 ? "green" : undefined} />
+        <KpiTile label="Reserved" value={String(reserved)} tone={reserved > 0 ? "default" : undefined} />
       </div>
 
       <Card className="mb-6">
@@ -93,10 +85,10 @@ export default async function BuildingPage({ params }: { params: Promise<{ build
         <CardContent className="flex flex-col gap-6">
           <BulkRoomsForm buildingId={building.id} />
           <details>
-            <summary className="text-primary cursor-pointer text-sm select-none">
+            <summary className="text-brand font-semibold cursor-pointer text-xs select-none hover:underline">
               Add a single room with a special number
             </summary>
-            <div className="mt-4">
+            <div className="mt-4 pt-4 border-t border-line-2">
               <SingleRoomForm buildingId={building.id} />
             </div>
           </details>
@@ -105,28 +97,27 @@ export default async function BuildingPage({ params }: { params: Promise<{ build
 
       {rooms.length === 0 ? (
         <Card className="mb-6">
-          <CardContent className="text-muted-foreground text-sm">No rooms yet.</CardContent>
+          <CardContent className="text-muted text-sm py-4">No rooms yet.</CardContent>
         </Card>
       ) : (
         <div className="mb-6 flex flex-col gap-6">
-          <div className="text-muted-foreground flex flex-wrap items-center gap-4 text-xs">
-            <span className="inline-flex items-center gap-1.5">
-              <span className="size-3 rounded-sm border border-emerald-300 bg-emerald-50" /> Vacant
+          <div className="flex flex-wrap items-center gap-4 text-xs">
+            <span className="inline-flex items-center gap-1.5 text-ink-2">
+              <span className="size-2.5 rounded-full border border-ok-line bg-ok-bg" /> Vacant
             </span>
-            <span className="inline-flex items-center gap-1.5">
-              <span className="size-3 rounded-sm border border-amber-300 bg-amber-50" /> Reserved
+            <span className="inline-flex items-center gap-1.5 text-ink-2">
+              <span className="size-2.5 rounded-full border border-warn-line bg-warn-bg" /> Reserved
             </span>
-            <span className="inline-flex items-center gap-1.5">
-              <span className="size-3 rounded-sm border border-blue-300 bg-blue-50" /> Occupied (click to open the
-              student)
+            <span className="inline-flex items-center gap-1.5 text-ink-2">
+              <span className="size-2.5 rounded-full border border-brand-100 bg-brand-50" /> Occupied (click to open student)
             </span>
           </div>
           {groupByFloor(rooms).map(([floor, floorRooms]) => (
             <section key={floor ?? "other"}>
-              <h2 className="text-muted-foreground mb-2 text-sm font-semibold">
-                {floorLabel(floor)} · {floorRooms.length} room(s)
+              <h2 className="text-ink-2 mb-2.5 text-sm font-bold">
+                {floorLabel(floor)} · <span className="text-muted font-normal">{floorRooms.length} room(s)</span>
               </h2>
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              <div className="grid gap-3.5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 {floorRooms.map((room) => (
                   <RoomCard key={room.id} room={room} />
                 ))}

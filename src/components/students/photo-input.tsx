@@ -40,7 +40,7 @@ export function PhotoInput({ currentUrl, label = "Photo" }: { currentUrl?: strin
 
   return (
     <div className="flex items-center gap-4">
-      <div className="bg-muted size-20 shrink-0 overflow-hidden rounded-lg border">
+      <div className="bg-surface-2 border-line size-20 shrink-0 overflow-hidden rounded-lg border">
         {preview ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={preview} alt="Student photo" className="size-full object-cover" />

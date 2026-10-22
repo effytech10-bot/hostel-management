@@ -5,9 +5,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { KpiTile } from "@/components/ui/kpi";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { TabsNav } from "@/components/ui/tabs-nav";
 import { formatPeriod } from "@/lib/dates";
 import { formatTaka } from "@/lib/money";
 import { parseReportParams, reportQuery, type ReportName, type ReportParams } from "@/lib/report-params";
@@ -58,13 +60,17 @@ export async function ReportsPage({
   return (
     <>
       <PageHeader title="Reports" description="All numbers come straight from student accounts and payments." />
-      <nav className="mb-6 flex flex-wrap gap-2">
-        {tabs.map((t) => (
-          <Button key={t.r} asChild size="sm" variant={t.r === r ? "default" : "outline"}>
-            <Link href={`${base}${reportQuery({ r: t.r })}`}>{t.label}</Link>
-          </Button>
-        ))}
-      </nav>
+
+      <TabsNav
+        items={tabs.map((t) => ({
+          key: t.r,
+          label: t.label,
+          href: `${base}${reportQuery({ r: t.r })}`,
+          active: t.r === r,
+        }))}
+        className="mb-6"
+      />
+
       {r === "dues" && <DuesReport actor={actor} area={area} p={params} buildings={buildingList} />}
       {r === "collections" && <CollectionsReport actor={actor} area={area} p={params} buildings={buildingList} />}
       {r === "meals" && <MealsReport actor={actor} area={area} p={params} buildings={buildingList} />}
@@ -76,32 +82,12 @@ export async function ReportsPage({
 
 type Props = { actor: SessionUser; area: string; p: ReportParams; buildings?: { id: string; code: string }[] };
 
-function Stat({ label, value, tone, note }: { label: string; value: string; tone?: "red" | "green"; note?: string }) {
-  return (
-    <Card className="gap-1 py-4">
-      <CardHeader className="px-4">
-        <CardDescription>{label}</CardDescription>
-        <CardTitle
-          className={cn(
-            "text-2xl tabular-nums",
-            tone === "red" && "text-red-700",
-            tone === "green" && "text-emerald-700",
-          )}
-        >
-          {value}
-        </CardTitle>
-        {note && <p className="text-muted-foreground text-xs">{note}</p>}
-      </CardHeader>
-    </Card>
-  );
-}
-
 function CsvButton({ p, extra }: { p: ReportParams; extra: Record<string, string | undefined> }) {
   return (
-    <Button asChild variant="outline" size="sm">
+    <Button asChild variant="outline" size="sm" className="gap-1.5">
       <a href={`/api/reports/csv${reportQuery({ r: p.r, ...extra })}`}>
-        <Download />
-        Excel (CSV)
+        <Download className="size-3.5" />
+        <span>Excel (CSV)</span>
       </a>
     </Button>
   );
@@ -110,9 +96,11 @@ function CsvButton({ p, extra }: { p: ReportParams; extra: Record<string, string
 function BuildingSelect({ buildings, value }: { buildings: { id: string; code: string }[]; value?: string }) {
   if (buildings.length <= 1) return null;
   return (
-    <div className="flex flex-col gap-1.5">
-      <Label htmlFor="building">Building</Label>
-      <Select id="building" name="building" defaultValue={value ?? ""} className="w-auto">
+    <div className="flex flex-col gap-1">
+      <Label htmlFor="building" className="text-[12.5px] font-semibold text-ink-2">
+        Building
+      </Label>
+      <Select id="building" name="building" defaultValue={value ?? ""} className="w-auto h-9 text-[13.5px]">
         <option value="">All buildings</option>
         {buildings.map((b) => (
           <option key={b.id} value={b.id}>
@@ -129,7 +117,7 @@ function FilterBar({ r, children }: { r: ReportName; children: React.ReactNode }
     <form method="get" className="mb-6 flex flex-wrap items-end gap-3">
       <input type="hidden" name="r" value={r} />
       {children}
-      <Button type="submit" variant="outline">
+      <Button type="submit" variant="outline" size="sm" className="h-9">
         Show
       </Button>
     </form>
@@ -139,9 +127,9 @@ function FilterBar({ r, children }: { r: ReportName; children: React.ReactNode }
 const money = (paisa: number) => formatTaka(paisa);
 
 function Signed({ paisa }: { paisa: number }) {
-  if (paisa === 0) return <span className="text-muted-foreground">—</span>;
+  if (paisa === 0) return <span className="text-muted">—</span>;
   return (
-    <span className={paisa > 0 ? "text-red-700" : "text-emerald-700"}>
+    <span className={paisa > 0 ? "text-bad font-semibold" : "text-ok font-semibold"}>
       {paisa > 0 ? money(paisa) : `−${money(-paisa)}`}
     </span>
   );
@@ -162,17 +150,21 @@ async function DuesReport({ actor, area, p, buildings = [] }: Props) {
     <>
       <FilterBar r="dues">
         <BuildingSelect buildings={buildings} value={p.building} />
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="status">Students</Label>
-          <Select id="status" name="status" defaultValue={p.status} className="w-auto">
+        <div className="flex flex-col gap-1">
+          <Label htmlFor="status" className="text-[12.5px] font-semibold text-ink-2">
+            Students
+          </Label>
+          <Select id="status" name="status" defaultValue={p.status} className="w-auto h-9 text-[13.5px]">
             <option value="active">Current</option>
             <option value="left">Former (left)</option>
             <option value="all">All</option>
           </Select>
         </div>
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="batch">Batch</Label>
-          <Select id="batch" name="batch" defaultValue={p.batch ?? ""} className="w-auto">
+        <div className="flex flex-col gap-1">
+          <Label htmlFor="batch" className="text-[12.5px] font-semibold text-ink-2">
+            Batch
+          </Label>
+          <Select id="batch" name="batch" defaultValue={p.batch ?? ""} className="w-auto h-9 text-[13.5px]">
             <option value="">All batches</option>
             {batchList.map((b) => (
               <option key={b.id} value={b.id}>
@@ -181,9 +173,11 @@ async function DuesReport({ actor, area, p, buildings = [] }: Props) {
             ))}
           </Select>
         </div>
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="show">Show</Label>
-          <Select id="show" name="show" defaultValue={p.show} className="w-auto">
+        <div className="flex flex-col gap-1">
+          <Label htmlFor="show" className="text-[12.5px] font-semibold text-ink-2">
+            Show
+          </Label>
+          <Select id="show" name="show" defaultValue={p.show} className="w-auto h-9 text-[13.5px]">
             <option value="due">Who owes money</option>
             <option value="credit">Who has credit</option>
             <option value="all">Everyone</option>
@@ -191,16 +185,16 @@ async function DuesReport({ actor, area, p, buildings = [] }: Props) {
         </div>
       </FilterBar>
 
-      <div className="mb-6 grid grid-cols-2 gap-4 md:grid-cols-4">
-        <Stat label={`Total due (${t.withDue} ${who})`} value={money(t.duePaisa)} tone="red" />
-        <Stat
+      <div className="mb-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3.5">
+        <KpiTile label={`Total due (${t.withDue} ${who})`} value={money(t.duePaisa)} tone="red" />
+        <KpiTile
           label={`Credit to students (${t.withCredit})`}
           value={money(t.creditPaisa)}
           tone="green"
-          note="Hostel owes this back or it goes to their next bill"
+          note="Hostel owes this back or it goes to next bill"
         />
-        <Stat label="Net" value={money(t.duePaisa - t.creditPaisa)} />
-        <Stat
+        <KpiTile label="Net" value={money(t.duePaisa - t.creditPaisa)} />
+        <KpiTile
           label="Student advance held"
           value={money(t.advanceHeldPaisa)}
           note="Not income: belongs to students until they leave"
@@ -226,12 +220,12 @@ async function DuesReport({ actor, area, p, buildings = [] }: Props) {
               </TableHeader>
               <TableBody>
                 {[...data.byBuilding, { ...t, buildingCode: "All buildings" }].map((b) => (
-                  <TableRow key={b.buildingCode} className={b.buildingCode === "All buildings" ? "font-semibold" : ""}>
+                  <TableRow key={b.buildingCode} className={b.buildingCode === "All buildings" ? "font-bold bg-surface-2" : ""}>
                     <TableCell>{b.buildingCode}</TableCell>
                     <TableCell className="text-right tabular-nums">{b.students}</TableCell>
                     <TableCell className="text-right tabular-nums">{b.withDue}</TableCell>
-                    <TableCell className="text-right text-red-700 tabular-nums">{money(b.duePaisa)}</TableCell>
-                    <TableCell className="text-right text-emerald-700 tabular-nums">{money(b.creditPaisa)}</TableCell>
+                    <TableCell className="text-right text-bad font-semibold tabular-nums">{money(b.duePaisa)}</TableCell>
+                    <TableCell className="text-right text-ok font-semibold tabular-nums">{money(b.creditPaisa)}</TableCell>
                     <TableCell className="text-right tabular-nums">{money(b.advanceHeldPaisa)}</TableCell>
                   </TableRow>
                 ))}
@@ -251,7 +245,7 @@ async function DuesReport({ actor, area, p, buildings = [] }: Props) {
         </CardHeader>
         <CardContent>
           {data.rows.length === 0 ? (
-            <p className="text-muted-foreground text-sm">Nobody here.</p>
+            <p className="text-muted text-sm py-4">Nobody here.</p>
           ) : (
             <Table>
               <TableHeader>
@@ -275,12 +269,12 @@ async function DuesReport({ actor, area, p, buildings = [] }: Props) {
                       <TableCell>
                         <Link
                           href={`${area}/students/${row.studentId}`}
-                          className="text-primary font-medium hover:underline"
+                          className="text-brand font-medium hover:underline"
                         >
                           {row.fullName}
                         </Link>
-                        <div className="text-muted-foreground text-xs">
-                          ID {row.studentCode}
+                        <div className="text-muted text-xs">
+                          ID <span className="font-mono">{row.studentCode}</span>
                           {row.status === "left" && ` · left ${row.leftDate}`}
                           {row.batchName && ` · ${row.batchName}`}
                         </div>
@@ -323,15 +317,15 @@ async function CollectionsReport({ actor, area, p, buildings = [] }: Props) {
       </CardHeader>
       <CardContent>
         {rows.length === 0 ? (
-          <p className="text-muted-foreground text-sm">Nothing.</p>
+          <p className="text-muted text-sm py-4">Nothing.</p>
         ) : (
           <Table>
             <TableBody>
               {rows.map((x) => (
                 <TableRow key={x.key}>
                   <TableCell>{x.label}</TableCell>
-                  <TableCell className="text-muted-foreground text-right tabular-nums">{x.count}</TableCell>
-                  <TableCell className="text-right font-medium tabular-nums">{money(x.totalPaisa)}</TableCell>
+                  <TableCell className="text-muted text-right tabular-nums">{x.count}</TableCell>
+                  <TableCell className="text-right font-semibold tabular-nums">{money(x.totalPaisa)}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -344,24 +338,28 @@ async function CollectionsReport({ actor, area, p, buildings = [] }: Props) {
   return (
     <>
       <FilterBar r="collections">
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="from">From</Label>
-          <Input id="from" type="date" name="from" defaultValue={p.from} className="w-auto" />
+        <div className="flex flex-col gap-1">
+          <Label htmlFor="from" className="text-[12.5px] font-semibold text-ink-2">
+            From
+          </Label>
+          <Input id="from" type="date" name="from" defaultValue={p.from} className="w-auto h-9 text-[13.5px]" />
         </div>
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="to">To</Label>
-          <Input id="to" type="date" name="to" defaultValue={p.to} className="w-auto" />
+        <div className="flex flex-col gap-1">
+          <Label htmlFor="to" className="text-[12.5px] font-semibold text-ink-2">
+            To
+          </Label>
+          <Input id="to" type="date" name="to" defaultValue={p.to} className="w-auto h-9 text-[13.5px]" />
         </div>
         <BuildingSelect buildings={buildings} value={p.building} />
       </FilterBar>
 
       <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
-        <div className="grid flex-1 grid-cols-2 gap-4 md:max-w-lg">
-          <Stat
+        <div className="grid flex-1 grid-cols-1 sm:grid-cols-2 gap-3.5 md:max-w-lg">
+          <KpiTile
             label={`Collected ${p.from === p.to ? `on ${p.from}` : `${p.from} → ${p.to}`}`}
             value={money(data.totalPaisa)}
           />
-          <Stat label="Receipts" value={String(data.count)} note="Voided receipts are not counted" />
+          <KpiTile label="Receipts" value={String(data.count)} note="Voided receipts are not counted" />
         </div>
         <div className="flex gap-2">
           <Button asChild variant="outline" size="sm">
@@ -415,28 +413,30 @@ async function MealsReport({ actor, area, p, buildings = [] }: Props) {
   return (
     <>
       <FilterBar r="meals">
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="month">Month</Label>
-          <Input id="month" type="month" name="month" defaultValue={p.month} className="w-auto" />
+        <div className="flex flex-col gap-1">
+          <Label htmlFor="month" className="text-[12.5px] font-semibold text-ink-2">
+            Month
+          </Label>
+          <Input id="month" type="month" name="month" defaultValue={p.month} className="w-auto h-9 text-[13.5px]" />
         </div>
         <BuildingSelect buildings={buildings} value={p.building} />
       </FilterBar>
 
       {data.rows.length === 0 ? (
         <Card>
-          <CardContent className="text-muted-foreground py-6 text-sm">
+          <CardContent className="text-muted py-6 text-sm">
             No meal settlement for {formatPeriod(p.month)} yet. It is made when the next tokens are made (Tokens) or
             when a student leaves.
           </CardContent>
         </Card>
       ) : (
         <>
-          <div className="mb-6 grid grid-cols-2 gap-4 md:grid-cols-5">
-            <Stat label="Meal cost" value={money(t.costPaisa)} note={`${t.students} students`} />
-            <Stat label="Meal deposit taken" value={money(t.depositPaisa)} />
-            <Stat label="Students must pay more" value={money(t.studentsOwePaisa)} tone="red" />
-            <Stat label="Students get back" value={money(t.hostelOwesPaisa)} tone="green" />
-            <Stat
+          <div className="mb-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3.5">
+            <KpiTile label="Meal cost" value={money(t.costPaisa)} note={`${t.students} students`} />
+            <KpiTile label="Meal deposit taken" value={money(t.depositPaisa)} />
+            <KpiTile label="Students must pay more" value={money(t.studentsOwePaisa)} tone="red" />
+            <KpiTile label="Students get back" value={money(t.hostelOwesPaisa)} tone="green" />
+            <KpiTile
               label="Net"
               value={`${t.netPaisa < 0 ? "−" : ""}${money(Math.abs(t.netPaisa))}`}
               note={t.netPaisa > 0 ? "Students owe overall" : t.netPaisa < 0 ? "Hostel owes overall" : "Even"}
@@ -465,12 +465,12 @@ async function MealsReport({ actor, area, p, buildings = [] }: Props) {
                       <TableCell>
                         <Link
                           href={`${area}/students/${r.studentId}`}
-                          className="text-primary font-medium hover:underline"
+                          className="text-brand font-medium hover:underline"
                         >
                           {r.fullName}
                         </Link>
-                        <div className="text-muted-foreground text-xs">
-                          ID {r.studentCode}
+                        <div className="text-muted text-xs">
+                          ID <span className="font-mono">{r.studentCode}</span>
                           {r.status === "left" && " · left"}
                         </div>
                       </TableCell>
@@ -480,13 +480,13 @@ async function MealsReport({ actor, area, p, buildings = [] }: Props) {
                       </TableCell>
                       <TableCell className="text-right tabular-nums">{money(r.costPaisa)}</TableCell>
                       <TableCell className="text-right tabular-nums">{money(r.depositPaisa)}</TableCell>
-                      <TableCell className="text-right tabular-nums">
+                      <TableCell className="text-right tabular-nums font-semibold">
                         {r.differencePaisa > 0 ? (
-                          <span className="text-red-700">pays {money(r.differencePaisa)}</span>
+                          <span className="text-bad">pays {money(r.differencePaisa)}</span>
                         ) : r.differencePaisa < 0 ? (
-                          <span className="text-emerald-700">gets {money(-r.differencePaisa)}</span>
+                          <span className="text-ok">gets {money(-r.differencePaisa)}</span>
                         ) : (
-                          "even"
+                          <span className="text-muted">even</span>
                         )}
                       </TableCell>
                     </TableRow>
@@ -509,9 +509,11 @@ async function MonthReport({ actor, p }: Props) {
   return (
     <>
       <FilterBar r="month">
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="month">Month</Label>
-          <Input id="month" type="month" name="month" defaultValue={p.month} className="w-auto" />
+        <div className="flex flex-col gap-1">
+          <Label htmlFor="month" className="text-[12.5px] font-semibold text-ink-2">
+            Month
+          </Label>
+          <Input id="month" type="month" name="month" defaultValue={p.month} className="w-auto h-9 text-[13.5px]" />
         </div>
       </FilterBar>
       <Card>
@@ -519,15 +521,14 @@ async function MonthReport({ actor, p }: Props) {
           <div>
             <CardTitle>{formatPeriod(p.month)} by building</CardTitle>
             <CardDescription>
-              Billed = this month&apos;s tokens and admission bills. Collected = money received during the month (it may
-              pay older dues too). Meal cost appears once the month is closed.
+              Billed = this month&apos;s tokens and admission bills. Collected = money received during the month.
             </CardDescription>
           </div>
           <CsvButton p={p} extra={{ month: p.month }} />
         </CardHeader>
         <CardContent>
           {all.length === 0 ? (
-            <p className="text-muted-foreground text-sm">No buildings.</p>
+            <p className="text-muted text-sm py-4">No buildings.</p>
           ) : (
             <Table>
               <TableHeader>
@@ -546,7 +547,7 @@ async function MonthReport({ actor, p }: Props) {
               </TableHeader>
               <TableBody>
                 {all.map((r) => (
-                  <TableRow key={r.buildingCode} className={r === total ? "font-semibold" : ""}>
+                  <TableRow key={r.buildingCode} className={r === total ? "font-bold bg-surface-2" : ""}>
                     <TableCell>{r.buildingCode}</TableCell>
                     <TableCell>
                       {r.tokens === 0 ? (
@@ -564,8 +565,8 @@ async function MonthReport({ actor, p }: Props) {
                         {r.billed[h] ? money(r.billed[h]) : "—"}
                       </TableCell>
                     ))}
-                    <TableCell className="text-right tabular-nums">{money(r.billedTotalPaisa)}</TableCell>
-                    <TableCell className="text-right tabular-nums">{money(r.collectedPaisa)}</TableCell>
+                    <TableCell className="text-right font-semibold tabular-nums">{money(r.billedTotalPaisa)}</TableCell>
+                    <TableCell className="text-right font-semibold tabular-nums">{money(r.collectedPaisa)}</TableCell>
                     <TableCell className="text-right tabular-nums">
                       {r.mealStudents ? `${money(r.mealCostPaisa)} (${r.mealStudents})` : "—"}
                     </TableCell>
@@ -600,9 +601,11 @@ async function AuditReport({ actor, area, p }: Props) {
   return (
     <>
       <FilterBar r="audit">
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="action">What</Label>
-          <Select id="action" name="action" defaultValue={p.action ?? ""} className="w-auto">
+        <div className="flex flex-col gap-1">
+          <Label htmlFor="action" className="text-[12.5px] font-semibold text-ink-2">
+            What
+          </Label>
+          <Select id="action" name="action" defaultValue={p.action ?? ""} className="w-auto h-9 text-[13.5px]">
             <option value="">Everything</option>
             {groups.map((g) => (
               <option key={g} value={g}>
@@ -619,25 +622,38 @@ async function AuditReport({ actor, area, p }: Props) {
         </CardHeader>
         <CardContent>
           {data.rows.length === 0 ? (
-            <p className="text-muted-foreground text-sm">Nothing yet.</p>
+            <p className="text-muted text-sm py-4">Nothing yet.</p>
           ) : (
-            <ul className="flex flex-col divide-y text-sm">
+            <ul className="flex flex-col divide-y divide-line-2 text-[13.5px]">
               {data.rows.map((row) => (
-                <li key={row.id} className="py-2">
+                <li key={row.id} className="py-2.5">
                   <div className="flex flex-wrap items-baseline justify-between gap-2">
                     <span>
-                      <span className="font-medium">{row.action}</span>{" "}
-                      <span className="text-muted-foreground">
-                        by {row.actorName ?? "system"}
-                        {row.actorRole ? ` (${row.actorRole})` : ""}
+                      <span className="font-semibold text-ink">{row.action}</span>{" "}
+                      <span className="text-muted text-[12.5px]">
+                        by <span className="font-medium text-ink-2">{row.actorName ?? "system"}</span>
+                        {row.actorRole && (
+                          <span
+                            className={cn(
+                              "ml-1.5 px-1.5 py-0.5 rounded-full text-[11px] font-bold",
+                              row.actorRole === "admin"
+                                ? "bg-brand-50 text-brand border border-brand-100"
+                                : "bg-[#e6f5f5] text-[#0c7b7f] border border-[#b8e2e4]",
+                            )}
+                          >
+                            {row.actorRole}
+                          </span>
+                        )}
                       </span>
                     </span>
-                    <span className="text-muted-foreground text-xs tabular-nums">{TIME.format(row.createdAt)}</span>
+                    <span className="text-muted font-mono text-xs tabular-nums">{TIME.format(row.createdAt)}</span>
                   </div>
                   {(row.before !== null || row.after !== null) && (
                     <details className="mt-1">
-                      <summary className="text-primary cursor-pointer text-xs select-none">Details</summary>
-                      <pre className="bg-muted mt-1 max-h-64 overflow-auto rounded-md p-2 text-xs whitespace-pre-wrap">
+                      <summary className="text-brand font-semibold cursor-pointer text-xs select-none hover:underline">
+                        Details
+                      </summary>
+                      <pre className="bg-surface-2 border border-line-2 mt-1.5 max-h-64 overflow-auto rounded-[8px] p-2.5 font-mono text-xs text-ink whitespace-pre-wrap">
                         {row.before !== null && `Before: ${JSON.stringify(row.before, null, 2)}\n`}
                         {row.after !== null && `After: ${JSON.stringify(row.after, null, 2)}`}
                       </pre>

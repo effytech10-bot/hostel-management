@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { Note } from "@/components/ui/note";
 import { formatPeriod } from "@/lib/dates";
 import { formatTaka } from "@/lib/money";
 import { METHOD_LABEL } from "@/lib/validation/payments";
@@ -17,9 +18,9 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 
 function Row({ label, value }: { label: string; value: React.ReactNode }) {
   return (
-    <div className="flex justify-between gap-4 py-1">
+    <div className="flex justify-between gap-4 py-1 text-[13.5px]">
       <span className="text-muted-foreground">{label}</span>
-      <span className="text-right font-medium">{value}</span>
+      <span className="text-right font-semibold text-ink">{value}</span>
     </div>
   );
 }
@@ -47,16 +48,17 @@ export default async function ReceiptPage({ params }: { params: Promise<{ paymen
       return (
         <main className="mx-auto max-w-2xl p-4 print:max-w-none print:p-0">
           <div className="mb-4 flex flex-wrap items-center justify-between gap-2 print:hidden">
-            <p className="text-sm">
-              Receipt <b>{payment.receiptNo}</b> · {formatTaka(payment.amountPaisa)} on {payment.paidDate} (
-              {METHOD_LABEL[payment.method]} · {r.accountName}) · received by {r.receivedByName ?? "—"}
+            <p className="text-[13.5px]">
+              Receipt <b className="font-mono">{payment.receiptNo}</b> · {formatTaka(payment.amountPaisa)} on{" "}
+              {payment.paidDate} ({METHOD_LABEL[payment.method]} · {r.accountName}) · received by{" "}
+              {r.receivedByName ?? "—"}
             </p>
             <PrintButton />
           </div>
           {voided && (
-            <p className="mb-3 rounded-md bg-red-50 p-2 text-sm text-red-800">
+            <Note variant="bad" className="mb-3">
               This payment was voided on {payment.voidedAt!.toISOString().slice(0, 10)}: {payment.voidReason}
-            </p>
+            </Note>
           )}
           <div className="overflow-x-auto">
             <div className="min-w-[560px]">
@@ -79,31 +81,31 @@ export default async function ReceiptPage({ params }: { params: Promise<{ paymen
         <PrintButton />
       </div>
 
-      <article className="relative rounded-xl border bg-white p-6 text-sm text-black shadow-sm print:rounded-none print:border-0 print:shadow-none">
+      <article className="receipt bg-surface text-ink border-line relative rounded-[12px] border border-dashed p-6 shadow-card print:border-0 print:p-0 print:shadow-none">
         {voided && (
           <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-            <span className="-rotate-12 rounded-md border-4 border-red-600 px-6 py-2 text-5xl font-bold text-red-600/70">
+            <span className="border-bad text-bad/70 -rotate-12 rounded-md border-4 px-6 py-2 text-5xl font-bold">
               VOID
             </span>
           </div>
         )}
 
-        <header className="mb-4 border-b pb-3 text-center">
-          <p className="text-lg font-bold">{user.orgName}</p>
-          <p className="text-muted-foreground text-xs">Money receipt</p>
+        <header className="border-line-2 mb-4 border-b pb-3 text-center">
+          <p className="text-ink text-lg font-bold">{user.orgName}</p>
+          <p className="text-muted-foreground text-xs font-medium">Money receipt</p>
         </header>
 
         <div className="mb-3 flex justify-between text-sm">
           <span>
-            Receipt <span className="font-semibold">{payment.receiptNo}</span>
+            Receipt <span className="font-mono font-bold">{payment.receiptNo}</span>
           </span>
-          <span>{payment.paidDate}</span>
+          <span className="text-muted-foreground font-medium">{payment.paidDate}</span>
         </div>
 
-        <section className="mb-3 border-b pb-3">
+        <section className="border-line-2 mb-3 border-b pb-3">
           <Row label="Student" value={student.fullName} />
-          <Row label="Student ID" value={student.studentCode} />
-          {r.tokenCode && <Row label="Token ID" value={r.tokenCode} />}
+          <Row label="Student ID" value={<span className="font-mono">{student.studentCode}</span>} />
+          {r.tokenCode && <Row label="Token ID" value={<span className="font-mono">{r.tokenCode}</span>} />}
           <Row
             label="Building / seat"
             value={`${r.buildingCode ?? "—"}${r.seat ? ` · ${r.seat.roomNumber}-${r.seat.seatLabel}` : ""}`}
@@ -113,8 +115,8 @@ export default async function ReceiptPage({ params }: { params: Promise<{ paymen
           )}
         </section>
 
-        <section className="mb-3 border-b pb-3">
-          <p className="mb-1 font-semibold">Paid for</p>
+        <section className="border-line-2 mb-3 border-b pb-3">
+          <p className="text-ink-2 mb-1.5 text-xs font-semibold">Paid for</p>
           {r.allocations.map((a) => (
             <Row
               key={`${a.period}-${a.head}`}
@@ -124,13 +126,13 @@ export default async function ReceiptPage({ params }: { params: Promise<{ paymen
               value={formatTaka(a.amountPaisa)}
             />
           ))}
-          <div className="mt-2 flex justify-between border-t pt-2 text-base font-bold">
+          <div className="border-line-2 mt-2 flex justify-between border-t pt-2 text-[15px] font-bold">
             <span>Total paid</span>
-            <span>{formatTaka(payment.amountPaisa)}</span>
+            <span className="tabular-nums">{formatTaka(payment.amountPaisa)}</span>
           </div>
         </section>
 
-        <section className="mb-3 border-b pb-3">
+        <section className="border-line-2 mb-3 border-b pb-3">
           <Row label="Due before" value={formatTaka(payment.balanceBeforePaisa)} />
           <Row
             label={payment.balanceAfterPaisa < 0 ? "Credit after" : "Remaining due"}
@@ -146,12 +148,12 @@ export default async function ReceiptPage({ params }: { params: Promise<{ paymen
         </section>
 
         {voided && (
-          <p className="rounded-md bg-red-50 p-2 text-xs text-red-800">
+          <Note variant="bad" className="mb-3">
             Voided on {payment.voidedAt!.toISOString().slice(0, 10)}: {payment.voidReason}
-          </p>
+          </Note>
         )}
-        <p className="text-muted-foreground mt-4 text-center text-xs">
-          Computer generated receipt. No signature needed.
+        <p className="text-muted-foreground font-bangla mt-4 text-center text-xs">
+          ভুল হলে এই রসিদ মোছা যায় না — অ্যাডমিন কারণ লিখে &quot;Void&quot; করেন, আর টাকা আবার বাকিতে ফিরে আসে।
         </p>
       </article>
 

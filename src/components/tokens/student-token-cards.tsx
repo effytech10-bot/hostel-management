@@ -37,7 +37,7 @@ export function LatestTokenCard({
             <div className="flex flex-wrap items-center gap-2">
               <span className="font-mono text-lg font-semibold">{latest.code}</span>
               <TokenStateBadge state={latest.state} />
-              {latest.early && <Badge variant="outline">Early</Badge>}
+              {latest.early && <Badge variant="info">Early</Badge>}
             </div>
             <dl className="grid grid-cols-3 gap-2 text-sm">
               <div>
@@ -65,22 +65,22 @@ export function LatestTokenCard({
 
 /** Every token of the student, newest first. */
 export function TokenHistory({ tokens, tokensPath }: { tokens: StudentTokens; tokensPath: string }) {
-  if (tokens.length === 0) return <p className="text-muted-foreground text-sm">No tokens yet.</p>;
+  if (tokens.length === 0) return <p className="text-muted text-[13px]">No tokens yet.</p>;
   return (
-    <ul className="divide-y rounded-md border">
+    <ul className="divide-y divide-line-2 rounded-[9px] border border-line bg-surface overflow-hidden">
       {tokens.map((t) => (
         <li key={t.id}>
           <Link
             href={t.code ? `${tokensPath}/${t.code}` : `/print/tokens?token=${t.id}`}
-            className="hover:bg-muted/50 flex flex-wrap items-center justify-between gap-2 px-3 py-2 text-sm"
+            className="hover:bg-surface-2 flex flex-wrap items-center justify-between gap-2 px-3 py-2.5 text-[13px] transition-colors"
           >
             <span className="flex items-center gap-2">
-              <span className="font-mono">{t.code ?? "—"}</span>
-              <span className="text-muted-foreground">{formatPeriod(t.period)}</span>
+              <span className="font-mono font-medium text-ink">{t.code ?? "—"}</span>
+              <span className="text-muted text-[12px]">{formatPeriod(t.period)}</span>
             </span>
-            <span className="flex items-center gap-3">
-              <span className="tabular-nums">{formatTaka(t.totalPaisa)}</span>
-              <span className="text-muted-foreground text-xs tabular-nums">paid {formatTaka(t.paidHerePaisa)}</span>
+            <span className="flex items-center gap-2.5">
+              <span className="tabular-nums font-semibold text-ink">{formatTaka(t.totalPaisa)}</span>
+              <span className="text-muted text-[11.5px] tabular-nums">paid {formatTaka(t.paidHerePaisa)}</span>
               <TokenStateBadge state={t.state} />
             </span>
           </Link>

@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { PageHeader } from "@/components/layout/app-shell";
 import { AccountSummary, PaymentHistory } from "@/components/payments/account-summary";
 import { TokenHistory } from "@/components/tokens/student-token-cards";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,8 +15,11 @@ export default async function StudentAccountPage() {
   const [money, tokenList] = await Promise.all([getStudentMoney(user, me.id), listStudentTokens(user, me.id)]);
 
   return (
-    <div className="mx-auto flex max-w-xl flex-col gap-4">
-      <PageHeader title="My account" description="Everything you were charged and everything you paid." />
+    <div className="flex flex-col gap-3">
+      <div>
+        <h1 className="text-[18px] font-bold text-ink">My account</h1>
+        <p className="text-muted text-[12.5px] mt-0.5">Everything you were charged and everything you paid.</p>
+      </div>
 
       <Card>
         <CardHeader>
@@ -53,7 +55,7 @@ export default async function StudentAccountPage() {
         </CardContent>
       </Card>
 
-      <p className="text-muted-foreground text-xs">
+      <p className="text-muted text-[12px] px-1">
         Something looks wrong? Tell the hostel office. Only the office can correct your account.
       </p>
     </div>
