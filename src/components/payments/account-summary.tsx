@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { formatPeriod } from "@/lib/dates";
 import { formatTaka } from "@/lib/money";
+import { cn } from "@/lib/utils";
 import { HEAD_LABEL, type Due, type LedgerHead } from "@/server/domain/billing";
 
 /** Balance per head + open dues. Shared by the payment desk, student page and (later) the student's phone. */
@@ -20,22 +21,25 @@ export function AccountSummary({
   return (
     <div className="flex flex-col gap-4">
       <div
-        className={
+        className={cn(
+          "rounded-[12px] border p-4 shadow-card",
           totalPaisa > 0
-            ? "rounded-lg bg-red-50 p-4 text-red-900"
+            ? "border-bad-line bg-bad-bg text-bad"
             : totalPaisa < 0
-              ? "rounded-lg bg-emerald-50 p-4 text-emerald-900"
-              : "bg-muted rounded-lg p-4"
-        }
+              ? "border-ok-line bg-ok-bg text-ok"
+              : "border-line bg-surface-2 text-ink-2",
+        )}
       >
-        <p className="text-xs">{totalPaisa > 0 ? "Total due" : totalPaisa < 0 ? "Has credit" : "Balance"}</p>
-        <p className="text-3xl font-semibold tabular-nums">{formatTaka(Math.abs(totalPaisa))}</p>
+        <p className="text-[12.5px] font-medium leading-tight opacity-90">
+          {totalPaisa > 0 ? "Total due" : totalPaisa < 0 ? "Has credit" : "Balance"}
+        </p>
+        <p className="mt-0.5 text-3xl font-bold tabular-nums">{formatTaka(Math.abs(totalPaisa))}</p>
       </div>
 
       {advanceHeldPaisa > 0 && (
-        <p className="text-muted-foreground text-sm">
+        <p className="text-muted-foreground text-[13px] leading-normal">
           Advance paid and held by the hostel:{" "}
-          <span className="text-foreground font-medium tabular-nums">{formatTaka(advanceHeldPaisa)}</span> (returned
+          <span className="text-ink font-semibold tabular-nums">{formatTaka(advanceHeldPaisa)}</span> (returned
           against dues when the student leaves)
         </p>
       )}
@@ -43,9 +47,12 @@ export function AccountSummary({
       {heads.length > 0 && (
         <div className="grid gap-2 sm:grid-cols-2">
           {heads.map(([head, amount]) => (
-            <div key={head} className="flex justify-between rounded-md border px-3 py-2 text-sm">
-              <span>{HEAD_LABEL[head]}</span>
-              <span className={amount > 0 ? "text-red-700 tabular-nums" : "text-emerald-700 tabular-nums"}>
+            <div
+              key={head}
+              className="border-line-2 bg-surface flex items-center justify-between rounded-[9px] border px-3 py-2 text-[13.5px]"
+            >
+              <span className="text-muted-foreground font-medium">{HEAD_LABEL[head]}</span>
+              <span className={cn("tabular-nums font-semibold", amount > 0 ? "text-bad" : "text-ok")}>
                 {amount > 0 ? formatTaka(amount) : `${formatTaka(-amount)} credit`}
               </span>
             </div>
@@ -54,15 +61,17 @@ export function AccountSummary({
       )}
 
       {dues.length > 0 && (
-        <details>
-          <summary className="text-primary cursor-pointer text-sm select-none">Dues by month ({dues.length})</summary>
-          <ul className="mt-2 flex flex-col gap-1 text-sm">
+        <details className="border-line-2 bg-surface rounded-[9px] border p-3">
+          <summary className="text-brand cursor-pointer text-[13px] font-semibold select-none hover:underline">
+            Dues by month ({dues.length})
+          </summary>
+          <ul className="divide-line-2 mt-2 flex flex-col divide-y text-[13px]">
             {dues.map((d) => (
-              <li key={`${d.period}-${d.head}`} className="flex justify-between gap-4">
-                <span>
+              <li key={`${d.period}-${d.head}`} className="flex justify-between gap-4 py-1.5">
+                <span className="text-muted-foreground">
                   {formatPeriod(d.period)} · {HEAD_LABEL[d.head]}
                 </span>
-                <span className="tabular-nums">{formatTaka(d.amountPaisa)}</span>
+                <span className="text-ink font-semibold tabular-nums">{formatTaka(d.amountPaisa)}</span>
               </li>
             ))}
           </ul>
@@ -90,35 +99,35 @@ export function PaymentHistory({
     return <p className="text-muted-foreground text-sm">No payments yet.</p>;
   }
   return (
-    <ul className="flex flex-col divide-y text-sm">
+    <ul className="divide-line-2 flex flex-col divide-y text-[13.5px]">
       {payments.map((p) => (
-        <li key={p.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
+        <li key={p.id} className="flex flex-wrap items-center justify-between gap-2 py-2.5">
           <span>
-            <Link href={`/receipts/${p.id}`} target="_blank" className="text-primary font-medium hover:underline">
+            <Link href={`/receipts/${p.id}`} target="_blank" className="text-brand font-bold hover:underline font-mono">
               {p.receiptNo}
             </Link>{" "}
-            <span className="text-muted-foreground">
+            <span className="text-muted-foreground text-[12.5px]">
               · {p.paidDate} · {p.accountName}
             </span>
           </span>
           <span className="flex items-center gap-2">
             {p.voidedAt && <Badge variant="destructive">Void</Badge>}
-            <span className={p.voidedAt ? "tabular-nums line-through" : "tabular-nums"}>
+            <span className={p.voidedAt ? "tabular-nums line-through opacity-60" : "tabular-nums font-semibold"}>
               {formatTaka(p.amountPaisa)}
             </span>
           </span>
         </li>
       ))}
       {refunds.map((r) => (
-        <li key={r.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
+        <li key={r.id} className="flex flex-wrap items-center justify-between gap-2 py-2.5">
           <span>
-            <span className="font-medium">Refund</span>{" "}
-            <span className="text-muted-foreground">
+            <span className="font-semibold text-ink">Refund</span>{" "}
+            <span className="text-muted-foreground text-[12.5px]">
               · {r.paidDate} · {r.accountName}
               {r.note ? ` · ${r.note}` : ""}
             </span>
           </span>
-          <span className="text-emerald-700 tabular-nums">−{formatTaka(r.amountPaisa)}</span>
+          <span className="text-ok font-semibold tabular-nums">−{formatTaka(r.amountPaisa)}</span>
         </li>
       ))}
     </ul>

@@ -9,8 +9,8 @@ import type { ActionState } from "@/server/errors";
 
 export function PrintButton() {
   return (
-    <Button onClick={() => window.print()} size="sm">
-      Print token
+    <Button onClick={() => window.print()} size="sm" variant="outline">
+      Print
     </Button>
   );
 }
@@ -18,8 +18,10 @@ export function PrintButton() {
 export function VoidPaymentForm({ paymentId }: { paymentId: string }) {
   const [state, formAction, pending] = useActionState<ActionState, FormData>(voidPaymentAction, {});
   return (
-    <details className="rounded-lg border p-3">
-      <summary className="cursor-pointer text-sm text-red-700 select-none">Void this payment (admin)</summary>
+    <details className="border-bad-line bg-bad-bg/20 rounded-[10px] border p-3.5">
+      <summary className="text-bad cursor-pointer text-sm font-semibold select-none hover:underline">
+        Void this payment (admin)
+      </summary>
       <form
         action={formAction}
         onSubmit={(e) => {
