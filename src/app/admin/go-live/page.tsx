@@ -25,7 +25,7 @@ export default async function GoLivePage({ searchParams }: { searchParams: Promi
         title="Go-live checklist"
         description={left ? `${left} step(s) left before the software takes over from Excel.` : "Everything is ready."}
       >
-        <div className="flex flex-wrap gap-1">
+        <div className="flex flex-wrap gap-1.5">
           {options.map((m) => (
             <Button key={m} asChild size="sm" variant={m === start ? "default" : "outline"}>
               <Link href={`/admin/go-live?start=${m}`}>Start {formatPeriod(m)}</Link>
@@ -34,24 +34,24 @@ export default async function GoLivePage({ searchParams }: { searchParams: Promi
         </div>
       </PageHeader>
       <Card>
-        <CardContent className="flex flex-col divide-y">
+        <CardContent className="flex flex-col divide-y divide-line-2 py-2">
           {steps.map((s, i) => (
-            <div key={s.title} className="flex items-start gap-3 py-4">
+            <div key={s.title} className="flex items-start gap-3.5 py-4">
               {s.status === "done" ? (
-                <CheckCircle2 className="mt-0.5 size-5 shrink-0 text-emerald-600" />
+                <CheckCircle2 className="mt-0.5 size-5 shrink-0 text-ok" />
               ) : s.status === "warn" ? (
-                <AlertTriangle className="mt-0.5 size-5 shrink-0 text-amber-600" />
+                <AlertTriangle className="mt-0.5 size-5 shrink-0 text-warn" />
               ) : (
-                <Circle className="text-muted-foreground mt-0.5 size-5 shrink-0" />
+                <Circle className="text-muted mt-0.5 size-5 shrink-0" />
               )}
               <div className="min-w-0 flex-1">
-                <p className="font-medium">
+                <p className="font-semibold text-ink text-[14px]">
                   {i + 1}. {s.title}
                 </p>
-                <p className="text-muted-foreground text-sm">{s.detail}</p>
+                <p className="text-muted text-[13px] mt-0.5">{s.detail}</p>
               </div>
               {s.href && (
-                <Button asChild size="sm" variant="outline">
+                <Button asChild size="sm" variant="outline" className="shrink-0">
                   <Link href={s.href}>{s.action}</Link>
                 </Button>
               )}

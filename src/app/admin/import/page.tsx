@@ -18,10 +18,10 @@ export default async function ImportPage() {
         title="Import students from Excel"
         description="For going live: bring every current student, their seat and what they owe into the software at once."
       >
-        <Button asChild variant="outline">
+        <Button asChild variant="outline" className="gap-1.5">
           <a href="/api/import/template">
-            <Download />
-            Download the Excel template
+            <Download className="size-4" />
+            <span>Download Excel template</span>
           </a>
         </Button>
       </PageHeader>
@@ -29,7 +29,7 @@ export default async function ImportPage() {
         <CardHeader>
           <CardTitle>How it works</CardTitle>
         </CardHeader>
-        <CardContent className="text-muted-foreground flex flex-col gap-1 text-sm">
+        <CardContent className="text-muted flex flex-col gap-1.5 text-[13px] leading-relaxed">
           <p>
             1. Download the template. Fill one row per student (yellow columns are required). Copy from the old sheets.
           </p>

@@ -100,7 +100,7 @@ export function ImportWizard({ months }: { months: string[] }) {
           {failed.length > 0 && (
             <ul className="flex flex-col gap-1 text-sm">
               {failed.map((r) => (
-                <li key={r.rowNo} className="text-red-700">
+                <li key={r.rowNo} className="text-bad font-medium">
                   Row {r.rowNo} · {r.name}: {r.message}
                 </li>
               ))}
@@ -121,12 +121,16 @@ export function ImportWizard({ months }: { months: string[] }) {
         <CardContent>
           <form action={previewAction} className="flex flex-wrap items-end gap-3">
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="file">Excel file (.xlsx) or .csv</Label>
-              <Input id="file" name="file" type="file" accept=".xlsx,.csv" required className="w-auto" />
+              <Label htmlFor="file" className="text-[12.5px] font-semibold text-ink-2">
+                Excel file (.xlsx) or .csv
+              </Label>
+              <Input id="file" name="file" type="file" accept=".xlsx,.csv" required className="w-auto h-9 text-[13.5px]" />
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="start">Software starts from</Label>
-              <Select id="start" name="start" defaultValue={months[1] ?? months[0]} className="w-auto">
+              <Label htmlFor="start" className="text-[12.5px] font-semibold text-ink-2">
+                Software starts from
+              </Label>
+              <Select id="start" name="start" defaultValue={months[1] ?? months[0]} className="w-auto h-9 text-[13.5px]">
                 {months.map((m) => (
                   <option key={m} value={m}>
                     1 {formatPeriod(m)}
@@ -134,7 +138,7 @@ export function ImportWizard({ months }: { months: string[] }) {
                 ))}
               </Select>
             </div>
-            <Button type="submit" disabled={previewing || running}>
+            <Button type="submit" disabled={previewing || running} className="h-9">
               {previewing ? "Checking…" : "Check the file"}
             </Button>
           </form>
@@ -171,12 +175,12 @@ export function ImportWizard({ months }: { months: string[] }) {
             </div>
             {plan.summary.newBuildings.length > 0 && (
               <p className="text-sm">
-                New buildings: <span className="font-medium">{plan.summary.newBuildings.join(", ")}</span>. If one of
+                New buildings: <span className="font-semibold text-ink">{plan.summary.newBuildings.join(", ")}</span>. If one of
                 these is a spelling of an existing building, fix the file and check again.
               </p>
             )}
             {plan.summary.error > 0 && (
-              <p className="text-sm text-red-700">
+              <p className="text-sm text-bad font-medium">
                 Rows with problems are NOT imported. Fix them in Excel and upload the file again later (students already
                 imported are skipped automatically).
               </p>
@@ -199,36 +203,36 @@ export function ImportWizard({ months }: { months: string[] }) {
                   )}
                 </>
               )}
-              <label className="flex items-center gap-2 text-sm">
+              <label className="flex items-center gap-2 text-sm text-ink-2 cursor-pointer select-none">
                 <input
                   type="checkbox"
                   checked={showAll}
                   onChange={(e) => setShowAll(e.target.checked)}
-                  className="size-4"
+                  className="size-4 accent-brand"
                 />
                 Show all rows (not only problems)
               </label>
             </div>
             {running && (
-              <div className="bg-muted h-2 w-full overflow-hidden rounded">
+              <div className="bg-surface-3 h-2 w-full overflow-hidden rounded-full">
                 <div
-                  className="bg-primary h-full transition-all"
+                  className="bg-brand h-full transition-all rounded-full"
                   style={{ width: `${(done / Math.max(1, ready.length)) * 100}%` }}
                 />
               </div>
             )}
             <FormMessage error={runError ?? undefined} />
 
-            <div className="overflow-x-auto rounded-lg border">
-              <table className="w-full text-sm">
+            <div className="overflow-x-auto rounded-[10px] border border-line">
+              <table className="w-full text-[13px]">
                 <thead>
-                  <tr className="text-muted-foreground border-b text-left">
-                    <th className="px-3 py-2 font-medium">Row</th>
-                    <th className="px-3 py-2 font-medium">Student</th>
-                    <th className="px-3 py-2 font-medium">Seat</th>
-                    <th className="px-3 py-2 text-right font-medium">Rent</th>
-                    <th className="px-3 py-2 text-right font-medium">Opening</th>
-                    <th className="px-3 py-2 font-medium">Check</th>
+                  <tr className="text-muted border-b border-line text-left text-[12px]">
+                    <th className="px-3 py-2 font-semibold">Row</th>
+                    <th className="px-3 py-2 font-semibold">Student</th>
+                    <th className="px-3 py-2 font-semibold">Seat</th>
+                    <th className="px-3 py-2 text-right font-semibold">Rent</th>
+                    <th className="px-3 py-2 text-right font-semibold">Opening</th>
+                    <th className="px-3 py-2 font-semibold">Check</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -238,11 +242,11 @@ export function ImportWizard({ months }: { months: string[] }) {
                     )
                     .filter((r) => showAll || r.status !== "ready")
                     .map((r) => (
-                      <tr key={r.rowNo} className={cn("border-b last:border-0", r.status === "error" && "bg-red-50")}>
+                      <tr key={r.rowNo} className={cn("border-b border-line-2 last:border-0", r.status === "error" && "bg-bad-bg/60")}>
                         <td className="px-3 py-2 tabular-nums">{r.rowNo}</td>
                         <td className="px-3 py-2">
-                          <div className="font-medium">{r.data?.name ?? r.raw.name}</div>
-                          <div className="text-muted-foreground text-xs">{r.data?.phone ?? r.raw.phone}</div>
+                          <div className="font-semibold text-ink">{r.data?.name ?? r.raw.name}</div>
+                          <div className="text-muted font-mono text-xs">{r.data?.phone ?? r.raw.phone}</div>
                         </td>
                         <td className="px-3 py-2 whitespace-nowrap">
                           {r.data ? (
@@ -259,19 +263,19 @@ export function ImportWizard({ months }: { months: string[] }) {
                         </td>
                         <td className="px-3 py-2 text-right tabular-nums">
                           {r.openingDuePaisa > 0 && (
-                            <div className="text-red-700">{formatTaka(r.openingDuePaisa)} due</div>
+                            <div className="text-bad font-semibold">{formatTaka(r.openingDuePaisa)} due</div>
                           )}
                           {r.openingCreditPaisa > 0 && (
-                            <div className="text-emerald-700">{formatTaka(r.openingCreditPaisa)} paid/credit</div>
+                            <div className="text-ok font-semibold">{formatTaka(r.openingCreditPaisa)} paid/credit</div>
                           )}
                         </td>
                         <td className="px-3 py-2">
                           {r.status === "ready" ? (
                             <Badge variant="success">OK</Badge>
                           ) : r.status === "skip" ? (
-                            <span className="text-muted-foreground text-xs">{r.messages.join("; ")}</span>
+                            <span className="text-muted text-xs">{r.messages.join("; ")}</span>
                           ) : (
-                            <ul className="text-xs text-red-700">
+                            <ul className="text-xs text-bad font-medium">
                               {r.messages.map((m) => (
                                 <li key={m}>{m}</li>
                               ))}
@@ -283,7 +287,7 @@ export function ImportWizard({ months }: { months: string[] }) {
                 </tbody>
               </table>
               {!showAll && plan.summary.skip + plan.summary.error === 0 && (
-                <p className="text-muted-foreground p-3 text-sm">
+                <p className="text-muted p-3 text-sm">
                   Every row is OK. Tick &quot;Show all rows&quot; to see them.
                 </p>
               )}
@@ -297,13 +301,14 @@ export function ImportWizard({ months }: { months: string[] }) {
 
 function Box({ label, value, tone }: { label: string; value: string; tone?: "red" | "green" }) {
   return (
-    <div className="rounded-md border p-3">
-      <p className="text-muted-foreground text-xs">{label}</p>
+    <div className="rounded-[9px] border border-line bg-surface p-3">
+      <p className="text-muted text-xs font-medium">{label}</p>
       <p
         className={cn(
-          "text-lg font-semibold tabular-nums",
-          tone === "red" && "text-red-700",
-          tone === "green" && "text-emerald-700",
+          "text-lg font-bold tabular-nums mt-0.5",
+          tone === "red" && "text-bad",
+          tone === "green" && "text-ok",
+          !tone && "text-ink",
         )}
       >
         {value}

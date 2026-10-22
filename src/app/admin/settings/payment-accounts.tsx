@@ -29,17 +29,15 @@ export function PaymentAccounts({ accounts }: { accounts: Account[] }) {
 
   return (
     <div className="flex flex-col gap-6">
-      <ul className="flex flex-col divide-y">
+      <ul className="flex flex-col divide-y divide-line-2">
         {accounts.map((a) => (
-          <li key={a.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
-            <span>
-              <Badge variant="secondary" className="mr-2">
-                {METHOD_LABEL[a.method]}
-              </Badge>
-              <span className={a.isActive ? "font-medium" : "text-muted-foreground font-medium line-through"}>
+          <li key={a.id} className="flex flex-wrap items-center justify-between gap-2 py-2.5">
+            <span className="flex items-center gap-2">
+              <Badge variant="secondary">{METHOD_LABEL[a.method]}</Badge>
+              <span className={a.isActive ? "font-semibold text-ink text-[13.5px]" : "text-muted font-medium line-through text-[13.5px]"}>
                 {a.name}
               </span>
-              {a.details && <span className="text-muted-foreground ml-2 text-sm">{a.details}</span>}
+              {a.details && <span className="text-muted font-mono text-[12.5px] ml-1">{a.details}</span>}
             </span>
             <ActionButton action={togglePaymentAccountAction} fields={{ accountId: a.id }} variant="ghost">
               {a.isActive ? "Disable" : "Enable"}
@@ -48,10 +46,12 @@ export function PaymentAccounts({ accounts }: { accounts: Account[] }) {
         ))}
       </ul>
 
-      <form ref={formRef} action={formAction} className="grid gap-4 sm:grid-cols-3">
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="acc-method">Type</Label>
-          <Select id="acc-method" name="method" defaultValue="bkash">
+      <form ref={formRef} action={formAction} className="grid gap-4 sm:grid-cols-3 pt-4 border-t border-line-2">
+        <div className="flex flex-col gap-1">
+          <Label htmlFor="acc-method" className="text-[12.5px] font-semibold text-ink-2">
+            Type
+          </Label>
+          <Select id="acc-method" name="method" defaultValue="bkash" className="h-9 text-[13.5px]">
             {PAYMENT_METHODS.map((m) => (
               <option key={m} value={m}>
                 {METHOD_LABEL[m]}
@@ -63,7 +63,7 @@ export function PaymentAccounts({ accounts }: { accounts: Account[] }) {
         <Field name="details" label="Details" placeholder="A/C no, branch (optional)" errors={state.fieldErrors} />
         <div className="flex flex-col gap-3 sm:col-span-3">
           <FormMessage error={state.error} message={state.message} />
-          <Button type="submit" variant="outline" disabled={pending} className="w-fit">
+          <Button type="submit" variant="outline" size="sm" disabled={pending} className="w-fit">
             {pending ? "Adding…" : "Add account"}
           </Button>
         </div>

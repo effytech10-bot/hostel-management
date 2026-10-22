@@ -60,13 +60,21 @@ export default async function UsersPage() {
             <TableBody>
               {staff.map((m) => (
                 <TableRow key={m.id}>
-                  <TableCell className="font-medium">
+                  <TableCell className="font-semibold text-ink">
                     {m.fullName}
-                    {m.id === actor.membershipId && <span className="text-muted-foreground ml-2 text-xs">(you)</span>}
+                    {m.id === actor.membershipId && <span className="text-muted ml-2 text-xs font-normal">(you)</span>}
                   </TableCell>
-                  <TableCell className="tabular-nums">{m.phone}</TableCell>
+                  <TableCell className="font-mono text-[13px] tabular-nums text-ink">{m.phone}</TableCell>
                   <TableCell>
-                    <Badge variant={m.role === "admin" ? "default" : "secondary"}>{m.role}</Badge>
+                    {m.role === "admin" ? (
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold border border-brand-100 bg-brand-50 text-brand">
+                        Admin
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold border border-[#b8e2e4] bg-[#e6f5f5] text-[#0c7b7f]">
+                        Cashier
+                      </span>
+                    )}
                   </TableCell>
                   <TableCell>
                     <Badge variant={m.isActive ? "success" : "destructive"}>{m.isActive ? "Active" : "Disabled"}</Badge>
@@ -79,7 +87,7 @@ export default async function UsersPage() {
                         selected={cashierBuildings.get(m.id) ?? []}
                       />
                     ) : (
-                      <span className="text-muted-foreground text-xs">All</span>
+                      <span className="text-muted text-xs">All</span>
                     )}
                   </TableCell>
                   <TableCell>
