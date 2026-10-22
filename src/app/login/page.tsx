@@ -14,13 +14,21 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
   const { next } = await searchParams;
 
   return (
-    <main className="flex min-h-dvh items-center justify-center p-4">
-      <Card className="w-full max-w-sm">
-        <CardHeader className="text-center">
-          <CardTitle className="text-xl">Rangdhanu Chatrabash</CardTitle>
-          <CardDescription>রংধনু ছাত্রাবাস · Log in with your phone number or Student ID</CardDescription>
+    <main className="bg-bg flex min-h-dvh items-center justify-center p-4">
+      <Card className="shadow-card w-full max-w-[380px]">
+        <CardHeader className="pb-2 text-center">
+          <div className="mx-auto mb-2 flex items-center justify-center">
+            <div className="bg-head grid size-10 place-items-center rounded-[10px]">
+              <span className="text-lg font-bold text-white">R</span>
+            </div>
+          </div>
+          <CardTitle className="text-ink text-[20px] font-bold">Rangdhanu Chatrabash</CardTitle>
+          <CardDescription className="text-muted-foreground mt-1 text-[13px]">
+            <span className="font-bangla font-medium">রংধনু ছাত্রাবাস</span> · Log in with your phone number or Student
+            ID
+          </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pt-2">
           <LoginForm next={next} />
         </CardContent>
       </Card>
