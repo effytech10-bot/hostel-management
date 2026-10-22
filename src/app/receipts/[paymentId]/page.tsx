@@ -60,10 +60,8 @@ export default async function ReceiptPage({ params }: { params: Promise<{ paymen
               This payment was voided on {payment.voidedAt!.toISOString().slice(0, 10)}: {payment.voidReason}
             </Note>
           )}
-          <div className="overflow-x-auto">
-            <div className="min-w-[560px]">
-              <TokenCard token={token} orgName={user.orgName} accounts={accounts} highlightPaymentId={payment.id} />
-            </div>
+          <div className="w-full overflow-hidden rounded-[8px] border border-line bg-surface p-2 shadow-xs">
+            <TokenCard token={token} orgName={user.orgName} accounts={accounts} highlightPaymentId={payment.id} />
           </div>
           {user.role === "admin" && !voided && (
             <div className="mt-6 print:hidden">

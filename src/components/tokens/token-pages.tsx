@@ -433,7 +433,7 @@ export async function TokenDetailPage({
       <div className="grid gap-6 lg:grid-cols-5">
         <div className="flex flex-col gap-6 lg:col-span-3">
           <div className="overflow-x-auto">
-            <div className="min-w-[560px]">
+            <div className="w-full max-w-[560px]">
               <TokenCard token={printable.tokens[0]} orgName={actor.orgName} accounts={printable.accounts} />
             </div>
           </div>

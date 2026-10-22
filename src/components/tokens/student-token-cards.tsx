@@ -1,3 +1,4 @@
+import { ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -72,17 +73,34 @@ export function TokenHistory({ tokens, tokensPath }: { tokens: StudentTokens; to
         <li key={t.id}>
           <Link
             href={t.code ? `${tokensPath}/${t.code}` : `/print/tokens?token=${t.id}`}
-            className="hover:bg-surface-2 flex flex-wrap items-center justify-between gap-2 px-3 py-2.5 text-[13px] transition-colors"
+            className="hover:bg-surface-2 flex flex-col gap-1.5 px-3.5 py-2.5 transition-colors"
           >
-            <span className="flex items-center gap-2">
-              <span className="font-mono font-medium text-ink">{t.code ?? "—"}</span>
-              <span className="text-muted text-[12px]">{formatPeriod(t.period)}</span>
-            </span>
-            <span className="flex items-center gap-2.5">
-              <span className="tabular-nums font-semibold text-ink">{formatTaka(t.totalPaisa)}</span>
-              <span className="text-muted text-[11.5px] tabular-nums">paid {formatTaka(t.paidHerePaisa)}</span>
-              <TokenStateBadge state={t.state} />
-            </span>
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-1.5 min-w-0">
+                <span className="font-semibold text-ink text-[14px] truncate">{formatPeriod(t.period)}</span>
+                {t.early && (
+                  <Badge variant="info" className="text-[10px] py-0 px-1.5 shrink-0">
+                    Early
+                  </Badge>
+                )}
+                {t.kind === "admission" && (
+                  <Badge variant="info" className="text-[10px] py-0 px-1.5 shrink-0">
+                    Admission
+                  </Badge>
+                )}
+              </div>
+              <span className="tabular-nums font-bold text-ink text-[15px] shrink-0">{formatTaka(t.totalPaisa)}</span>
+            </div>
+            <div className="flex items-center justify-between gap-2 text-[12px]">
+              <span className="font-mono text-muted text-[11.5px] truncate">{t.code ?? "—"}</span>
+              <div className="flex items-center gap-2 shrink-0">
+                {t.paidHerePaisa > 0 && (
+                  <span className="text-muted tabular-nums text-[11.5px]">paid {formatTaka(t.paidHerePaisa)}</span>
+                )}
+                <TokenStateBadge state={t.state} />
+                <ChevronRight className="size-3.5 text-faint" />
+              </div>
+            </div>
           </Link>
         </li>
       ))}

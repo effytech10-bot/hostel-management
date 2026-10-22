@@ -94,10 +94,8 @@ export function TokenView({
         <p className="font-mono text-[14px] font-bold text-ink">{token.code}</p>
         <TokenStateBadge state={state} />
       </div>
-      <div className="overflow-x-auto rounded-[8px] border border-line bg-surface p-2">
-        <div className="min-w-[480px]">
-          <TokenCard token={token} orgName={orgName} accounts={accounts} />
-        </div>
+      <div className="w-full overflow-hidden rounded-[8px] border border-line bg-surface p-2 shadow-xs">
+        <TokenCard token={token} orgName={orgName} accounts={accounts} />
       </div>
       {state !== "paid" && (
         <p className="text-[13px] text-ink-2">
