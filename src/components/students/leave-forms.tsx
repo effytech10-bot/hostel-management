@@ -6,6 +6,7 @@ import { Field } from "@/components/forms/field";
 import { Button } from "@/components/ui/button";
 import { FormMessage } from "@/components/ui/form-message";
 import { Label } from "@/components/ui/label";
+import { Note } from "@/components/ui/note";
 import { Select } from "@/components/ui/select";
 import { dhakaDate } from "@/lib/dates";
 import { formatTaka } from "@/lib/money";
@@ -15,9 +16,9 @@ type Account = { id: string; name: string };
 
 function Line({ label, value, strong }: { label: string; value: React.ReactNode; strong?: boolean }) {
   return (
-    <div className={strong ? "flex justify-between gap-4 border-t pt-2 font-semibold" : "flex justify-between gap-4"}>
+    <div className={strong ? "border-line-2 flex justify-between gap-4 border-t pt-2 font-bold text-ink" : "flex justify-between gap-4 text-muted-foreground"}>
       <span>{label}</span>
-      <span className="tabular-nums">{value}</span>
+      <span className={strong ? "text-ink tabular-nums font-bold" : "text-ink tabular-nums font-medium"}>{value}</span>
     </div>
   );
 }
@@ -31,11 +32,11 @@ export function LeaveForm({ studentId, accounts }: { studentId: string; accounts
 
   if (state.confirmed && s) {
     return (
-      <div className="rounded-lg border border-emerald-300 bg-emerald-50 p-4 text-sm">
-        <p className="font-semibold">
+      <Note variant="ok" className="flex flex-col items-start gap-2 p-4 text-sm">
+        <p className="font-bold text-ok">
           {s.fullName} has left (last day {s.lastDay}). The seat is free again.
         </p>
-        <p className="mt-1">
+        <p className="text-ink-2 text-xs">
           {s.finalBalancePaisa > 0
             ? `Still to collect from the student: ${formatTaka(s.finalBalancePaisa)} (take it from Payments).`
             : s.finalBalancePaisa < 0
@@ -44,10 +45,10 @@ export function LeaveForm({ studentId, accounts }: { studentId: string; accounts
                 : `The hostel owes the student ${formatTaka(-s.finalBalancePaisa)}. Record the refund below when it is paid.`
               : "Nothing to pay on either side."}
         </p>
-        <Button className="mt-3" size="sm" variant="outline" onClick={() => window.location.reload()}>
+        <Button className="mt-2" size="sm" variant="outline" onClick={() => window.location.reload()}>
           Refresh page
         </Button>
-      </div>
+      </Note>
     );
   }
 
@@ -64,13 +65,16 @@ export function LeaveForm({ studentId, accounts }: { studentId: string; accounts
           max={dhakaDate()}
           errors={state.fieldErrors}
         />
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="refundAccountId">If the hostel owes money back, pay it now from</Label>
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="refundAccountId" className="text-[12.5px] font-semibold text-ink-2">
+            If the hostel owes money back, pay it now from
+          </Label>
           <Select
             id="refundAccountId"
             name="refundAccountId"
             value={refundAccountId}
             onChange={(e) => setRefundAccountId(e.target.value)}
+            className="h-10 text-[13.5px]"
           >
             <option value="">Do not pay now</option>
             {accounts.map((a) => (
@@ -83,8 +87,8 @@ export function LeaveForm({ studentId, accounts }: { studentId: string; accounts
       </div>
 
       {s && !state.confirmed && (
-        <div className="bg-muted/40 flex flex-col gap-1 rounded-lg border p-4 text-sm">
-          <p className="mb-1 font-semibold">Final statement if the last day is {s.lastDay}</p>
+        <div className="bg-surface-2 border-line-2 flex flex-col gap-2 rounded-[12px] border p-4 text-[13px]">
+          <p className="text-ink mb-1 font-bold">Final statement if the last day is {s.lastDay}</p>
           {s.meal && (
             <Line
               label={`Pre meal${s.meal.range ? ` ${s.meal.range}` : ""} (${s.meal.breakfast} breakfast, ${s.meal.lunch} lunch, ${s.meal.dinner} dinner): ${formatTaka(s.meal.costPaisa)} − deposit ${formatTaka(s.meal.depositPaisa)}`}
@@ -165,9 +169,11 @@ export function RefundForm({
         required
         errors={state.fieldErrors}
       />
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="refund-account">Paid from</Label>
-        <Select id="refund-account" name="accountId" defaultValue={accounts[0]?.id}>
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="refund-account" className="text-[12.5px] font-semibold text-ink-2">
+          Paid from
+        </Label>
+        <Select id="refund-account" name="accountId" defaultValue={accounts[0]?.id} className="h-10 text-[13.5px]">
           {accounts.map((a) => (
             <option key={a.id} value={a.id}>
               {a.name}

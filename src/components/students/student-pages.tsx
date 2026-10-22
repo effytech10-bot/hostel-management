@@ -79,36 +79,53 @@ export async function StudentsListPage({
         </Button>
       </PageHeader>
 
-      <form method="get" className="mb-4 grid gap-2 sm:grid-cols-[1fr_auto_auto_auto_auto]">
-        <Input name="q" defaultValue={filters.q} placeholder="Search name, Student ID, phone or room" />
-        <Select name="building" defaultValue={filters.buildingId ?? ""}>
-          <option value="">All buildings</option>
-          {buildingList.map((b) => (
-            <option key={b.id} value={b.id}>
-              {b.code}
-            </option>
-          ))}
-        </Select>
-        <Select name="batch" defaultValue={filters.batchId ?? ""}>
-          <option value="">All batches</option>
-          {batchList.map((b) => (
-            <option key={b.id} value={b.id}>
-              Batch {b.name}
-            </option>
-          ))}
-        </Select>
-        <Select name="status" defaultValue={filters.status}>
-          <option value="active">Active</option>
-          <option value="left">Former (left)</option>
-          <option value="all">All</option>
-        </Select>
-        <Button type="submit" variant="outline">
+      <form method="get" className="mb-4 grid gap-2.5 sm:grid-cols-[1fr_auto_auto_auto_auto] items-end">
+        <div className="flex flex-col gap-1">
+          <label className="text-[12.5px] font-semibold text-ink-2">Search</label>
+          <Input
+            name="q"
+            defaultValue={filters.q}
+            placeholder="Search name, Student ID, phone or room"
+            className="h-9 text-[13.5px]"
+          />
+        </div>
+        <div className="flex flex-col gap-1">
+          <label className="text-[12.5px] font-semibold text-ink-2">Building</label>
+          <Select name="building" defaultValue={filters.buildingId ?? ""} className="h-9 text-[13.5px] min-w-32">
+            <option value="">All buildings</option>
+            {buildingList.map((b) => (
+              <option key={b.id} value={b.id}>
+                {b.code}
+              </option>
+            ))}
+          </Select>
+        </div>
+        <div className="flex flex-col gap-1">
+          <label className="text-[12.5px] font-semibold text-ink-2">Batch</label>
+          <Select name="batch" defaultValue={filters.batchId ?? ""} className="h-9 text-[13.5px] min-w-28">
+            <option value="">All batches</option>
+            {batchList.map((b) => (
+              <option key={b.id} value={b.id}>
+                Batch {b.name}
+              </option>
+            ))}
+          </Select>
+        </div>
+        <div className="flex flex-col gap-1">
+          <label className="text-[12.5px] font-semibold text-ink-2">Status</label>
+          <Select name="status" defaultValue={filters.status} className="h-9 text-[13.5px] min-w-28">
+            <option value="active">Active</option>
+            <option value="left">Former (left)</option>
+            <option value="all">All</option>
+          </Select>
+        </div>
+        <Button type="submit" variant="outline" size="sm" className="h-9">
           Search
         </Button>
       </form>
 
-      <Card className="py-0">
-        <CardContent className="px-0">
+      <Card>
+        <CardContent>
           {result.rows.length === 0 ? (
             <p className="text-muted-foreground p-6 text-sm">No students found.</p>
           ) : (
@@ -116,20 +133,20 @@ export async function StudentsListPage({
               <TableHeader>
                 <TableRow>
                   <TableHead>ID</TableHead>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Phone</TableHead>
-                  <TableHead>Building</TableHead>
+                  <TableHead>Student</TableHead>
                   <TableHead>Seat</TableHead>
+                  <TableHead>Phone</TableHead>
                   <TableHead className="text-right">Rent</TableHead>
                   <TableHead>Batch</TableHead>
+                  <TableHead className="text-right"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {result.rows.map((s) => (
                   <TableRow key={s.id}>
-                    <TableCell className="tabular-nums">{s.studentCode}</TableCell>
+                    <TableCell className="font-mono text-xs tabular-nums">{s.studentCode}</TableCell>
                     <TableCell>
-                      <Link href={`${basePath}/${s.id}`} className="text-primary font-medium hover:underline">
+                      <Link href={`${basePath}/${s.id}`} className="text-ink font-semibold hover:underline">
                         {s.fullName}
                       </Link>
                       {s.status === "left" && (
@@ -138,13 +155,25 @@ export async function StudentsListPage({
                         </Badge>
                       )}
                     </TableCell>
-                    <TableCell className="tabular-nums">{s.phone}</TableCell>
-                    <TableCell>{s.buildingCode ?? "—"}</TableCell>
-                    <TableCell>{s.roomNumber ? `${s.roomNumber}-${s.seatLabel}` : "—"}</TableCell>
-                    <TableCell className="text-right tabular-nums">
+                    <TableCell>
+                      {s.buildingCode ? (
+                        <span>
+                          <b>{s.buildingCode}</b> · {s.roomNumber ? `${s.roomNumber}-${s.seatLabel}` : "—"}
+                        </span>
+                      ) : (
+                        "—"
+                      )}
+                    </TableCell>
+                    <TableCell className="font-mono text-xs">{s.phone}</TableCell>
+                    <TableCell className="text-right tabular-nums font-semibold">
                       {s.rentPaisa != null ? formatTaka(s.rentPaisa) : "—"}
                     </TableCell>
-                    <TableCell>{s.batchName ?? "—"}</TableCell>
+                    <TableCell className="text-muted-foreground text-xs">{s.batchName ?? "—"}</TableCell>
+                    <TableCell className="text-right">
+                      <Link href={`${basePath}/${s.id}`} className="text-brand font-medium hover:underline text-xs">
+                        Open →
+                      </Link>
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -185,7 +214,7 @@ export async function NewStudentPage({ actor, basePath }: { actor: SessionUser; 
   return (
     <>
       <p className="mb-2 text-sm">
-        <Link href={basePath} className="text-muted-foreground hover:underline">
+        <Link href={basePath} className="text-muted-foreground hover:text-ink hover:underline">
           ← Students
         </Link>
       </p>
@@ -205,15 +234,6 @@ export async function NewStudentPage({ actor, basePath }: { actor: SessionUser; 
 // ---------------------------------------------------------------------------
 // Detail
 // ---------------------------------------------------------------------------
-
-function Info({ label, value }: { label: string; value: React.ReactNode }) {
-  return (
-    <div>
-      <dt className="text-muted-foreground text-xs">{label}</dt>
-      <dd className="text-sm">{value || "—"}</dd>
-    </div>
-  );
-}
 
 export async function StudentDetailPage({
   actor,
@@ -263,32 +283,44 @@ export async function StudentDetailPage({
       ]
     : freeSeats;
 
+  const latestToken = studentTokens[0];
+
   return (
     <>
       <p className="mb-2 text-sm">
-        <Link href={basePath} className="text-muted-foreground hover:underline">
+        <Link href={basePath} className="text-muted-foreground hover:text-ink hover:underline">
           ← Students
         </Link>
       </p>
 
+      <PageHeader
+        title={student.fullName}
+        description={`ID ${student.studentCode} · ${student.phone}${current ? ` · ${current.buildingCode} · Room ${current.roomNumber}-${current.seatLabel}` : ""}${batchName ? ` · Batch ${batchName}` : ""}`}
+      >
+        {latestToken?.code && actor.role !== "student" && (
+          <Button asChild>
+            <Link href={`${tokensPath}/${latestToken.code}`}>Take payment</Link>
+          </Button>
+        )}
+        <Button asChild variant="outline">
+          <Link href={basePath}>← All students</Link>
+        </Button>
+      </PageHeader>
+
       <div className="mb-6 flex flex-wrap items-center gap-4">
-        <div className="bg-muted size-20 overflow-hidden rounded-xl border">
+        <div className="bg-surface-2 border-line size-16 shrink-0 overflow-hidden rounded-[12px] border shadow-card flex items-center justify-center">
           {photoUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={photoUrl} alt={student.fullName} className="size-full object-cover" />
           ) : (
-            <div className="text-muted-foreground flex size-full items-center justify-center text-2xl font-semibold">
-              {student.fullName.slice(0, 1)}
+            <div className="bg-student grid size-full place-items-center text-xl font-bold text-white select-none">
+              {student.fullName.slice(0, 1).toUpperCase()}
             </div>
           )}
         </div>
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">{student.fullName}</h1>
-          <p className="text-muted-foreground text-sm">
-            ID <span className="text-foreground font-medium tabular-nums">{student.studentCode}</span> · {student.phone}
-            {batchName && <> · Batch {batchName}</>}
-          </p>
-          <div className="mt-1 flex gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <h2 className="text-ink text-xl font-bold">{student.fullName}</h2>
             <Badge variant={student.status === "active" ? "success" : "secondary"}>
               {student.status === "active" ? "Active" : `Left on ${student.leftDate}`}
             </Badge>
@@ -299,209 +331,242 @@ export async function StudentDetailPage({
               </Badge>
             )}
           </div>
+          <p className="text-muted-foreground mt-0.5 text-xs font-mono">
+            ID {student.studentCode} · {student.phone}
+            {student.admissionDate && ` · Admitted ${student.admissionDate}`}
+          </p>
         </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-3">
-        <LatestTokenCard tokens={studentTokens} tokensPath={tokensPath} canPay={actor.role !== "student"} />
+      <div className="grid gap-6 lg:grid-cols-2">
+        {/* Left Column: Account, Balance & Tokens */}
+        <div className="flex flex-col gap-6">
+          <LatestTokenCard tokens={studentTokens} tokensPath={tokensPath} canPay={actor.role !== "student"} />
 
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle>Balance</CardTitle>
-            <CardDescription>
-              What the student owes or has extra, by type. The newest token shows the same.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <AccountSummary
-              balances={money.balances}
-              dues={money.dues}
-              totalPaisa={money.totalPaisa}
-              advanceHeldPaisa={money.advanceHeldPaisa}
-            />
-          </CardContent>
-        </Card>
+          <Card>
+            <CardHeader>
+              <div>
+                <CardTitle>Account balance</CardTitle>
+                <CardDescription>
+                  What the student owes or has extra, by type. The newest token shows the same.
+                </CardDescription>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <AccountSummary
+                balances={money.balances}
+                dues={money.dues}
+                totalPaisa={money.totalPaisa}
+                advanceHeldPaisa={money.advanceHeldPaisa}
+              />
+            </CardContent>
+          </Card>
 
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle>Tokens</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <TokenHistory tokens={studentTokens} tokensPath={tokensPath} />
-          </CardContent>
-        </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle>Bills (tokens)</CardTitle>
+              <CardDescription>Every monthly token and admission bill.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <TokenHistory tokens={studentTokens} tokensPath={tokensPath} />
+            </CardContent>
+          </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Payments</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <PaymentHistory payments={money.payments} refunds={money.refunds} />
-          </CardContent>
-        </Card>
-
-        {actor.role === "admin" && student.status === "active" && current && (
-          <div className="lg:col-span-3">
+          {actor.role === "admin" && student.status === "active" && current && (
             <EarlyTokenCard actor={actor} studentId={student.id} tokensPath={tokensPath} />
-          </div>
-        )}
+          )}
 
-        {actor.role === "admin" && money.totalPaisa < 0 && accountOptions.length > 0 && (
-          <Card className="lg:col-span-3">
+          {actor.role === "admin" && money.totalPaisa < 0 && accountOptions.length > 0 && (
+            <Card>
+              <CardHeader>
+                <div>
+                  <CardTitle>Pay money back (admin)</CardTitle>
+                  <CardDescription>
+                    The hostel owes this student {formatTaka(-money.totalPaisa)}. Record it here when it is paid.
+                  </CardDescription>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <RefundForm studentId={student.id} maxPaisa={-money.totalPaisa} accounts={accountOptions} />
+              </CardContent>
+            </Card>
+          )}
+
+          {actor.role === "admin" && student.status === "active" && current && (
+            <Card>
+              <CardHeader>
+                <div>
+                  <CardTitle>Student leaving (admin)</CardTitle>
+                  <CardDescription>
+                    Settles meals, returns advance against dues, and frees the seat.
+                  </CardDescription>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <LeaveForm studentId={student.id} accounts={accountOptions} />
+              </CardContent>
+            </Card>
+          )}
+
+          {actor.role === "admin" && (
+            <Card>
+              <CardHeader>
+                <div>
+                  <CardTitle>Adjust account (admin)</CardTitle>
+                  <CardDescription>
+                    Opening balance from old records, an extra charge, or a waiver.
+                  </CardDescription>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <AdjustmentForm studentId={student.id} />
+              </CardContent>
+            </Card>
+          )}
+        </div>
+
+        {/* Right Column: Profile, Payments, Login & Seat Changes */}
+        <div className="flex flex-col gap-6">
+          <Card>
             <CardHeader>
-              <CardTitle>Pay money back (admin)</CardTitle>
-              <CardDescription>
-                The hostel owes this student {formatTaka(-money.totalPaisa)}. Record it here when it is paid.
-              </CardDescription>
+              <CardTitle>Profile</CardTitle>
             </CardHeader>
             <CardContent>
-              <RefundForm studentId={student.id} maxPaisa={-money.totalPaisa} accounts={accountOptions} />
+              <dl className="kv">
+                <dt>Phone (login)</dt>
+                <dd className="font-mono">{student.phone}</dd>
+                <dt>Father / guardian</dt>
+                <dd>{student.fatherName || "—"}</dd>
+                <dt>Guardian phone</dt>
+                <dd className="font-mono">{student.guardianPhone || "—"}</dd>
+                <dt>School</dt>
+                <dd>{student.school || "—"}</dd>
+                <dt>College</dt>
+                <dd>{student.college || "—"}</dd>
+                <dt>Class / group / roll</dt>
+                <dd>{[student.classYear, student.group, student.roll].filter(Boolean).join(" · ") || "—"}</dd>
+                <dt>Batch</dt>
+                <dd>{batchName || "—"}</dd>
+                <dt>Admission date</dt>
+                <dd>{student.admissionDate || "—"}</dd>
+                <dt>Permanent address</dt>
+                <dd>{student.permanentAddress || "—"}</dd>
+                {student.notes && (
+                  <>
+                    <dt>Notes</dt>
+                    <dd>{student.notes}</dd>
+                  </>
+                )}
+              </dl>
             </CardContent>
           </Card>
-        )}
 
-        {actor.role === "admin" && student.status === "active" && current && (
-          <Card className="lg:col-span-3">
+          <Card>
             <CardHeader>
-              <CardTitle>Student leaving (admin)</CardTitle>
-              <CardDescription>
-                Settles meals since the last token, gives back unused days (if the rule in Settings is “by days”),
-                returns the paid advance against dues, frees the seat and stops future tokens. Preview first.
-              </CardDescription>
+              <CardTitle>Payments & receipts</CardTitle>
+              <CardDescription>Every payment recorded for this student.</CardDescription>
             </CardHeader>
             <CardContent>
-              <LeaveForm studentId={student.id} accounts={accountOptions} />
+              <PaymentHistory payments={money.payments} refunds={money.refunds} />
             </CardContent>
           </Card>
-        )}
 
-        {actor.role === "admin" && (
-          <Card className="lg:col-span-3">
+          <Card>
             <CardHeader>
-              <CardTitle>Adjust account (admin)</CardTitle>
-              <CardDescription>
-                Opening balance from the old Excel, an extra charge, or a discount / waiver. Every change is kept in the
-                history and cannot be deleted; to undo, add the opposite adjustment.
-              </CardDescription>
+              <div>
+                <CardTitle>Login password</CardTitle>
+                <CardDescription>
+                  Logs in with phone {student.phone} or ID {student.studentCode}.
+                </CardDescription>
+              </div>
             </CardHeader>
             <CardContent>
-              <AdjustmentForm studentId={student.id} />
+              <ResetStudentPasswordForm studentId={student.id} />
             </CardContent>
           </Card>
-        )}
 
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle>Details</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <dl className="grid gap-4 sm:grid-cols-3">
-              <Info label="Father / guardian" value={student.fatherName} />
-              <Info label="Guardian phone" value={student.guardianPhone} />
-              <Info label="Admission date" value={student.admissionDate} />
-              <Info label="School" value={student.school} />
-              <Info label="College" value={student.college} />
-              <Info
-                label="Class / group / roll"
-                value={[student.classYear, student.group, student.roll].filter(Boolean).join(" · ")}
-              />
-              <Info label="Permanent address" value={student.permanentAddress} />
-              <Info label="Notes" value={student.notes} />
-            </dl>
-          </CardContent>
-        </Card>
+          {student.status === "active" && current && (
+            <Card>
+              <CardHeader>
+                <div>
+                  <CardTitle>Change seat or rent</CardTitle>
+                  <CardDescription>
+                    Pick a new seat, or keep the current seat and change the rent.
+                  </CardDescription>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <TransferForm
+                  studentId={student.id}
+                  seats={seatOptions}
+                  currentSeatId={current.seatId}
+                  currentRentPaisa={current.rentPaisa}
+                />
+              </CardContent>
+            </Card>
+          )}
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Login</CardTitle>
-            <CardDescription>
-              Logs in with {student.phone} or ID {student.studentCode}.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ResetStudentPasswordForm studentId={student.id} />
-          </CardContent>
-        </Card>
-
-        {student.status === "active" && current && (
-          <Card className="lg:col-span-3">
+          <Card>
             <CardHeader>
-              <CardTitle>Change seat or rent</CardTitle>
-              <CardDescription>
-                Pick a new seat, or keep the current seat and change the rent. History is kept below.
-              </CardDescription>
+              <CardTitle>Seat history</CardTitle>
             </CardHeader>
             <CardContent>
-              <TransferForm
-                studentId={student.id}
-                seats={seatOptions}
-                currentSeatId={current.seatId}
-                currentRentPaisa={current.rentPaisa}
-              />
-            </CardContent>
-          </Card>
-        )}
-
-        <Card className="lg:col-span-3">
-          <CardHeader>
-            <CardTitle>Seat history</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Building</TableHead>
-                  <TableHead>Seat</TableHead>
-                  <TableHead className="text-right">Rent</TableHead>
-                  <TableHead>From</TableHead>
-                  <TableHead>To</TableHead>
-                  <TableHead>Why it ended</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {history.map((h) => (
-                  <TableRow key={h.id}>
-                    <TableCell>{h.buildingCode}</TableCell>
-                    <TableCell>
-                      {h.roomNumber}-{h.seatLabel}
-                    </TableCell>
-                    <TableCell className="text-right tabular-nums">{formatTaka(h.rentPaisa)}</TableCell>
-                    <TableCell>{h.startDate}</TableCell>
-                    <TableCell>{h.endDate ?? <Badge variant="success">Current</Badge>}</TableCell>
-                    <TableCell className="text-muted-foreground">{h.endReason?.replace("_", " ") ?? ""}</TableCell>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Building</TableHead>
+                    <TableHead>Seat</TableHead>
+                    <TableHead className="text-right">Rent</TableHead>
+                    <TableHead>From</TableHead>
+                    <TableHead>To</TableHead>
+                    <TableHead>Reason</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
+                </TableHeader>
+                <TableBody>
+                  {history.map((h) => (
+                    <TableRow key={h.id}>
+                      <TableCell className="font-semibold">{h.buildingCode}</TableCell>
+                      <TableCell>
+                        {h.roomNumber}-{h.seatLabel}
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums font-semibold">{formatTaka(h.rentPaisa)}</TableCell>
+                      <TableCell className="text-muted-foreground text-xs">{h.startDate}</TableCell>
+                      <TableCell className="text-xs">{h.endDate ?? <Badge variant="success">Current</Badge>}</TableCell>
+                      <TableCell className="text-muted-foreground text-xs">{h.endReason?.replace("_", " ") ?? ""}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
 
-        <Card className="lg:col-span-3">
-          <CardHeader>
-            <CardTitle>Edit profile</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <EditProfileForm
-              studentId={student.id}
-              photoUrl={photoUrl}
-              batches={batchList.map((b) => b.name)}
-              defaults={{
-                fullName: student.fullName,
-                fatherName: student.fatherName,
-                phone: student.phone,
-                guardianPhone: student.guardianPhone,
-                permanentAddress: student.permanentAddress,
-                school: student.school,
-                college: student.college,
-                classYear: student.classYear,
-                group: student.group,
-                roll: student.roll,
-                batchName,
-                notes: student.notes,
-              }}
-            />
-          </CardContent>
-        </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle>Edit profile</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <EditProfileForm
+                studentId={student.id}
+                photoUrl={photoUrl}
+                batches={batchList.map((b) => b.name)}
+                defaults={{
+                  fullName: student.fullName,
+                  fatherName: student.fatherName,
+                  phone: student.phone,
+                  guardianPhone: student.guardianPhone,
+                  permanentAddress: student.permanentAddress,
+                  school: student.school,
+                  college: student.college,
+                  classYear: student.classYear,
+                  group: student.group,
+                  roll: student.roll,
+                  batchName,
+                  notes: student.notes,
+                }}
+              />
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </>
   );

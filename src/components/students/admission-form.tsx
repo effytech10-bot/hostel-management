@@ -7,6 +7,7 @@ import { Field } from "@/components/forms/field";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { FormMessage } from "@/components/ui/form-message";
+import { Note } from "@/components/ui/note";
 import { dhakaDate } from "@/lib/dates";
 import { formatTaka } from "@/lib/money";
 import { PhotoInput } from "./photo-input";
@@ -28,55 +29,55 @@ export function AdmissionForm({
   if (state.admitted) {
     const a = state.admitted;
     return (
-      <Card className="border-emerald-300">
+      <Card className="border-ok-line">
         <CardHeader>
-          <CardTitle>Student admitted ✓</CardTitle>
+          <CardTitle className="text-ok">Student admitted ✓</CardTitle>
           <CardDescription>{a.seatText}</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
-          <div className="bg-muted grid gap-3 rounded-lg p-4 sm:grid-cols-2">
+          <div className="bg-surface-2 border-line-2 grid gap-3 rounded-[12px] border p-4 sm:grid-cols-2">
             <div>
-              <p className="text-muted-foreground text-xs">Student ID</p>
-              <p className="text-2xl font-semibold tabular-nums">{a.studentCode}</p>
+              <p className="text-muted-foreground text-xs font-medium">Student ID</p>
+              <p className="text-2xl font-bold tabular-nums font-mono">{a.studentCode}</p>
             </div>
             <div>
-              <p className="text-muted-foreground text-xs">First password (last 6 digits of phone)</p>
-              <p className="font-mono text-2xl font-semibold">{a.password}</p>
+              <p className="text-muted-foreground text-xs font-medium">First password (last 6 digits of phone)</p>
+              <p className="font-mono text-2xl font-bold text-brand">{a.password}</p>
             </div>
           </div>
-          <p className="text-muted-foreground text-sm">
+          <p className="text-muted-foreground text-[13px] leading-normal">
             The student logs in with their phone number or Student ID and this password, then chooses their own
             password. If they forget it, reset it from the student&apos;s page.
           </p>
-          <div className="rounded-lg border p-4 text-sm">
-            <p className="mb-1 font-semibold">
-              Token <span className="font-mono">{a.firstBill.code}</span>
+          <div className="border-line-2 bg-surface rounded-[12px] border p-4 text-[13.5px]">
+            <p className="text-ink mb-2 font-semibold">
+              Token <span className="font-mono text-brand">{a.firstBill.code}</span>
             </p>
             {(["current", "due"] as const).map((section) => (
-              <div key={section} className="mt-2">
-                <p className="text-muted-foreground text-xs font-semibold uppercase">
+              <div key={section} className="mt-2.5">
+                <p className="text-muted-foreground text-xs font-semibold uppercase tracking-wider">
                   {section === "current" ? "This month" : "Due"}
                 </p>
                 {a.firstBill.lines
                   .filter((l) => l.section === section)
                   .map((l) => (
-                    <div key={l.label} className="flex justify-between gap-4">
+                    <div key={l.label} className="border-line-2 flex justify-between gap-4 border-b py-1.5">
                       <span>
                         {l.label}
                         {l.detail && <span className="text-muted-foreground ml-2 text-xs">{l.detail}</span>}
                       </span>
-                      <span className="tabular-nums">{formatTaka(l.amountPaisa)}</span>
+                      <span className="tabular-nums font-medium">{formatTaka(l.amountPaisa)}</span>
                     </div>
                   ))}
               </div>
             ))}
-            <div className="mt-2 flex justify-between gap-4 border-t pt-2 font-semibold">
+            <div className="border-line mt-3 flex justify-between gap-4 border-t pt-2 font-bold text-[14.5px]">
               <span>Total</span>
               <span className="tabular-nums">{formatTaka(a.firstBill.totalPaisa)}</span>
             </div>
           </div>
           {a.photoWarning && <FormMessage error={a.photoWarning} />}
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2 pt-2">
             <Button asChild>
               <Link href={`${basePath}/${a.studentId}`}>Open student</Link>
             </Button>
@@ -104,8 +105,8 @@ export function AdmissionForm({
     <form action={formAction} className="flex flex-col gap-8">
       <ProfileFields errors={e} batches={batches} />
 
-      <fieldset className="flex flex-col gap-4">
-        <legend className="mb-3 text-sm font-semibold">Seat & rent</legend>
+      <fieldset className="flex flex-col gap-4 border-t border-line-2 pt-4">
+        <legend className="mb-2 text-sm font-semibold text-ink-2">Seat & rent</legend>
         <SeatPicker
           seats={seats}
           errors={e?.seatId}
@@ -128,14 +129,14 @@ export function AdmissionForm({
         </div>
       </fieldset>
 
-      <fieldset className="flex flex-col gap-4">
-        <legend className="mb-3 text-sm font-semibold">Photo, first token & login</legend>
+      <fieldset className="flex flex-col gap-4 border-t border-line-2 pt-4">
+        <legend className="mb-2 text-sm font-semibold text-ink-2">Photo, first token & login</legend>
         <PhotoInput />
-        <p className="text-muted-foreground text-sm">
+        <Note variant="info" className="text-xs">
           The token for the admission month is made right away, whatever the day: the full month&apos;s rent, the meal
           deposit, the advance and the one-time service charge. From next month tokens are made automatically.
-        </p>
-        <p className="text-muted-foreground text-sm">
+        </Note>
+        <p className="text-muted-foreground text-xs leading-normal">
           Login: the student uses their phone number (or Student ID). The first password is the last 6 digits of their
           phone number; they must set their own password at the first login.
         </p>

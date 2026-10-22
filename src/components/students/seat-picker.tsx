@@ -47,13 +47,15 @@ export function SeatPicker({
   }
 
   if (seats.length === 0) {
-    return <p className="text-sm text-amber-700">No free seats. Add rooms/seats in Buildings first.</p>;
+    return <p className="text-sm font-medium text-warn">No free seats. Add rooms/seats in Buildings first.</p>;
   }
 
   return (
     <div className="grid gap-4 sm:grid-cols-2">
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="building-pick">Building</Label>
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="building-pick" className="text-[12.5px] font-semibold text-ink-2">
+          Building
+        </Label>
         <Select
           id="building-pick"
           value={buildingId}
@@ -61,6 +63,7 @@ export function SeatPicker({
             setBuildingId(e.target.value);
             chooseSeat("");
           }}
+          className="h-10 text-[13.5px]"
         >
           <option value="">Choose building…</option>
           {buildings.map((b) => (
@@ -70,8 +73,10 @@ export function SeatPicker({
           ))}
         </Select>
       </div>
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="seatId">Room & seat</Label>
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="seatId" className="text-[12.5px] font-semibold text-ink-2">
+          Room & seat
+        </Label>
         <Select
           id="seatId"
           name="seatId"
@@ -79,6 +84,7 @@ export function SeatPicker({
           onChange={(e) => chooseSeat(e.target.value)}
           disabled={!buildingId}
           aria-invalid={!!errors?.length}
+          className="h-10 text-[13.5px]"
         >
           <option value="">{buildingId ? "Choose seat…" : "Choose a building first"}</option>
           {rooms.map(([roomNumber, roomSeats]) => (
