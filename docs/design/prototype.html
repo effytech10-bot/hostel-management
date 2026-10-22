@@ -1,0 +1,3458 @@
+<title>Rangdhanu Hostel Flow</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link
+  href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap"
+  rel="stylesheet"
+/>
+<style>
+  /* Deliberately single light theme: a client-facing prototype that should look the same for everyone. */
+  :root {
+    color-scheme: light;
+    --bg: #f2f3f8;
+    --surface: #ffffff;
+    --surface-2: #f7f8fc;
+    --surface-3: #eef0f6;
+    --ink: #161a2e;
+    --ink-2: #3a405c;
+    --muted: #666d8c;
+    --faint: #9aa0ba;
+    --line: #e0e3ee;
+    --line-2: #eceef5;
+    --brand: #3340b0;
+    --brand-600: #28339a;
+    --brand-50: #eef0fc;
+    --brand-100: #dde1fa;
+    --admin: #3340b0;
+    --admin-50: #eef0fc;
+    --cashier: #0c7b7f;
+    --cashier-50: #e6f5f5;
+    --student: #c9581a;
+    --student-50: #fdf0e7;
+    --auto: #6b3fa0;
+    --auto-50: #f3edfa;
+    --ok: #15803d;
+    --ok-bg: #effbf2;
+    --ok-line: #bfe8cb;
+    --warn: #a15c07;
+    --warn-bg: #fff8e6;
+    --warn-line: #f6dc9c;
+    --bad: #b42323;
+    --bad-bg: #fdf1f1;
+    --bad-line: #f4c9c9;
+    --head: #12162a;
+    --radius: 12px;
+    --shadow: 0 1px 2px rgba(22, 26, 46, 0.05), 0 2px 10px rgba(22, 26, 46, 0.05);
+    --shadow-lg: 0 24px 60px rgba(22, 26, 46, 0.22);
+    --font: "IBM Plex Sans", "Hind Siliguri", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --bn: "Hind Siliguri", "IBM Plex Sans", system-ui, sans-serif;
+    --mono: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+  }
+  * {
+    box-sizing: border-box;
+  }
+  html,
+  body {
+    height: 100%;
+  }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--font);
+    font-size: 14.5px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  button,
+  input,
+  select {
+    font: inherit;
+    color: inherit;
+  }
+  button {
+    cursor: pointer;
+  }
+  h1,
+  h2,
+  h3 {
+    margin: 0;
+    text-wrap: balance;
+  }
+  p {
+    margin: 0;
+  }
+  .bn {
+    font-family: var(--bn);
+  }
+  .num {
+    font-variant-numeric: tabular-nums;
+  }
+  .mono {
+    font-family: var(--mono);
+    font-size: 0.9em;
+  }
+  .muted {
+    color: var(--muted);
+  }
+  :focus-visible {
+    outline: 3px solid rgba(51, 64, 176, 0.45);
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+
+  /* ---------- Top bar ---------- */
+  .top {
+    position: sticky;
+    top: env(safe-area-inset-top, 0px);
+    z-index: 60;
+    background: var(--head);
+    color: #e6e8f4;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 9px 16px;
+    flex-wrap: wrap;
+  }
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+  }
+  .logo .mark {
+    width: 34px;
+    height: 34px;
+    border-radius: 9px;
+    background: #1f2440;
+    display: grid;
+    place-items: center;
+    overflow: hidden;
+    flex: none;
+  }
+  .rain {
+    display: flex;
+    width: 22px;
+    height: 14px;
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .rain i {
+    flex: 1;
+  }
+  .logo b {
+    display: block;
+    font-family: var(--bn);
+    font-size: 16px;
+    line-height: 1.1;
+    color: #fff;
+  }
+  .logo span {
+    font-size: 11.5px;
+    color: #9ea4c4;
+  }
+  .seg {
+    display: flex;
+    gap: 3px;
+    background: #1d2238;
+    border: 1px solid #2a3050;
+    border-radius: 10px;
+    padding: 3px;
+  }
+  .seg button {
+    border: 0;
+    background: transparent;
+    color: #c7cbe0;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 6px 12px;
+    border-radius: 7px;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    white-space: nowrap;
+  }
+  .seg button:hover {
+    background: #262c48;
+    color: #fff;
+  }
+  .seg button[aria-pressed="true"] {
+    background: #fff;
+    color: var(--ink);
+  }
+  .seg button i {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+  }
+  .top .sp {
+    flex: 1;
+  }
+  .top select {
+    background: #1d2238;
+    border: 1px solid #2a3050;
+    color: #e6e8f4;
+    border-radius: 8px;
+    padding: 6px 8px;
+    font-size: 13px;
+  }
+  .tbtn {
+    border: 1px solid #2a3050;
+    background: #1d2238;
+    color: #e6e8f4;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 6px 11px;
+    border-radius: 8px;
+    white-space: nowrap;
+  }
+  .tbtn:hover {
+    background: #262c48;
+  }
+  .tbtn.on {
+    background: var(--brand);
+    border-color: var(--brand);
+    color: #fff;
+  }
+  .clock {
+    font-size: 12px;
+    color: #9ea4c4;
+    font-family: var(--mono);
+    white-space: nowrap;
+  }
+
+  /* ---------- Common UI ---------- */
+  .btn {
+    border: 1px solid var(--line);
+    background: var(--surface);
+    color: var(--ink);
+    font-weight: 600;
+    font-size: 13.5px;
+    padding: 8px 13px;
+    border-radius: 9px;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    white-space: nowrap;
+  }
+  .btn:hover {
+    background: var(--surface-2);
+  }
+  .btn.pri {
+    background: var(--brand);
+    border-color: var(--brand);
+    color: #fff;
+  }
+  .btn.pri:hover {
+    background: var(--brand-600);
+  }
+  .btn.ok {
+    background: var(--ok);
+    border-color: var(--ok);
+    color: #fff;
+  }
+  .btn.sm {
+    padding: 5px 10px;
+    font-size: 12.5px;
+    border-radius: 8px;
+  }
+  .btn.ghost {
+    border-color: transparent;
+    background: transparent;
+  }
+  .btn[disabled] {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+  }
+  .card .ch {
+    padding: 14px 18px 0;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .card .ch h3 {
+    font-size: 15px;
+  }
+  .card .ch p {
+    font-size: 12.5px;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+  .card .cb {
+    padding: 14px 18px 18px;
+  }
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11.5px;
+    font-weight: 650;
+    padding: 2px 8px;
+    border-radius: 20px;
+    border: 1px solid transparent;
+    white-space: nowrap;
+  }
+  .pill.ok {
+    background: var(--ok-bg);
+    color: var(--ok);
+    border-color: var(--ok-line);
+  }
+  .pill.warn {
+    background: var(--warn-bg);
+    color: var(--warn);
+    border-color: var(--warn-line);
+  }
+  .pill.bad {
+    background: var(--bad-bg);
+    color: var(--bad);
+    border-color: var(--bad-line);
+  }
+  .pill.gray {
+    background: var(--surface-3);
+    color: var(--ink-2);
+    border-color: var(--line);
+  }
+  .pill.new {
+    background: var(--brand-50);
+    color: var(--brand);
+    border-color: var(--brand-100);
+  }
+  .tbl {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13.5px;
+  }
+  .tbl th {
+    text-align: left;
+    font-size: 12px;
+    color: var(--muted);
+    font-weight: 600;
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--line);
+    white-space: nowrap;
+  }
+  .tbl td {
+    padding: 9px 10px;
+    border-bottom: 1px solid var(--line-2);
+    vertical-align: middle;
+  }
+  .tbl tr:last-child td {
+    border-bottom: 0;
+  }
+  .tbl .r {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+  .tbl tr.click {
+    cursor: pointer;
+  }
+  .tbl tr.click:hover td {
+    background: var(--surface-2);
+  }
+  .tbl tr.tot td {
+    font-weight: 700;
+    background: var(--surface-2);
+  }
+  .tw {
+    overflow-x: auto;
+  }
+  .red {
+    color: var(--bad);
+  }
+  .green {
+    color: var(--ok);
+  }
+  .grid {
+    display: grid;
+    gap: 14px;
+  }
+  .g4 {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+  .g3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .g2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .kpi {
+    padding: 14px 16px;
+  }
+  .kpi .l {
+    font-size: 12.5px;
+    color: var(--muted);
+    font-weight: 500;
+  }
+  .kpi .v {
+    font-size: 25px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.25;
+    margin-top: 2px;
+  }
+  .kpi .n {
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .kpi.click {
+    cursor: pointer;
+  }
+  .kpi.click:hover {
+    border-color: var(--brand-100);
+  }
+  .field {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+  .field label {
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--ink-2);
+  }
+  .field input,
+  .field select {
+    border: 1px solid var(--line);
+    background: var(--surface);
+    border-radius: 9px;
+    padding: 8px 10px;
+    font-size: 14px;
+    width: 100%;
+  }
+  .field .hint {
+    font-size: 11.5px;
+    color: var(--muted);
+  }
+  .row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .kv {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 6px 16px;
+    font-size: 13.5px;
+  }
+  .kv dt {
+    color: var(--muted);
+  }
+  .kv dd {
+    margin: 0;
+    font-weight: 550;
+    overflow-wrap: anywhere;
+  }
+  .note {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    border-radius: 10px;
+    padding: 10px 12px;
+    font-size: 13px;
+    border: 1px solid var(--line);
+    background: var(--surface-2);
+  }
+  .note.warn {
+    background: var(--warn-bg);
+    border-color: var(--warn-line);
+  }
+  .note.ok {
+    background: var(--ok-bg);
+    border-color: var(--ok-line);
+  }
+  .note.info {
+    background: var(--brand-50);
+    border-color: var(--brand-100);
+  }
+  .tabs {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+  }
+  .tabs button {
+    border: 1px solid var(--line);
+    background: var(--surface);
+    border-radius: 8px;
+    padding: 6px 12px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ink-2);
+  }
+  .tabs button.on {
+    background: var(--brand);
+    border-color: var(--brand);
+    color: #fff;
+  }
+
+  /* ---------- MAP ---------- */
+  .map {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding-block: 26px 70px;
+    padding-inline: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+  }
+  .hero {
+    display: grid;
+    grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+    gap: 22px;
+    align-items: stretch;
+  }
+  .hero h1 {
+    font-family: var(--bn);
+    font-size: 34px;
+    line-height: 1.2;
+    font-weight: 700;
+  }
+  .hero .lead {
+    font-family: var(--bn);
+    font-size: 17px;
+    color: var(--ink-2);
+    margin-top: 10px;
+    max-width: 60ch;
+  }
+  .hero .cta {
+    margin-top: 16px;
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .hero .facts {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+  .hero .fact {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 12px 14px;
+  }
+  .hero .fact b {
+    display: block;
+    font-size: 22px;
+    font-variant-numeric: tabular-nums;
+  }
+  .hero .fact span {
+    font-family: var(--bn);
+    font-size: 13px;
+    color: var(--muted);
+  }
+  .sec h2 {
+    font-family: var(--bn);
+    font-size: 22px;
+    font-weight: 700;
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .sec h2 small {
+    font-family: var(--font);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .sec .sub {
+    font-family: var(--bn);
+    color: var(--muted);
+    font-size: 14.5px;
+    margin-top: 4px;
+    max-width: 75ch;
+  }
+  .sec .body {
+    margin-top: 14px;
+  }
+  .roles3 {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+  }
+  .rolec {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    overflow: hidden;
+  }
+  .rolec .rh {
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border-bottom: 1px solid var(--line-2);
+  }
+  .rolec .ri {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    display: grid;
+    place-items: center;
+    color: #fff;
+    font-weight: 700;
+    flex: none;
+  }
+  .rolec .rh b {
+    display: block;
+    font-family: var(--bn);
+    font-size: 16px;
+  }
+  .rolec .rh span {
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .rolec ul {
+    margin: 0;
+    padding: 12px 16px 14px 34px;
+    font-family: var(--bn);
+    font-size: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .rolec .lim {
+    margin: 0 16px 14px;
+    font-family: var(--bn);
+    font-size: 12.5px;
+    color: var(--muted);
+    background: var(--surface-2);
+    border-radius: 8px;
+    padding: 8px 10px;
+  }
+  .chain {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: stretch;
+  }
+  .chip {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 10px 12px;
+    min-width: 130px;
+    flex: 1 1 130px;
+    font-family: var(--bn);
+  }
+  .chip b {
+    display: block;
+    font-size: 14.5px;
+  }
+  .chip span {
+    font-size: 12.5px;
+    color: var(--muted);
+  }
+  .chip .k {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--faint);
+  }
+  .arrow {
+    align-self: center;
+    color: var(--faint);
+    font-size: 18px;
+    flex: none;
+  }
+
+  /* swimlane journey */
+  .lanes {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    overflow: hidden;
+  }
+  .lanehead,
+  .lanerow {
+    display: grid;
+    grid-template-columns: 52px repeat(4, minmax(0, 1fr));
+  }
+  .lanehead div {
+    padding: 10px 12px;
+    font-size: 12.5px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    border-bottom: 1px solid var(--line);
+  }
+  .lanehead div i {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+  }
+  .lanerow {
+    position: relative;
+  }
+  .lanerow > div {
+    border-right: 1px dashed var(--line-2);
+    min-height: 20px;
+  }
+  .lanerow > div:last-child {
+    border-right: 0;
+  }
+  .lanerow .no {
+    display: flex;
+    justify-content: center;
+    position: relative;
+  }
+  .lanerow .no::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 50%;
+    width: 2px;
+    background: var(--line);
+    transform: translateX(-1px);
+  }
+  .lanerow.first .no::before {
+    top: 22px;
+  }
+  .lanerow.last .no::before {
+    bottom: auto;
+    height: 22px;
+  }
+  .lanerow .no span {
+    position: relative;
+    margin-top: 12px;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: var(--ink);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 700;
+    display: grid;
+    place-items: center;
+  }
+  .step {
+    margin: 8px 10px 10px;
+    border-radius: 12px;
+    padding: 11px 13px;
+    border: 1px solid;
+    font-family: var(--bn);
+  }
+  .step b {
+    display: block;
+    font-size: 15px;
+  }
+  .step p {
+    font-size: 13.5px;
+    color: var(--ink-2);
+    margin-top: 3px;
+  }
+  .step ul {
+    margin: 6px 0 0;
+    padding-left: 18px;
+    font-size: 13px;
+    color: var(--ink-2);
+  }
+  .step .lw {
+    font-family: var(--font);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    display: none;
+  }
+  .step.admin {
+    border-color: #cfd4f5;
+    background: var(--admin-50);
+  }
+  .step.admin .lw {
+    color: var(--admin);
+  }
+  .step.cashier {
+    border-color: #bfe3e4;
+    background: var(--cashier-50);
+  }
+  .step.cashier .lw {
+    color: var(--cashier);
+  }
+  .step.student {
+    border-color: #f5d3bd;
+    background: var(--student-50);
+  }
+  .step.student .lw {
+    color: var(--student);
+  }
+  .step.auto {
+    border-color: #dccbf0;
+    background: var(--auto-50);
+  }
+  .step.auto .lw {
+    color: var(--auto);
+  }
+  .also {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 6px;
+  }
+
+  /* month calendar */
+  .cal {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 6px;
+  }
+  .cal .dh {
+    font-size: 11.5px;
+    font-weight: 700;
+    color: var(--muted);
+    text-align: center;
+  }
+  .cal .d {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 9px;
+    min-height: 62px;
+    padding: 6px 7px;
+    font-size: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+  .cal .d .n {
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+  .cal .d.pay {
+    background: var(--ok-bg);
+    border-color: var(--ok-line);
+  }
+  .cal .d.me {
+    background: var(--auto-50);
+    border-color: #cdb8ea;
+  }
+  .cal .d.blank {
+    background: transparent;
+    border-style: dashed;
+    border-color: var(--line-2);
+  }
+  .cal .tag {
+    font-family: var(--bn);
+    font-size: 11px;
+    line-height: 1.25;
+    color: var(--ink-2);
+  }
+  .cal .dots {
+    display: flex;
+    gap: 2px;
+    margin-top: auto;
+  }
+  .cal .dots i {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #c9cde0;
+  }
+  .legend {
+    display: flex;
+    gap: 14px;
+    flex-wrap: wrap;
+    font-family: var(--bn);
+    font-size: 13px;
+    color: var(--ink-2);
+    margin-top: 10px;
+  }
+  .legend span {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .legend i {
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+    border: 1px solid var(--line);
+  }
+
+  /* money example */
+  .paper {
+    background: #fffdf7;
+    border: 1px solid #e9e1c8;
+    border-radius: 10px;
+    padding: 12px 14px;
+    font-size: 13.5px;
+  }
+  .paper h4 {
+    margin: 0 0 6px;
+    font-size: 13px;
+    text-align: center;
+  }
+  .paper table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  .paper td {
+    padding: 3px 0;
+    border-bottom: 1px dotted #e3dbc1;
+  }
+  .paper td:last-child {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+  .paper tr.t td {
+    font-weight: 700;
+    border-bottom: 0;
+    border-top: 1px solid #d9cfb0;
+  }
+  .eq {
+    font-family: var(--bn);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 14.5px;
+  }
+  .eq .ln {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    border-bottom: 1px dashed var(--line);
+    padding-bottom: 4px;
+  }
+  .eq .ln.res {
+    border: 0;
+    font-weight: 700;
+  }
+  .phase {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+  }
+  .phase ul {
+    margin: 0;
+    padding: 12px 16px 14px 32px;
+    font-family: var(--bn);
+    font-size: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+  .rules {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+  }
+  .rule {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 12px 14px;
+    font-family: var(--bn);
+  }
+  .rule b {
+    display: block;
+    font-size: 14.5px;
+  }
+  .rule p {
+    font-size: 13.5px;
+    color: var(--ink-2);
+    margin-top: 3px;
+  }
+
+  /* ---------- DEMO shell ---------- */
+  .shell {
+    display: grid;
+    grid-template-columns: 232px minmax(0, 1fr) auto;
+    min-height: calc(100vh - var(--th, 52px));
+  }
+  .side {
+    background: var(--surface);
+    border-right: 1px solid var(--line);
+    padding: 16px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    position: sticky;
+    top: var(--th, 52px);
+    height: calc(100vh - var(--th, 52px));
+    overflow: auto;
+  }
+  .who {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 4px 8px 14px;
+    border-bottom: 1px solid var(--line-2);
+    margin-bottom: 8px;
+  }
+  .av {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    color: #fff;
+    font-weight: 700;
+    font-size: 13px;
+    flex: none;
+  }
+  .who b {
+    display: block;
+    font-size: 14px;
+    line-height: 1.2;
+  }
+  .who span {
+    font-size: 11.5px;
+    color: var(--muted);
+  }
+  .nav {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .nav button {
+    border: 0;
+    background: transparent;
+    text-align: left;
+    padding: 9px 11px;
+    border-radius: 9px;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--ink-2);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .nav button:hover {
+    background: var(--surface-2);
+  }
+  .nav button.on {
+    background: var(--brand-50);
+    color: var(--brand);
+    font-weight: 650;
+  }
+  .nav button svg {
+    width: 18px;
+    height: 18px;
+    flex: none;
+    opacity: 0.8;
+  }
+  .main {
+    padding: 24px 28px 60px;
+    min-width: 0;
+  }
+  .ph {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 14px;
+    margin-bottom: 18px;
+    flex-wrap: wrap;
+  }
+  .ph h1 {
+    font-size: 22px;
+  }
+  .ph p {
+    color: var(--muted);
+    font-size: 13.5px;
+    margin-top: 2px;
+  }
+  .stack {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  /* phone */
+  .phonewrap {
+    display: flex;
+    justify-content: center;
+    padding: 24px 16px 60px;
+  }
+  .phone {
+    width: 390px;
+    max-width: 100%;
+    background: var(--bg);
+    border: 10px solid #151a2e;
+    border-radius: 38px;
+    box-shadow: var(--shadow-lg);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    min-height: 760px;
+  }
+  .phone .ptop {
+    background: var(--surface);
+    padding: 14px 16px 10px;
+    border-bottom: 1px solid var(--line);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .phone .ptop b {
+    font-size: 14px;
+  }
+  .phone .ptop span {
+    font-size: 11.5px;
+    color: var(--muted);
+  }
+  .phone .pbody {
+    flex: 1;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    overflow: auto;
+  }
+  .phone .ptabs {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    background: var(--surface);
+    border-top: 1px solid var(--line);
+  }
+  .phone .ptabs button {
+    border: 0;
+    background: transparent;
+    padding: 9px 4px 11px;
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--muted);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+  }
+  .phone .ptabs button.on {
+    color: var(--student);
+  }
+  .phone .ptabs svg {
+    width: 20px;
+    height: 20px;
+  }
+  .due {
+    border-radius: 14px;
+    padding: 16px;
+  }
+  .due.red {
+    background: #fdecec;
+    color: #7f1d1d;
+  }
+  .due.green {
+    background: #e8f7ed;
+    color: #14532d;
+  }
+  .due .a {
+    font-size: 32px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.2;
+  }
+  .mcell {
+    display: inline-grid;
+    place-items: center;
+    width: 40px;
+    height: 32px;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 13px;
+    border: 1px solid;
+  }
+  .mcell.on {
+    background: #e8f7ed;
+    color: #15803d;
+    border-color: #b9e3c6;
+  }
+  .mcell.off {
+    background: #fdecec;
+    color: #b42323;
+    border-color: #f3c3c3;
+  }
+  .mcell.office {
+    background: var(--surface-3);
+    color: var(--muted);
+    border-color: var(--line);
+  }
+  button.mcell {
+    border-width: 2px;
+    cursor: pointer;
+  }
+  span.mcell {
+    opacity: 0.7;
+    width: 34px;
+    height: 26px;
+    font-size: 12px;
+  }
+
+  /* grid toggles */
+  .tog {
+    width: 64px;
+    height: 36px;
+    border-radius: 8px;
+    border: 1px solid;
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1.1;
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+  .tog.on {
+    background: #e8f7ed;
+    color: #15803d;
+    border-color: #b9e3c6;
+  }
+  .tog.off {
+    background: #fdecec;
+    color: #b42323;
+    border-color: #f3c3c3;
+  }
+  .tog small {
+    font-size: 9px;
+    font-weight: 500;
+  }
+
+  /* guide */
+  .guide {
+    width: 350px;
+    background: var(--surface);
+    border-left: 1px solid var(--line);
+    position: sticky;
+    top: var(--th, 52px);
+    height: calc(100vh - var(--th, 52px));
+    display: flex;
+    flex-direction: column;
+  }
+  .guide .gh {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--line-2);
+  }
+  .guide .gh h2 {
+    font-family: var(--bn);
+    font-size: 17px;
+  }
+  .guide .gh p {
+    font-family: var(--bn);
+    font-size: 13px;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+  .bar {
+    height: 7px;
+    background: var(--surface-3);
+    border-radius: 6px;
+    overflow: hidden;
+    flex: 1;
+  }
+  .bar i {
+    display: block;
+    height: 100%;
+    background: var(--ok);
+    border-radius: 6px;
+  }
+  .prog {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 10px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--muted);
+  }
+  .guide .gb {
+    overflow: auto;
+    flex: 1;
+    padding: 10px 12px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .gs {
+    border: 1px solid var(--line);
+    border-radius: 12px;
+  }
+  .gs .gt {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    padding: 10px 12px;
+    width: 100%;
+    border: 0;
+    background: transparent;
+    text-align: left;
+  }
+  .gs .no {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    font-size: 11.5px;
+    font-weight: 700;
+    background: var(--surface-3);
+    color: var(--muted);
+    flex: none;
+  }
+  .gs.done .no {
+    background: var(--ok);
+    color: #fff;
+  }
+  .gs.cur {
+    border-color: var(--brand);
+    box-shadow: 0 0 0 3px rgba(51, 64, 176, 0.1);
+  }
+  .gs.cur .no {
+    background: var(--brand);
+    color: #fff;
+  }
+  .gs .t {
+    font-family: var(--bn);
+    font-size: 14.5px;
+    font-weight: 600;
+    line-height: 1.35;
+  }
+  .gs .rc {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .gs .gd {
+    padding: 0 12px 12px 46px;
+    font-family: var(--bn);
+    font-size: 13.5px;
+    color: var(--ink-2);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .tour {
+    animation: tour 1.4s ease-in-out infinite;
+    position: relative;
+    z-index: 2;
+  }
+  @keyframes tour {
+    0%,
+    100% {
+      box-shadow: 0 0 0 0 rgba(51, 64, 176, 0.55);
+    }
+    50% {
+      box-shadow: 0 0 0 7px rgba(51, 64, 176, 0);
+    }
+  }
+
+  /* modal + toast */
+  .ov {
+    position: fixed;
+    inset: 0;
+    background: rgba(18, 22, 42, 0.5);
+    z-index: 100;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 6vh 16px 24px;
+    overflow: auto;
+  }
+  .modal {
+    background: var(--surface);
+    border-radius: 16px;
+    box-shadow: var(--shadow-lg);
+    width: min(620px, 100%);
+    display: flex;
+    flex-direction: column;
+  }
+  .modal .mh {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--line-2);
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .modal .mh h2 {
+    font-size: 17px;
+  }
+  .modal .mh p {
+    font-size: 12.5px;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+  .modal .mb {
+    padding: 18px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .modal .mf {
+    padding: 14px 20px;
+    border-top: 1px solid var(--line-2);
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .stepper {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .stepper span {
+    font-size: 12px;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 20px;
+    background: var(--surface-3);
+    color: var(--muted);
+  }
+  .stepper span.on {
+    background: var(--brand);
+    color: #fff;
+  }
+  .stepper span.done {
+    background: var(--ok-bg);
+    color: var(--ok);
+  }
+  .toasts {
+    position: fixed;
+    right: 16px;
+    bottom: 16px;
+    z-index: 200;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .toast {
+    background: var(--head);
+    color: #fff;
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-size: 13.5px;
+    box-shadow: var(--shadow-lg);
+    max-width: 340px;
+  }
+  .toast small {
+    display: block;
+    color: #b8bdd8;
+    font-family: var(--bn);
+    font-size: 12.5px;
+  }
+  .receipt {
+    border: 1px dashed var(--line);
+    border-radius: 12px;
+    padding: 14px 16px;
+  }
+  .receipt .rt {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 10px;
+    border-bottom: 1px solid var(--line-2);
+    padding-bottom: 8px;
+    margin-bottom: 8px;
+  }
+
+  @media (max-width: 1180px) {
+    .shell {
+      grid-template-columns: 1fr;
+    }
+    .side {
+      position: static;
+      height: auto;
+      border-right: 0;
+      border-bottom: 1px solid var(--line);
+    }
+    .nav {
+      flex-direction: row;
+      flex-wrap: wrap;
+    }
+    .who {
+      display: none;
+    }
+    .guide {
+      position: fixed;
+      right: 0;
+      top: var(--th, 52px);
+      bottom: 0;
+      z-index: 70;
+      box-shadow: var(--shadow-lg);
+      width: min(360px, 100%);
+    }
+    .g4 {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+  @media (max-width: 900px) {
+    .hero,
+    .phase {
+      grid-template-columns: 1fr;
+    }
+    .roles3,
+    .rules {
+      grid-template-columns: 1fr;
+    }
+    .g3,
+    .g2 {
+      grid-template-columns: 1fr;
+    }
+    .lanehead {
+      display: none;
+    }
+    .lanerow {
+      grid-template-columns: 44px 1fr;
+    }
+    .lanerow > div.e {
+      display: none;
+    }
+    .step .lw {
+      display: block;
+    }
+  }
+  @media (max-width: 560px) {
+    .map {
+      padding-inline: 16px;
+    }
+    .main {
+      padding: 18px 16px 50px;
+    }
+    .hero h1 {
+      font-size: 27px;
+    }
+    .g4 {
+      grid-template-columns: 1fr;
+    }
+    .cal {
+      gap: 3px;
+    }
+    .cal .d {
+      min-height: 54px;
+      padding: 4px;
+    }
+    .cal .tag {
+      display: none;
+    }
+    .phone {
+      border-width: 6px;
+      border-radius: 26px;
+      min-height: 640px;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .tour {
+      animation: none;
+      box-shadow: 0 0 0 3px rgba(51, 64, 176, 0.6);
+    }
+  }
+</style>
+
+<div id="app"></div>
+<div class="toasts" id="toasts" aria-live="polite"></div>
+
+<script>
+  /* =====================================================================
+   Rangdhanu Chatrabash — Phase 1 system map + clickable demo.
+   Everything is simulated in the browser. Numbers follow the real rules.
+   ===================================================================== */
+  const $ = (s, r = document) => r.querySelector(s);
+  const esc = (s) =>
+    String(s ?? "").replace(
+      /[&<>"']/g,
+      (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c],
+    );
+  const KEY = "rangdhanu_demo_v1";
+  const GROUP = new Intl.NumberFormat("en-IN", { maximumFractionDigits: 2, minimumFractionDigits: 0 });
+  const tk = (n) => {
+    const v = Math.round(n * 100) / 100,
+      a = Math.abs(v);
+    const f =
+      a % 1 ? a.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : GROUP.format(a);
+    return (v < 0 ? "−" : "") + "৳" + f;
+  };
+  const MON = [
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
+  ];
+  const monthName = (p) => MON[+p.slice(5) - 1] + " " + p.slice(0, 4);
+  const fdate = (d) => {
+    const [y, m, dd] = d.split("-");
+    return `${+dd} ${MON[+m - 1].slice(0, 3)} ${y}`;
+  };
+  const addDays = (d, n) => {
+    const x = new Date(d + "T00:00:00Z");
+    x.setUTCDate(x.getUTCDate() + n);
+    return x.toISOString().slice(0, 10);
+  };
+  const daysIn = (p) => new Date(Date.UTC(+p.slice(0, 4), +p.slice(5), 0)).getUTCDate();
+  const nextP = (p) => {
+    let [y, m] = p.split("-").map(Number);
+    m++;
+    if (m > 12) {
+      m = 1;
+      y++;
+    }
+    return `${y}-${String(m).padStart(2, "0")}`;
+  };
+  const prevP = (p) => {
+    let [y, m] = p.split("-").map(Number);
+    m--;
+    if (m < 1) {
+      m = 12;
+      y--;
+    }
+    return `${y}-${String(m).padStart(2, "0")}`;
+  };
+  const datesOf = (p) => Array.from({ length: daysIn(p) }, (_, i) => `${p}-${String(i + 1).padStart(2, "0")}`);
+  const WD = (d) => ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][new Date(d + "T00:00:00Z").getUTCDay()];
+  const rnd = (s) => {
+    let h = 2166136261;
+    for (const c of s) {
+      h ^= c.charCodeAt(0);
+      h = Math.imul(h, 16777619);
+    }
+    return ((h >>> 0) % 10000) / 10000;
+  };
+
+  const HEADS = ["rent", "meal", "baburchi", "sc", "advance", "other", "credit"];
+  const HL = {
+    rent: "Rent",
+    meal: "Meal",
+    baburchi: "Baburchi bill",
+    sc: "Service charge",
+    advance: "Advance",
+    other: "Other",
+    credit: "Extra paid",
+  };
+  const ALLOC = ["meal", "rent", "baburchi", "sc", "advance", "other"];
+  const SLOTS = ["b", "l", "d"];
+  const SL = { b: "Breakfast", l: "Lunch", d: "Dinner" };
+  const ROLES = {
+    admin: {
+      label: "Admin (Owner)",
+      bn: "মালিক / অ্যাডমিন",
+      color: "var(--admin)",
+      hex: "#3340b0",
+      user: "Salek",
+      sub: "Admin · all buildings",
+    },
+    cashier: {
+      label: "Cashier",
+      bn: "ক্যাশিয়ার",
+      color: "var(--cashier)",
+      hex: "#0c7b7f",
+      user: "Karim",
+      sub: "Cashier · 178, 207",
+    },
+    student: { label: "Student", bn: "ছাত্র", color: "var(--student)", hex: "#c9581a" },
+  };
+  const ACCOUNTS = [
+    { id: "cash", name: "Cash in hand", method: "Cash", details: "" },
+    { id: "bkash", name: "bKash (Nayan)", method: "bKash", details: "01712-345678 (Personal)" },
+    { id: "nagad", name: "Nagad (Mahi)", method: "Nagad", details: "01819-876543" },
+  ];
+
+  /* ---------------------------------------------------------------- Data */
+  function freshState() {
+    const S = {
+      now: "2026-09-24",
+      time: "8:30 PM",
+      period: "2026-09",
+      closed: ["2026-08"],
+      rates: { b: 27.5, l: 55, d: 55, dep: 3800, bab: 400, sc: 1500, advM: 2, cutoff: 22, rule: "prorata" },
+      buildings: [
+        {
+          code: "178",
+          rooms: {
+            201: { rent: 8100, seats: ["A", "B", "C"] },
+            202: { rent: 4500, seats: ["A", "B"] },
+            203: { rent: 5200, seats: ["A", "B", "C"] },
+            204: { rent: 6000, seats: ["A", "B"] },
+          },
+        },
+        {
+          code: "207",
+          rooms: {
+            601: { rent: 8000, seats: ["A", "B"] },
+            602: { rent: 5500, seats: ["A", "B", "C"] },
+            603: { rent: 6000, seats: ["A", "B"] },
+          },
+        },
+      ],
+      students: [],
+      ledger: [],
+      payments: [],
+      tokens: [],
+      settlements: [],
+      offs: {},
+      counters: { receipt: 0, student: 10000 },
+      audit: [],
+    };
+    const seed = [
+      ["Rafid Hasan", "01700000101", "178", "201", "A", 8100, "Notre Dame College"],
+      ["Hamim Ahmed", "01700000102", "178", "201", "B", 8100, "Dhaka College"],
+      ["Sagor Das", "01700000103", "178", "202", "A", 4500, "Tejgaon College"],
+      ["Aslam Mia", "01700000104", "178", "203", "A", 5200, "Govt. Science College"],
+      ["Abir Hossain", "01700000105", "207", "601", "A", 8000, "Notre Dame College"],
+      ["Tasin Rahman", "01700000106", "207", "601", "B", 8000, "Dhaka City College"],
+      ["Nafiz Islam", "01700000107", "207", "602", "A", 5500, "Dhaka College"],
+      ["Sohom Roy", "01700000108", "207", "602", "B", 5500, "Viqarunnisa Noon (coaching)"],
+    ];
+    for (const [name, phone, bld, room, seat, rent, college] of seed) {
+      S.counters.student++;
+      S.students.push({
+        id: String(S.counters.student),
+        name,
+        phone,
+        bld,
+        room,
+        seat,
+        rent,
+        college,
+        school: "Bhola Zilla School",
+        batch: "2026",
+        start: "2026-08-01",
+        admission: "2026-08-01",
+        status: "active",
+        father: "—",
+      });
+    }
+    return S;
+  }
+  let S, UI;
+  function seedHistory() {
+    // Advance already held for everyone, August billed + paid + settled, September billed, some paid.
+    for (const s of S.students) {
+      post(s.id, "2026-07", "advance", s.rent * S.rates.advM, "opening", "2 months rent advance", "2026-07-30");
+      post(s.id, "2026-07", "advance", -s.rent * S.rates.advM, "opening_payment", "Advance paid", "2026-07-30");
+    }
+    // August offs (history) and September offs up to today
+    for (const s of S.students) {
+      for (const d of [...datesOf("2026-08"), ...datesOf("2026-09").filter((x) => x <= S.now)]) {
+        const r = rnd(s.id + d);
+        if (r < 0.1) {
+          setOff(s.id, d, "l", "office");
+          setOff(s.id, d, "d", "office");
+        } else if (r < 0.16) {
+          setOff(s.id, d, "b", "office");
+        } else if (r < 0.19) {
+          setOff(s.id, d, "b", "office");
+          setOff(s.id, d, "l", "office");
+          setOff(s.id, d, "d", "office");
+        }
+      }
+    }
+    // Tasin is going home 26-28 Sep and turned his meals off himself
+    for (const d of ["2026-09-26", "2026-09-27", "2026-09-28"])
+      for (const sl of SLOTS) setOff("10006", d, sl, "student");
+    S.period = "2026-08";
+    for (const s of S.students) makeToken(s, "2026-08", "monthly");
+    const aug = [
+      "2026-08-02",
+      "2026-08-03",
+      "2026-08-04",
+      "2026-08-05",
+      "2026-08-04",
+      "2026-08-06",
+      "2026-08-07",
+      "2026-08-05",
+    ];
+    S.students.forEach((s, i) =>
+      takePayment(
+        s.id,
+        totalOf(s.id),
+        i % 2 ? "bkash" : "cash",
+        aug[i],
+        i % 2 ? "8K" + (4000 + i * 37) : "",
+        "Karim",
+        true,
+      ),
+    );
+    for (const s of S.students) settle(s, "2026-08");
+    for (const s of S.students) netting(s.id, "2026-09");
+    S.period = "2026-09";
+    for (const s of S.students) makeToken(s, "2026-09", "monthly");
+    const sep = [
+      ["2026-09-02", 1],
+      ["2026-09-04", 1],
+      ["2026-09-05", 0.6],
+      null,
+      ["2026-09-04", 1],
+      ["2026-09-07", 0.7],
+      null,
+      ["2026-09-24", 1],
+    ];
+    S.students.forEach((s, i) => {
+      const p = sep[i];
+      if (!p) return;
+      const amt = Math.round((totalOf(s.id) * p[1]) / 100) * 100 || totalOf(s.id);
+      takePayment(
+        s.id,
+        p[1] === 1 ? totalOf(s.id) : amt,
+        i % 2 ? "bkash" : "cash",
+        p[0],
+        i % 2 ? "9K" + (5000 + i * 53) : "",
+        "Karim",
+        true,
+      );
+    });
+    S.audit = [];
+  }
+
+  /* ---------- ledger ---------- */
+  function post(sid, period, head, amt, src, note, date) {
+    if (!amt) return;
+    S.ledger.push({ sid, period, head, dr: amt > 0 ? amt : 0, cr: amt < 0 ? -amt : 0, src, note, date: date || S.now });
+  }
+  const linesOf = (sid) => S.ledger.filter((l) => l.sid === sid);
+  function balances(sid) {
+    const b = {};
+    for (const l of linesOf(sid)) {
+      b[l.head] = (b[l.head] || 0) + l.dr - l.cr;
+    }
+    for (const k in b) if (Math.abs(b[k]) < 0.005) delete b[k];
+    return b;
+  }
+  const totalOf = (sid) => Math.round(Object.values(balances(sid)).reduce((a, b) => a + b, 0) * 100) / 100;
+  function dues(sid) {
+    const out = [];
+    for (const h of ALLOC) {
+      const ls = linesOf(sid).filter((l) => l.head === h);
+      let credit = ls.reduce((a, l) => a + l.cr, 0);
+      for (const l of ls.filter((l) => l.dr > 0).sort((a, b) => a.period.localeCompare(b.period))) {
+        const pay = Math.min(credit, l.dr);
+        credit -= pay;
+        if (l.dr - pay > 0.004) out.push({ period: l.period, head: h, amt: l.dr - pay });
+      }
+    }
+    // merge same period+head
+    const m = {};
+    for (const d of out) {
+      const k = d.period + "|" + d.head;
+      m[k] = m[k] ? { ...m[k], amt: m[k].amt + d.amt } : { ...d };
+    }
+    return Object.values(m).sort(
+      (a, b) => a.period.localeCompare(b.period) || ALLOC.indexOf(a.head) - ALLOC.indexOf(b.head),
+    );
+  }
+  function advanceHeld(sid) {
+    return Math.max(
+      0,
+      linesOf(sid)
+        .filter((l) => l.head === "advance" && ["payment", "opening_payment", "netting"].includes(l.src))
+        .reduce((a, l) => a + l.cr - l.dr, 0),
+    );
+  }
+  function netting(sid, period) {
+    const b = balances(sid);
+    const negs = Object.entries(b)
+      .filter(([h, v]) => v < 0)
+      .sort((a, b) => (a[0] === "credit" ? -1 : 0) - (b[0] === "credit" ? -1 : 0));
+    for (const [h, v] of negs) {
+      let c = -v;
+      for (const d of dues(sid)) {
+        if (c <= 0.004) break;
+        if (d.head === h) continue;
+        const x = Math.min(c, d.amt);
+        post(sid, d.period, d.head, -x, "netting", "Adjusted from " + HL[h]);
+        post(sid, period, h, x, "netting", "Used for " + HL[d.head]);
+        c -= x;
+      }
+    }
+  }
+
+  /* ---------- meals ---------- */
+  const offKey = (sid, d, sl) => `${sid}|${d}|${sl}`;
+  function setOff(sid, d, sl, by) {
+    S.offs[offKey(sid, d, sl)] = by;
+  }
+  function clearOff(sid, d, sl) {
+    delete S.offs[offKey(sid, d, sl)];
+  }
+  const offBy = (sid, d, sl) => S.offs[offKey(sid, d, sl)];
+  const inHostel = (s, d) => d >= s.start && (!s.left || d <= s.left);
+  function mealCount(s, period, until) {
+    const c = { b: 0, l: 0, d: 0, days: 0 };
+    for (const d of datesOf(period)) {
+      if (until && d > until) break;
+      if (!inHostel(s, d)) continue;
+      c.days++;
+      for (const sl of SLOTS) if (!offBy(s.id, d, sl)) c[sl]++;
+    }
+    return c;
+  }
+  const mealsUnits = (c) => c.b * 0.5 + c.l + c.d;
+  const mealCost = (c) => c.b * S.rates.b + c.l * S.rates.l + c.d * S.rates.d;
+  function firstEditable() {
+    const [h] = S.time.split(":");
+    let hr = +h % 12;
+    if (/PM/.test(S.time)) hr += 12;
+    return hr < S.rates.cutoff ? addDays(S.now, 1) : addDays(S.now, 2);
+  }
+  const cutoffText = () => {
+    const h = S.rates.cutoff;
+    return `${h % 12 || 12} ${h < 12 ? "AM" : "PM"}`;
+  };
+
+  /* ---------- billing ---------- */
+  function makeToken(s, period, kind, lines) {
+    const prev = Object.entries(balances(s.id)).map(([h, v]) => ({
+      label: v < 0 ? "Previous " + HL[h].toLowerCase() + " (credit)" : "Previous " + HL[h].toLowerCase() + " due",
+      head: h,
+      amt: v,
+    }));
+    if (prev.find((x) => x.head === "meal")) prev.find((x) => x.head === "meal").label = "Previous meal balance";
+    const cur = lines || [
+      { head: "rent", label: "Rent", amt: s.rent },
+      { head: "meal", label: "Meal deposit", amt: S.rates.dep },
+      { head: "baburchi", label: "Baburchi bill", amt: S.rates.bab },
+    ];
+    for (const l of cur)
+      post(
+        s.id,
+        period,
+        l.head,
+        l.amt,
+        kind === "admission" ? "admission" : "token",
+        l.label,
+        kind === "admission" ? S.now : period + "-01",
+      );
+    const curT = cur.reduce((a, l) => a + l.amt, 0),
+      prevT = prev.reduce((a, l) => a + l.amt, 0);
+    const t = {
+      id: "T" + (S.tokens.length + 1),
+      sid: s.id,
+      period,
+      kind,
+      cur,
+      prev,
+      curT,
+      prevT,
+      total: curT + prevT,
+      seat: `${s.bld} · ${s.room}-${s.seat}`,
+    };
+    S.tokens.push(t);
+    return t;
+  }
+  function tokenStatus(t) {
+    const remaining = dues(t.sid)
+      .filter((d) => d.period <= t.period)
+      .reduce((a, d) => a + d.amt, 0);
+    const asked = Math.max(0, t.total);
+    if (remaining <= 0.004) return { st: "paid", remaining: 0 };
+    return { st: remaining < asked - 0.004 ? "partial" : "unpaid", remaining };
+  }
+  const statusPill = (st) =>
+    st === "paid"
+      ? '<span class="pill ok">Paid</span>'
+      : st === "partial"
+        ? '<span class="pill warn">Partly paid</span>'
+        : '<span class="pill bad">Unpaid</span>';
+  function takePayment(sid, amt, acct, date, trx, by, silent) {
+    const allocs = [];
+    let left = amt;
+    for (const d of dues(sid)) {
+      if (left <= 0.004) break;
+      const x = Math.min(left, d.amt);
+      allocs.push({ period: d.period, head: d.head, amt: x });
+      left -= x;
+    }
+    if (left > 0.004) allocs.push({ period: S.period, head: "credit", amt: left });
+    S.counters.receipt++;
+    const no = "R-" + String(S.counters.receipt).padStart(6, "0");
+    const before = totalOf(sid);
+    for (const a of allocs) post(sid, a.period, a.head, -a.amt, "payment", no, date);
+    const p = { no, sid, amt, acct, date, trx, by, allocs, before, after: totalOf(sid) };
+    S.payments.push(p);
+    if (!silent) log(`payment.record ${no} ${tk(amt)}`);
+    return p;
+  }
+  function settle(s, period) {
+    const c = mealCount(s, period);
+    if (!c.days) return null;
+    const cost = Math.round(mealCost(c) * 100) / 100;
+    const deposit = linesOf(s.id)
+      .filter((l) => l.head === "meal" && l.period === period && ["token", "admission"].includes(l.src))
+      .reduce((a, l) => a + l.dr, 0);
+    const diff = Math.round((cost - deposit) * 100) / 100;
+    post(s.id, period, "meal", diff, "settlement", `Meal settlement ${monthName(period)}`, nextP(period) + "-01");
+    const r = { sid: s.id, period, ...c, cost, deposit, diff };
+    S.settlements.push(r);
+    return r;
+  }
+  function planMonthEnd() {
+    const close = S.period,
+      next = nextP(S.period);
+    const rows = S.students
+      .filter((s) => s.status === "active")
+      .map((s) => {
+        const c = mealCount(s, close);
+        const cost = mealCost(c);
+        const deposit = linesOf(s.id)
+          .filter((l) => l.head === "meal" && l.period === close && ["token", "admission"].includes(l.src))
+          .reduce((a, l) => a + l.dr, 0);
+        return { s, c, cost, deposit, diff: cost - deposit };
+      })
+      .filter((r) => r.c.days);
+    return { close, next, rows, tokens: S.students.filter((s) => s.status === "active").length };
+  }
+  function runMonthEnd() {
+    const { close, next } = planMonthEnd();
+    for (const s of S.students.filter((s) => s.status === "active")) settle(s, close);
+    S.closed.push(close);
+    S.period = next;
+    S.now = next + "-01";
+    S.time = "9:00 AM";
+    for (const s of S.students.filter((s) => s.status === "active")) {
+      netting(s.id, next);
+      makeToken(s, next, "monthly");
+    }
+    log(`month_end ${monthName(close)} closed, ${monthName(next)} tokens made`);
+  }
+  function admissionLines(rent, date) {
+    const p = date.slice(0, 7),
+      days = daysIn(p) - +date.slice(8) + 1,
+      full = daysIn(p);
+    const pr = (v) => (S.rates.rule === "full" ? v : Math.round((v * days) / full));
+    return {
+      days,
+      full,
+      lines: [
+        { head: "advance", label: `Advance (${S.rates.advM} months rent)`, amt: rent * S.rates.advM },
+        { head: "rent", label: S.rates.rule === "full" ? "Rent" : `Rent (${days} of ${full} days)`, amt: pr(rent) },
+        {
+          head: "meal",
+          label: S.rates.rule === "full" ? "Meal deposit" : `Meal deposit (${days} days)`,
+          amt: pr(S.rates.dep),
+        },
+        {
+          head: "baburchi",
+          label: S.rates.rule === "full" ? "Baburchi bill" : `Baburchi bill (${days} days)`,
+          amt: pr(S.rates.bab),
+        },
+      ],
+    };
+  }
+  function freeSeats() {
+    const out = [];
+    for (const b of S.buildings)
+      for (const [room, r] of Object.entries(b.rooms))
+        for (const seat of r.seats) {
+          if (!S.students.some((s) => s.status === "active" && s.bld === b.code && s.room === room && s.seat === seat))
+            out.push({ bld: b.code, room, seat, rent: r.rent });
+        }
+    return out;
+  }
+  function log(t) {
+    S.audit.unshift({
+      at: `${fdate(S.now)} ${S.time}`,
+      who: UI.role === "student" ? stud()?.name : ROLES[UI.role].user,
+      t,
+    });
+  }
+  const stud = (id) => S.students.find((s) => s.id === (id || UI.sid));
+  const rahim = () => S.students.find((s) => +s.id > 10008); // the first student admitted in the demo
+
+  /* ---------------------------------------------------------------- UI state */
+  function load() {
+    try {
+      const raw = localStorage.getItem(KEY);
+      if (raw) {
+        const o = JSON.parse(raw);
+        S = o.S;
+        UI = o.UI;
+        return;
+      }
+    } catch (_) {}
+    S = freshState();
+    seedHistory();
+    UI = { mode: "map", role: "admin", view: "dash", sid: "10005", p: {}, guide: true, seen: {}, open: {} };
+  }
+  function save() {
+    try {
+      localStorage.setItem(KEY, JSON.stringify({ S, UI }));
+    } catch (_) {}
+  }
+  let MODAL = null;
+
+  /* ---------------------------------------------------------------- Icons */
+  const ICONS = {
+    dash: '<path d="M3 13h8V3H3zM13 21h8v-8h-8zM3 21h8v-6H3zM13 3v8h8V3z"/>',
+    users:
+      '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8"/>',
+    meal: '<path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2M7 2v20M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3zm0 0v7"/>',
+    wallet:
+      '<path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"/><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"/>',
+    receipt:
+      '<path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M16 8H8M16 12H8M13 16H8"/>',
+    chart: '<path d="M3 3v18h18"/><path d="M18 17V9M13 17V5M8 17v-3"/>',
+    gear: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>',
+    home: '<path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/>',
+    user: '<circle cx="12" cy="8" r="4"/><path d="M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1"/>',
+  };
+  const ic = (k) =>
+    `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[k]}</svg>`;
+  const NAV = {
+    admin: [
+      ["dash", "Dashboard", "dash"],
+      ["students", "Students", "users"],
+      ["meals", "Meals", "meal"],
+      ["payments", "Payments", "wallet"],
+      ["tokens", "Tokens", "receipt"],
+      ["reports", "Reports", "chart"],
+      ["settings", "Settings", "gear"],
+    ],
+    cashier: [
+      ["dash", "Dashboard", "dash"],
+      ["students", "Students", "users"],
+      ["meals", "Meals", "meal"],
+      ["payments", "Payments", "wallet"],
+      ["tokens", "Tokens", "receipt"],
+    ],
+    student: [
+      ["home", "Home", "home"],
+      ["account", "Account", "wallet"],
+      ["meals", "Meals", "meal"],
+      ["profile", "Profile", "user"],
+    ],
+  };
+
+  /* ---------------------------------------------------------------- Guide */
+  const STEPS = [
+    {
+      role: "admin",
+      t: "মাসের রেট ঠিক করা",
+      go: { view: "settings" },
+      tour: "rates",
+      d: "প্রতি মাসের মিলের দাম, meal deposit, বাবুর্চি বিল আর কয় মাসের advance — মালিক Settings-এ দেন। প্রতি মাসের রেট আলাদা রাখা যায়। ছাত্ররা কাল কয়টা পর্যন্ত মিল বন্ধ করতে পারবে, সেটাও এখানে।",
+      done: () => UI.seen.settings,
+    },
+    {
+      role: "admin",
+      t: "নতুন ছাত্র রহিমকে ভর্তি",
+      go: { view: "students" },
+      tour: "new-student",
+      d: '"+ New student" চাপুন, তারপর "উদাহরণ দিয়ে ভরুন"। ফাঁকা সিট বাছলে ভাড়া নিজে বসে যায়। সেভ করলে তৈরি হয়: Student ID, লগইন (ফোন নম্বর) আর প্রথম বিল — ২ মাসের advance + মাসের বাকি দিনের ভাড়া, meal deposit ও বাবুর্চি।',
+      done: () => !!rahim(),
+    },
+    {
+      role: "student",
+      t: "রহিম নিজের ফোনে লগইন করে",
+      go: { view: "home", sid: "rahim" },
+      tour: "due",
+      d: "লগইন = ফোন নম্বর, প্রথম পাসওয়ার্ড = নম্বরের শেষ ৬ সংখ্যা (প্রথমবারেই বদলাতে হয়)। হোমে সবচেয়ে বড় করে লেখা কত টাকা দিতে হবে, নিচে বিলের খাত আর bKash নম্বর।",
+      done: () => UI.seen.rahimHome,
+    },
+    {
+      role: "student",
+      t: "রহিম বাড়ি যাবে — মিল বন্ধ",
+      go: { view: "meals", sid: "rahim" },
+      tour: "meal-cal",
+      d: "Meals-এ সামনের যেকোনো দিনের বড় ✓ চাপলে ✕ হয় (মিল বন্ধ)। নিয়ম: আগের রাত ১০টার মধ্যে। তারপর ওই দিন শুধু অফিস বদলাতে পারে।",
+      done: () => {
+        const r = rahim();
+        return !!r && Object.entries(S.offs).some(([k, v]) => k.startsWith(r.id + "|") && v === "student");
+      },
+    },
+    {
+      role: "cashier",
+      t: "কাল কত মিল রান্না হবে",
+      go: { view: "meals", p: { date: "2026-09-26", bld: "207" } },
+      tour: "cook",
+      d: 'ক্যাশিয়ার Meals গ্রিডে দিন বেছে দেখেন কয়টা সকাল/দুপুর/রাতের মিল রান্না হবে। ছাত্র নিজে বন্ধ করলে ঘরে "by student" লেখা থাকে। অফিস চাইলে যেকোনো ঘর বদলাতে পারে।',
+      done: () => UI.seen.grid,
+    },
+    {
+      role: "cashier",
+      t: "টাকা নেওয়া আর রসিদ",
+      go: { view: "payments" },
+      tour: "take-payment",
+      d: 'রহিম bKash-এ টাকা পাঠাল। ক্যাশিয়ার "+ Take payment" চেপে ছাত্র, টাকা, কোন account-এ এল আর TrxID দেন। রসিদ নম্বর নিজে তৈরি হয়। টাকা আগে পুরনো বাকিতে কাটে।',
+      done: () => {
+        const r = rahim();
+        return !!r && S.payments.some((p) => p.sid === r.id);
+      },
+    },
+    {
+      role: "student",
+      t: "রহিম রসিদ দেখে",
+      go: { view: "account", sid: "rahim" },
+      tour: "receipts",
+      d: "ছাত্রের Account-এ সব রসিদ, কোন খাতে কত বাকি, আর কত advance জমা আছে। কাগজ লাগে না, আর অন্য কারো হিসাব দেখা যায় না।",
+      done: () => {
+        const r = rahim();
+        return UI.seen.rahimAccount && !!r && S.payments.some((p) => p.sid === r.id);
+      },
+    },
+    {
+      role: "admin",
+      t: "১ তারিখ: মাস-শেষ",
+      go: { view: "tokens" },
+      tour: "month-end",
+      d: "আসলে এটা ১ তারিখ রাত ১২:০৫-এ নিজে থেকে চলে। গত মাসের মিল হিসাব হয় (খরচ − জমা), মাস লক হয়, আর নতুন মাসের টোকেন তৈরি হয় — আগের বাকি সহ। ডেমোতে preview দেখে বোতাম চাপুন।",
+      done: () => S.period !== "2026-09",
+    },
+    {
+      role: "student",
+      t: "রহিমের অক্টোবরের টোকেন",
+      go: { view: "home", sid: "rahim" },
+      tour: "token",
+      d: 'নতুন টোকেনে এ মাসের ভাড়া, deposit, বাবুর্চি আর আগের সব বাকি একসাথে। সেপ্টেম্বরে deposit-এর চেয়ে কম খেলে সেই টাকা নিজে থেকে আগের বাকি থেকে কেটে যায়; বেশি খেলে "Previous meal balance" হয়ে যোগ হয়।',
+      done: () => UI.seen.octHome,
+    },
+    {
+      role: "admin",
+      t: "মালিকের রিপোর্ট",
+      go: { view: "reports" },
+      tour: "reports",
+      d: "কার কত বাকি (building ধরে), কোন account-এ কত টাকা এল, মাসের মিল হিসাব — সব Reports-এ। প্রতিটা Excel-এ নামানো যায়।",
+      done: () => UI.seen.reports,
+    },
+  ];
+  function curStep() {
+    let i = 0;
+    while (i < STEPS.length && STEPS[i].done()) i++;
+    return i;
+  }
+  let lastStep = null;
+
+  /* ---------------------------------------------------------------- Render */
+  function render() {
+    const app = $("#app");
+    const top = renderTop();
+    let body;
+    if (UI.mode === "map") body = renderMap();
+    else if (UI.role === "student")
+      body = `<div class="shell" style="grid-template-columns:minmax(0,1fr) auto"><div class="phonewrap">${renderPhone()}</div>${UI.guide ? renderGuide() : ""}</div>`;
+    else
+      body = `<div class="shell">${renderSide()}<main class="main">${renderView()}</main>${UI.guide ? renderGuide() : ""}</div>`;
+    app.innerHTML = top + body + (MODAL ? renderModal() : "");
+    const tb = $("#top");
+    if (tb) document.documentElement.style.setProperty("--th", tb.offsetHeight + "px");
+    applyTour();
+    save();
+  }
+  function renderTop() {
+    const r = rahim();
+    return `<header class="top" id="top">
+    <div class="logo"><div class="mark"><div class="rain">${["#e53935", "#fb8c00", "#fdd835", "#43a047", "#1e88e5", "#3949ab", "#8e24aa"].map((c) => `<i style="background:${c}"></i>`).join("")}</div></div>
+      <div><b>রংধনু ছাত্রাবাস</b><span>Hostel software · Phase 1</span></div></div>
+    <div class="seg" role="group" aria-label="Mode">
+      <button aria-pressed="${UI.mode === "map"}" data-mode="map">সিস্টেম ম্যাপ</button>
+      <button aria-pressed="${UI.mode === "demo"}" data-mode="demo" data-tour="mode-demo">লাইভ ডেমো</button>
+    </div>
+    ${
+      UI.mode === "demo"
+        ? `<div class="seg" role="group" aria-label="Role">${Object.entries(ROLES)
+            .map(
+              ([k, v]) =>
+                `<button aria-pressed="${UI.role === k}" data-role="${k}" data-tour="role-${k}"><i style="background:${v.hex}"></i>${v.label}</button>`,
+            )
+            .join("")}</div>
+      ${
+        UI.role === "student"
+          ? `<select id="sidpick" aria-label="Logged in student">${S.students
+              .filter((s) => s.status === "active")
+              .map(
+                (s) => `<option value="${s.id}" ${s.id === UI.sid ? "selected" : ""}>${esc(s.name)} (${s.id})</option>`,
+              )
+              .join("")}</select>`
+          : ""
+      }
+      <span class="sp"></span><span class="clock" title="Simulated time">${fdate(S.now)} · ${S.time}</span>
+      <button class="tbtn ${UI.guide ? "on" : ""}" data-act="guide">গাইড</button>
+      <button class="tbtn" data-act="reset">Reset</button>`
+        : '<span class="sp"></span><button class="tbtn on" data-mode="demo">ডেমো চালান →</button>'
+    }
+  </header>`;
+  }
+
+  /* ================================================================ MAP */
+  function renderMap() {
+    const lane = (who) => ({ admin: 1, cashier: 2, student: 3, auto: 4 })[who];
+    const J = [
+      {
+        who: "admin",
+        t: "ভর্তি (Admission)",
+        p: "ছাত্রের তথ্য, ছবি, স্কুল-কলেজ, অভিভাবকের নম্বর। ফাঁকা সিট বেছে দিলে ভাড়া নিজে বসে।",
+        ul: [
+          "Student ID নিজে তৈরি হয় (10001, 10002…)",
+          "লগইন = ছাত্রের ফোন নম্বর; প্রথম পাসওয়ার্ড = শেষ ৬ সংখ্যা",
+          "প্রথম বিল: ২ মাসের advance + মাসের বাকি দিনের ভাড়া, meal deposit, বাবুর্চি",
+        ],
+      },
+      {
+        who: "student",
+        t: "ফোনে প্রথম লগইন",
+        p: "নিজের পাসওয়ার্ড বানায়। দেখে কত দিতে হবে, কোন খাতে কত, আর কোথায় টাকা পাঠাবে (bKash/Nagad নম্বর)।",
+      },
+      {
+        who: "student",
+        t: "প্রতিদিনের মিল",
+        p: "সব মিল নিজে থেকে চালু। বাড়ি গেলে বা বাইরে খেলে ছাত্র নিজেই বন্ধ করে — আগের রাত X টার মধ্যে (মালিক ঠিক করেন, যেমন ১০টা)।",
+        also: "অফিসও Meals গ্রিডে যেকোনো ছাত্রের মিল বন্ধ/চালু করতে পারে। সকালের নাস্তা = অর্ধেক মিল।",
+      },
+      {
+        who: "cashier",
+        t: "রান্নার হিসাব",
+        p: "প্রতিদিন গ্রিডের উপরে লেখা থাকে কোন building-এ কয়টা সকাল/দুপুর/রাতের মিল রান্না হবে।",
+      },
+      {
+        who: "auto",
+        t: "১ তারিখ রাত ১২:০৫ — মাস-শেষ",
+        p: "নিজে থেকে চলে (প্রথমবার মালিক হাতে চালান)।",
+        ul: [
+          "গত মাসের মিল হিসাব: আসল খরচ − আগে নেওয়া deposit",
+          "কম খেলে টাকা ফেরত (credit), বেশি খেলে বাকি",
+          "গত মাস লক — আর কেউ বদলাতে পারে না",
+          "নতুন টোকেন: ভাড়া + deposit + বাবুর্চি + আগের বাকি",
+        ],
+      },
+      {
+        who: "student",
+        t: "টোকেন দেখা আর টাকা পাঠানো",
+        p: "ফোনেই টোকেন; চাইলে কাগজে প্রিন্ট (A4-এ ৪টা)। bKash/Nagad-এ পাঠিয়ে reference-এ Student ID লেখে, বা অফিসে ক্যাশ দেয়।",
+      },
+      {
+        who: "cashier",
+        t: "টাকা entry আর রসিদ",
+        p: "কোন account-এ এল আর TrxID সহ entry। রসিদ নম্বর নিজে তৈরি হয় (R-000123)।",
+        ul: [
+          "টাকা আগে সবচেয়ে পুরনো বাকিতে কাটে",
+          'ভুল entry মোছা যায় না — কারণ লিখে "Void" করতে হয়',
+          "বেশি দিলে সেটা credit হয়ে পরের বিলে কাটে",
+        ],
+      },
+      {
+        who: "student",
+        t: "রসিদ আর বাকি দেখা",
+        p: 'রসিদ সাথে সাথে ছাত্রের ফোনে। বাকি শূন্য হলে টোকেন "Paid" হয়ে যায়।',
+      },
+      {
+        who: "admin",
+        t: "রিপোর্ট আর ড্যাশবোর্ড",
+        p: "আজ কত আদায়, মাসে কত, কার কত বাকি (building ধরে), advance কত জমা, মিল হিসাব — Excel-এ নামানো যায়।",
+      },
+      {
+        who: "admin",
+        t: "বিদায় (Leave)",
+        p: "শেষ দিন দিলে software নিজে হিসাব করে:",
+        ul: [
+          "শেষ দিন পর্যন্ত মিল হিসাব",
+          "বাকি দিনের ভাড়া ও বাবুর্চি ফেরত",
+          "advance দিয়ে বাকি কাটে, বাকি টাকা refund",
+          "সিট খালি হয়, পুরনো হিসাব থেকে যায় (Former student)",
+        ],
+      },
+    ];
+    const LN = {
+      admin: ["মালিক / অ্যাডমিন", "var(--admin)"],
+      cashier: ["ক্যাশিয়ার", "var(--cashier)"],
+      student: ["ছাত্র (ফোনে)", "var(--student)"],
+      auto: ["সফটওয়্যার নিজে", "var(--auto)"],
+    };
+    // October 2026 starts on Thursday
+    const cal = [];
+    for (let i = 0; i < 4; i++) cal.push('<div class="d blank" aria-hidden="true"></div>');
+    for (let d = 1; d <= 31; d++) {
+      const cls = d === 1 ? "me" : d <= 7 ? "pay" : "";
+      const tag =
+        d === 1
+          ? "মাস-শেষ + নতুন টোকেন"
+          : d === 2
+            ? "টাকা দেওয়া শুরু"
+            : d === 7
+              ? "টাকা দেওয়ার শেষ দিন"
+              : d === 15
+                ? "নতুন ছাত্র? দিন হিসাবে বিল"
+                : "";
+      cal.push(
+        `<div class="d ${cls}"><span class="n">${d}</span>${tag ? `<span class="tag">${tag}</span>` : ""}<span class="dots"><i></i><i></i><i></i></span></div>`,
+      );
+    }
+    return `<div class="map">
+  <section class="hero">
+    <div>
+      <h1>রংধনু ছাত্রাবাসের পুরো হিসাব — এক জায়গায়, সবার ফোনে</h1>
+      <p class="lead">Excel আর হাতের টোকেনের বদলে: সিট, ছাত্র, প্রতিদিনের মিল, মাসের টোকেন, টাকা আর রসিদ। মালিক সব দেখেন, ক্যাশিয়ার নিজের building-এর কাজ করেন, আর প্রত্যেক ছাত্র শুধু নিজের হিসাব ফোনে দেখে।</p>
+      <div class="cta"><button class="btn pri" data-mode="demo">লাইভ ডেমো চালান →</button><button class="btn" data-jump="journey">ছাত্রের পুরো যাত্রা ↓</button></div>
+    </div>
+    <div class="facts">
+      <div class="fact"><b>৩</b><span>ধরনের ব্যবহারকারী: মালিক, ক্যাশিয়ার, ছাত্র</span></div>
+      <div class="fact"><b>১ তারিখ</b><span>মাসের টোকেন নিজে থেকে তৈরি</span></div>
+      <div class="fact"><b>১০টা রাত</b><span>পরের দিনের মিল বন্ধ করার শেষ সময় (বদলানো যায়)</span></div>
+      <div class="fact"><b>০ টাকা</b><span>হারানো হিসাব — প্রতিটা টাকা খাতায়, কিছু মোছা যায় না</span></div>
+    </div>
+  </section>
+
+  <section class="sec">
+    <h2>কে কী করবে <small>Roles</small></h2>
+    <p class="sub">প্রত্যেকে শুধু নিজের কাজের জায়গা দেখে। লগইন সবার ফোন নম্বর দিয়ে।</p>
+    <div class="body roles3">
+      ${[
+        [
+          "admin",
+          "A",
+          "মালিক / অ্যাডমিন",
+          "পুরো ব্যবসা",
+          [
+            "বিল্ডিং, রুম, সিট",
+            "মাসের রেট ও নিয়ম (Settings)",
+            "ছাত্র ভর্তি, সিট বদল, বিদায়",
+            "মাস-শেষ ও টোকেন",
+            "সব রিপোর্ট, ড্যাশবোর্ড, Audit log",
+            "ক্যাশিয়ার বানানো ও building দেওয়া",
+          ],
+          'সব building দেখেন। ভুল টাকা entry "Void" করতে পারেন শুধু অ্যাডমিন।',
+        ],
+        [
+          "cashier",
+          "C",
+          "ক্যাশিয়ার",
+          "নিজের building",
+          [
+            "ছাত্রের তথ্য দেখা ও ভর্তি",
+            "প্রতিদিনের মিল গ্রিড",
+            "টাকা নেওয়া ও রসিদ",
+            "টোকেন দেখা ও প্রিন্ট",
+            "নিজের building-এর রিপোর্ট",
+          ],
+          "যে building দেওয়া হয়নি, সেখানকার কিছুই দেখেন না।",
+        ],
+        [
+          "student",
+          "S",
+          "ছাত্র",
+          "নিজের ফোনে",
+          [
+            "কত টাকা দিতে হবে (বড় করে)",
+            "মাসের টোকেন ও খাত",
+            "কোথায় টাকা পাঠাবে (bKash/Nagad)",
+            "সব রসিদ ও বাকি",
+            "নিজের মিল বন্ধ/চালু",
+            "প্রোফাইল ও পাসওয়ার্ড",
+          ],
+          "অন্য কোনো ছাত্রের তথ্য কোনোভাবেই দেখা যায় না।",
+        ],
+      ]
+        .map(
+          ([k, l, t, s, items, lim]) =>
+            `<div class="rolec"><div class="rh"><div class="ri" style="background:${ROLES[k].hex}">${l}</div><div><b>${t}</b><span>${s}</span></div></div><ul>${items.map((x) => `<li>${x}</li>`).join("")}</ul><p class="lim">${lim}</p></div>`,
+        )
+        .join("")}
+    </div>
+  </section>
+
+  <section class="sec">
+    <h2>শুরুর সেটআপ <small>একবারই</small></h2>
+    <p class="sub">চালু করার আগে মালিক একবার এগুলো ঠিক করেন। পুরনো Excel থাকলে সব ছাত্র আর তাদের আগের বাকি একবারে তোলা যায়।</p>
+    <div class="body chain">
+      ${[
+        ["১", "Building", "178, 207, 177/1…"],
+        ["২", "Room", "201, 202… ডিফল্ট ভাড়া সহ"],
+        ["৩", "Seat", "A, B, C — কোনটা খালি নিজে দেখায়"],
+        ["৪", "মাসের রেট", "মিল ৫৫, সকাল ২৭.৫০, deposit, বাবুর্চি"],
+        ["৫", "টাকা নেওয়ার account", "Cash, bKash, Nagad, ব্যাংক"],
+        ["৬", "ক্যাশিয়ার", "লগইন + কোন building"],
+        ["৭", "Excel থেকে ছাত্র", "সিট ও আগের বাকি সহ"],
+      ]
+        .map(
+          ([n, t, s], i, a) =>
+            `<div class="chip"><span class="k">ধাপ ${n}</span><b>${t}</b><span>${s}</span></div>${i < a.length - 1 ? '<span class="arrow" aria-hidden="true">→</span>' : ""}`,
+        )
+        .join("")}
+    </div>
+  </section>
+
+  <section class="sec" id="journey">
+    <h2>একজন ছাত্রের পুরো যাত্রা <small>ভর্তি থেকে বিদায়</small></h2>
+    <p class="sub">কোন কাজ কে করে, রঙ দিয়ে বোঝানো। উপর থেকে নিচে সময়ের ক্রমে।</p>
+    <div class="body lanes">
+      <div class="lanehead"><div></div>${Object.values(LN)
+        .map(([t, c]) => `<div><i style="background:${c}"></i>${t}</div>`)
+        .join("")}</div>
+      ${J.map((s, i) => {
+        const L = lane(s.who);
+        const cells = [1, 2, 3, 4]
+          .map((c) =>
+            c === L
+              ? `<div><div class="step ${s.who}"><span class="lw">${LN[s.who][0]}</span><b>${s.t}</b><p>${s.p}</p>${s.ul ? `<ul>${s.ul.map((x) => `<li>${x}</li>`).join("")}</ul>` : ""}${s.also ? `<p class="also">${s.also}</p>` : ""}</div></div>`
+              : '<div class="e"></div>',
+          )
+          .join("");
+        return `<div class="lanerow ${i === 0 ? "first" : ""} ${i === J.length - 1 ? "last" : ""}"><div class="no"><span>${i + 1}</span></div>${cells}</div>`;
+      }).join("")}
+    </div>
+  </section>
+
+  <section class="sec">
+    <h2>মাসের ক্যালেন্ডার <small>October 2026</small></h2>
+    <p class="sub">প্রতি মাস একই ছন্দে চলে। নিচে প্রথম মাস (অক্টোবর) দেখানো হলো।</p>
+    <div class="body">
+      <div class="cal">${["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d) => `<div class="dh">${d}</div>`).join("")}${cal.join("")}</div>
+      <div class="legend"><span><i style="background:var(--auto-50);border-color:#cdb8ea"></i>১ তারিখ: মাস-শেষ (নিজে থেকে)</span><span><i style="background:var(--ok-bg);border-color:var(--ok-line)"></i>প্রথম সপ্তাহ: টাকা দেওয়ার সময়</span><span><i style="background:#c9cde0;border-radius:50%"></i>প্রতিদিন ৩ বেলা মিল</span><span>🌙 প্রতি রাত ১০টা: পরের দিনের মিল লক</span></div>
+    </div>
+  </section>
+
+  <section class="sec">
+    <h2>টাকার হিসাব কীভাবে মেলে <small>আপনার দেওয়া উদাহরণ</small></h2>
+    <p class="sub">সালেক, Building 178। মাসের শুরুতে meal deposit নেওয়া হয়; মাস শেষে আসল খরচের সাথে মেলানো হয়। পার্থক্যটা পরের টোকেনে চলে যায়।</p>
+    <div class="body grid g3">
+      <div class="card"><div class="ch"><h3 class="bn">১. মাস শেষে মিল হিসাব</h3></div><div class="cb eq">
+        <div class="ln"><span>মিল খেয়েছে</span><span class="num">৬৩ × ৳৫৫ = ৳৩,৪৬৫</span></div>
+        <div class="ln"><span>বাবুর্চি বিল</span><span class="num">৳৪০০</span></div>
+        <div class="ln"><span>মোট খরচ</span><span class="num">৳৩,৮৬৫</span></div>
+        <div class="ln"><span>আগে জমা (deposit)</span><span class="num">− ৳৩,৮০০</span></div>
+        <div class="ln res red"><span>সালেকের কাছে পাওনা</span><span class="num">৳৬৫</span></div>
+      </div></div>
+      <div class="card"><div class="ch"><h3 class="bn">২. পরের মাসের টোকেন</h3></div><div class="cb"><div class="paper">
+        <h4>Rangdhanu Chatrabash · Building No: 178</h4>
+        <table><tr><td>Rent</td><td>6,000</td></tr><tr><td>Meal Deposit</td><td>3,800</td></tr><tr><td>Baburchi Bill</td><td>400</td></tr><tr><td>Previous Meal Due</td><td>65</td></tr><tr class="t"><td>Total</td><td>10,265</td></tr></table>
+      </div></div></div>
+      <div class="card"><div class="ch"><h3 class="bn">৩. টাকা দিলে</h3></div><div class="cb eq">
+        <div class="ln"><span>টোকেন</span><span class="num">৳১০,২৬৫</span></div>
+        <div class="ln"><span>দিল (bKash)</span><span class="num">− ৳৮,০০০</span></div>
+        <div class="ln res red"><span>বাকি</span><span class="num">৳২,২৬৫</span></div>
+        <p class="muted" style="font-size:13px">রসিদ সাথে সাথে ফোনে। বাকি ৳২,২৬৫ নিজে থেকে পরের টোকেনে "Previous due" হয়ে আসে। কম খেলে উল্টোটা: টাকা ফেরত (credit) হয়ে পরের বিল কমে।</p>
+      </div></div>
+    </div>
+  </section>
+
+  <section class="sec">
+    <h2>হিসাব কেন ভুল হবে না <small>নিয়ম</small></h2>
+    <div class="body rules">
+      ${[
+        [
+          "প্রতিটা টাকা খাতায়",
+          "ভাড়া, মিল, বাবুর্চি, service charge, advance — আলাদা খাত। প্রতিটা বিল আর টাকা একটা লাইন।",
+        ],
+        ["কিছু মোছা যায় না", "ভুল হলে কারণ লিখে Void বা সমন্বয় (adjustment) — আগের লাইন থেকেই যায়।"],
+        ["মাস লক", "মাস-শেষের পর সেই মাসের মিল, টাকা, রেট আর কেউ বদলাতে পারে না।"],
+        ["কে কী করল", "প্রতিটা পরিবর্তন Audit log-এ: কে, কখন, আগে কী ছিল, পরে কী হলো।"],
+        ["পুরনো বাকি আগে", "টাকা এলে সবচেয়ে পুরনো মাসের বাকি আগে কাটে (মিল → ভাড়া → বাবুর্চি…)।"],
+        ["Advance আয় নয়", "২ মাসের advance ছাত্রের টাকা হিসেবে আলাদা থাকে; বিদায়ের সময় বাকি কেটে ফেরত।"],
+      ]
+        .map(([t, p]) => `<div class="rule"><b>${t}</b><p>${p}</p></div>`)
+        .join("")}
+    </div>
+  </section>
+
+  <section class="sec">
+    <h2>এখন কী আছে, পরে কী আসবে</h2>
+    <div class="body phase">
+      <div class="card"><div class="ch"><div><h3 class="bn">Phase 1 — তৈরি, চালু হচ্ছে ১ অক্টোবর ২০২৬</h3></div><span class="pill ok">Live</span></div>
+        <ul>${["বিল্ডিং, রুম, সিট", "ছাত্র ভর্তি, সিট বদল, বিদায়, Former student", "প্রতিদিনের মিল + ছাত্রের নিজে মিল বন্ধ", "মাসের রেট, মাস-শেষ, টোকেন (ফোন ও প্রিন্ট)", "টাকা, রসিদ, Void, সমন্বয়", "ছাত্রের ফোনের হিসাব", "রিপোর্ট ও ড্যাশবোর্ড, Excel", "পুরনো Excel থেকে ছাত্র তোলা"].map((x) => `<li>${x}</li>`).join("")}</ul></div>
+      <div class="card"><div class="ch"><div><h3 class="bn">Phase 2 — পরের ধাপ</h3></div><span class="pill gray">Planned</span></div>
+        <ul>${["বাজার খরচ ও আসল মিল রেট, মিলের লাভ", "খরচ: বাড়ি ভাড়া, বিদ্যুৎ, আপ্যায়ন, স্টাফ বেতন", "Building ধরে লাভ-ক্ষতি", "Investment ও বাড়িওয়ালাকে advance", "মালিকদের ভাগ (৪৬/৪৬/২/৬), Owner advance ও settlement", "Online payment gateway, SMS"].map((x) => `<li>${x}</li>`).join("")}</ul></div>
+    </div>
+  </section>
+
+  <section class="sec">
+    <div class="note info" style="justify-content:space-between;align-items:center;flex-wrap:wrap"><div class="bn" style="font-size:15px"><b>নিজে চালিয়ে দেখুন:</b> "লাইভ ডেমো"-তে ১০ ধাপের গাইড আছে — রহিমকে ভর্তি থেকে অক্টোবরের টোকেন পর্যন্ত। সব নম্বর আসল নিয়মে হিসাব হয়।</div><button class="btn pri" data-mode="demo">লাইভ ডেমো →</button></div>
+  </section>
+  </div>`;
+  }
+
+  /* ================================================================ DEMO: staff */
+  function renderSide() {
+    const r = ROLES[UI.role];
+    return `<aside class="side"><div class="who"><div class="av" style="background:${r.hex}">${r.user[0]}</div><div><b>${r.user}</b><span>${r.sub}</span></div></div>
+  <nav class="nav">${NAV[UI.role].map(([v, l, i]) => `<button class="${UI.view === v ? "on" : ""}" data-go="${v}" data-tour="nav-${UI.role}-${v}">${ic(i)}<span>${l}</span></button>`).join("")}</nav></aside>`;
+  }
+  const pageHead = (t, p, right = "") =>
+    `<div class="ph"><div><h1>${t}</h1>${p ? `<p>${p}</p>` : ""}</div><div class="row">${right}</div></div>`;
+  function renderView() {
+    const v = UI.view;
+    if (v === "dash") return viewDash();
+    if (v === "students") return UI.p.id ? viewStudent(UI.p.id) : viewStudents();
+    if (v === "meals") return viewMeals();
+    if (v === "payments") return viewPayments();
+    if (v === "tokens") return viewTokens();
+    if (v === "reports" && UI.role === "admin") return viewReports();
+    if (v === "settings" && UI.role === "admin") return viewSettings();
+    UI.view = "dash";
+    return viewDash();
+  }
+  function active() {
+    return S.students.filter((s) => s.status === "active");
+  }
+  function viewDash() {
+    const today = S.payments.filter((p) => p.date === S.now),
+      month = S.payments.filter((p) => p.date.slice(0, 7) === S.period);
+    const dueSt = active().filter((s) => totalOf(s.id) > 0);
+    const due = dueSt.reduce((a, s) => a + totalOf(s.id), 0);
+    const adv = active().reduce((a, s) => a + advanceHeld(s.id), 0);
+    const toks = S.tokens.filter((t) => t.period === S.period).map((t) => tokenStatus(t).st);
+    const cnt = (k) => toks.filter((x) => x === k).length;
+    const seats = S.buildings.reduce((a, b) => a + Object.values(b.rooms).reduce((x, r) => x + r.seats.length, 0), 0);
+    return (
+      pageHead(
+        UI.role === "admin" ? "Dashboard" : "Hello, Karim",
+        `Today ${fdate(S.now)} · billing month ${monthName(S.period)}`,
+        `<button class="btn pri" data-act="pay-new">+ Take payment</button>`,
+      ) +
+      `<div class="stack"><div class="grid g4">
+    <div class="card kpi click" data-go="payments"><div class="l">Collected today</div><div class="v">${tk(today.reduce((a, p) => a + p.amt, 0))}</div><div class="n">${today.length} receipt(s)</div></div>
+    <div class="card kpi"><div class="l">Collected in ${monthName(S.period)}</div><div class="v">${tk(month.reduce((a, p) => a + p.amt, 0))}</div><div class="n">${month.length} receipt(s)</div></div>
+    <div class="card kpi"><div class="l">Total due now</div><div class="v red">${tk(due)}</div><div class="n">${dueSt.length} of ${active().length} students</div></div>
+    <div class="card kpi"><div class="l">Student advance held</div><div class="v">${tk(adv)}</div><div class="n">Belongs to students, not income</div></div>
+  </div>
+  <div class="grid g2">
+    <div class="card"><div class="ch"><div><h3>${monthName(S.period)} tokens</h3><p>${toks.length} tokens</p></div></div><div class="cb row"><span class="pill ok">${cnt("paid")} paid</span><span class="pill warn">${cnt("partial")} partly paid</span><span class="pill bad">${cnt("unpaid")} unpaid</span><button class="btn sm ghost" data-go="tokens">Who has not paid →</button></div></div>
+    <div class="card"><div class="ch"><div><h3>Month-end</h3><p>Last closed: ${monthName(S.closed[S.closed.length - 1])}. Next: 1 ${monthName(nextP(S.period))}, 12:05 AM (automatic).</p></div><span class="pill ok">Up to date</span></div><div class="cb"><button class="btn sm" data-go="tokens">Tokens</button></div></div>
+  </div>
+  <div class="card"><div class="ch"><div><h3>Buildings</h3><p>${active().length} of ${seats} seats occupied</p></div></div><div class="cb tw"><table class="tbl"><thead><tr><th>Building</th><th class="r">Occupied</th><th class="r">With due</th><th class="r">Due</th><th class="r">Collected this month</th></tr></thead><tbody>
+    ${S.buildings
+      .map((b) => {
+        const st = active().filter((s) => s.bld === b.code);
+        const seatsB = Object.values(b.rooms).reduce((x, r) => x + r.seats.length, 0);
+        const d = st.filter((s) => totalOf(s.id) > 0);
+        return `<tr><td><b>${b.code}</b></td><td class="r">${st.length} / ${seatsB}</td><td class="r">${d.length}</td><td class="r red">${tk(d.reduce((a, s) => a + totalOf(s.id), 0))}</td><td class="r">${tk(month.filter((p) => stud(p.sid).bld === b.code).reduce((a, p) => a + p.amt, 0))}</td></tr>`;
+      })
+      .join("")}
+  </tbody></table></div></div></div>`
+    );
+  }
+  function viewStudents() {
+    const list = [...S.students].sort(
+      (a, b) => a.bld.localeCompare(b.bld) || a.room.localeCompare(b.room) || a.seat.localeCompare(b.seat),
+    );
+    return (
+      pageHead(
+        "Students",
+        `${active().length} current students`,
+        `<button class="btn pri" data-act="admit" data-tour="new-student">+ New student</button>`,
+      ) +
+      `<div class="card"><div class="cb tw"><table class="tbl"><thead><tr><th>Student</th><th>Seat</th><th>Phone</th><th class="r">Rent</th><th class="r">Due now</th><th></th></tr></thead><tbody>
+  ${list
+    .map((s) => {
+      const t = totalOf(s.id);
+      return `<tr class="click" data-go="students" data-p='${JSON.stringify({ id: s.id })}'><td><b>${esc(s.name)}</b><div class="muted" style="font-size:12px">ID ${s.id}${s.admission === S.now ? ' · <span class="pill new">new</span>' : ""}</div></td><td>${s.bld} · ${s.room}-${s.seat}</td><td class="mono">${s.phone}</td><td class="r">${tk(s.rent)}</td><td class="r ${t > 0 ? "red" : "green"}">${t > 0 ? tk(t) : t < 0 ? tk(-t) + " credit" : "—"}</td><td class="r"><span class="muted">Open →</span></td></tr>`;
+    })
+    .join("")}
+  </tbody></table></div></div>`
+    );
+  }
+  function accountBlock(sid) {
+    const b = balances(sid),
+      t = totalOf(sid),
+      adv = advanceHeld(sid),
+      ds = dues(sid);
+    return `<div class="due ${t > 0 ? "red" : "green"}"><div style="font-size:12.5px">${t > 0 ? "Total due" : t < 0 ? "Has credit" : "Balance"}</div><div class="a">${t > 0 ? tk(t) : t < 0 ? tk(-t) : "All paid ✓"}</div></div>
+  ${adv ? `<p class="muted" style="font-size:13px">Advance paid and held by the hostel: <b style="color:var(--ink)">${tk(adv)}</b> (returned against dues when leaving)</p>` : ""}
+  <div class="grid g2" style="gap:8px">${
+    Object.entries(b)
+      .map(
+        ([h, v]) =>
+          `<div class="row" style="justify-content:space-between;border:1px solid var(--line);border-radius:8px;padding:6px 10px;font-size:13px"><span>${HL[h]}</span><span class="${v > 0 ? "red" : "green"} num">${v > 0 ? tk(v) : tk(-v) + " credit"}</span></div>`,
+      )
+      .join("") || '<span class="muted">No entries</span>'
+  }</div>
+  ${ds.length ? `<details><summary style="cursor:pointer;color:var(--brand);font-size:13px">Dues by month (${ds.length})</summary><div style="margin-top:6px;font-size:13px">${ds.map((d) => `<div class="row" style="justify-content:space-between"><span>${monthName(d.period)} · ${HL[d.head]}</span><span class="num">${tk(d.amt)}</span></div>`).join("")}</div></details>` : ""}`;
+  }
+  function payList(sid) {
+    const ps = S.payments
+      .filter((p) => !sid || p.sid === sid)
+      .slice()
+      .reverse();
+    if (!ps.length) return '<p class="muted">No payments yet.</p>';
+    return `<table class="tbl"><tbody>${ps.map((p) => `<tr class="click" data-act="receipt" data-id="${p.no}"><td><span class="mono" style="color:var(--brand);font-weight:600">${p.no}</span><div class="muted" style="font-size:12px">${fdate(p.date)} · ${ACCOUNTS.find((a) => a.id === p.acct).name}${sid ? "" : " · " + esc(stud(p.sid).name)}</div></td><td class="r"><b>${tk(p.amt)}</b></td></tr>`).join("")}</tbody></table>`;
+  }
+  function tokenList(sid) {
+    const ts = S.tokens
+      .filter((t) => t.sid === sid)
+      .slice()
+      .reverse();
+    return ts.length
+      ? `<table class="tbl"><tbody>${ts
+          .map((t) => {
+            const st = tokenStatus(t);
+            return `<tr class="click" data-act="token" data-id="${t.id}"><td>${t.kind === "admission" ? "Admission bill" : monthName(t.period)}</td><td class="r">${tk(t.total)}</td><td class="r">${statusPill(st.st)}</td></tr>`;
+          })
+          .join("")}</tbody></table>`
+      : '<p class="muted">No bills yet.</p>';
+  }
+  function viewStudent(id) {
+    const s = stud(id);
+    return (
+      pageHead(
+        esc(s.name),
+        `ID ${s.id} · ${s.bld} · Room ${s.room} · Seat ${s.seat}`,
+        `<button class="btn" data-go="students">← All students</button><button class="btn pri" data-act="pay-new" data-sid="${s.id}">Take payment</button>`,
+      ) +
+      `<div class="grid g2"><div class="stack">
+    <div class="card"><div class="ch"><h3>Account</h3></div><div class="cb stack" style="gap:10px">${accountBlock(s.id)}</div></div>
+    <div class="card"><div class="ch"><h3>Bills (tokens)</h3></div><div class="cb">${tokenList(s.id)}</div></div>
+  </div><div class="stack">
+    <div class="card"><div class="ch"><h3>Profile</h3></div><div class="cb"><dl class="kv"><dt>Phone (login)</dt><dd class="mono">${s.phone}</dd><dt>Father</dt><dd>${esc(s.father)}</dd><dt>School</dt><dd>${esc(s.school)}</dd><dt>College</dt><dd>${esc(s.college)}</dd><dt>Batch</dt><dd>${s.batch}</dd><dt>Admission</dt><dd>${fdate(s.admission)}</dd><dt>Monthly rent</dt><dd>${tk(s.rent)}</dd></dl>
+      <div class="row" style="margin-top:12px"><button class="btn sm" data-act="toast" data-t="Password reset" data-s="নতুন পাসওয়ার্ড = ফোনের শেষ ৬ সংখ্যা; প্রথম লগইনে বদলাতে হবে।">Reset password</button>${UI.role === "admin" ? `<button class="btn sm" data-act="toast" data-t="Seat transfer / Leave" data-s="আসল software-এ আছে: সিট বদল আর বিদায়ের পুরো হিসাব (preview সহ)।">Transfer / Leave</button>` : ""}</div></div></div>
+    <div class="card"><div class="ch"><h3>Payments & receipts</h3></div><div class="cb">${payList(s.id)}</div></div>
+  </div></div>`
+    );
+  }
+  function viewMeals() {
+    const date = UI.p.date || S.now,
+      bld = UI.p.bld || "178";
+    if (UI.role === "cashier" && date === "2026-09-26") UI.seen.grid = true;
+    if (UI.role === "cashier" && UI.p.date && UI.p.date !== S.now) UI.seen.grid = true;
+    const locked = S.closed.includes(date.slice(0, 7));
+    const list = active()
+      .filter((s) => s.bld === bld && inHostel(s, date))
+      .sort((a, b) => a.room.localeCompare(b.room) || a.seat.localeCompare(b.seat));
+    const cook = (sl) => list.filter((s) => !offBy(s.id, date, sl)).length;
+    return (
+      pageHead(
+        "Meals",
+        `Building ${bld} · ${WD(date)} ${fdate(date)}`,
+        `
+    <select class="btn" data-act="meal-bld" aria-label="Building">${S.buildings.map((b) => `<option ${b.code === bld ? "selected" : ""}>${b.code}</option>`).join("")}</select>
+    <button class="btn" data-act="meal-day" data-d="-1">← Prev day</button><button class="btn" data-act="meal-day" data-d="1">Next day →</button>`,
+      ) +
+      `<div class="stack"><div class="grid g3" data-tour="cook">${SLOTS.map((sl) => `<div class="card kpi"><div class="l">${SL[sl]} — to cook</div><div class="v">${cook(sl)}</div></div>`).join("")}</div>
+  ${locked ? `<div class="note warn">${monthName(date.slice(0, 7))} is closed. Meals can no longer be changed.</div>` : `<div class="note">Tap a box to switch a meal on/off. "by student" = the student turned it off from their phone.</div>`}
+  <div class="card"><div class="cb tw"><table class="tbl"><thead><tr><th>Seat</th><th>Student</th>${SLOTS.map((sl) => `<th style="text-align:center">${SL[sl]}</th>`).join("")}</tr></thead><tbody>
+  ${
+    list
+      .map(
+        (s) =>
+          `<tr><td>${s.room}-${s.seat}</td><td><b>${esc(s.name)}</b><div class="muted" style="font-size:12px">ID ${s.id}</div></td>${SLOTS.map(
+            (sl) => {
+              const by = offBy(s.id, date, sl);
+              return `<td style="text-align:center"><button class="tog ${by ? "off" : "on"}" ${locked ? "disabled" : ""} data-act="grid-tog" data-sid="${s.id}" data-sl="${sl}">${by ? "OFF" : "ON"}${by === "student" ? "<small>by student</small>" : ""}</button></td>`;
+            },
+          ).join("")}</tr>`,
+      )
+      .join("") || '<tr><td colspan="5" class="muted">No students in this building on this date.</td></tr>'
+  }
+  </tbody></table></div></div></div>`
+    );
+  }
+  function viewPayments() {
+    const total = S.payments.filter((p) => p.date === S.now).reduce((a, p) => a + p.amt, 0);
+    const byAcct = ACCOUNTS.map((a) => ({
+      a,
+      v: S.payments.filter((p) => p.acct === a.id && p.date.slice(0, 7) === S.period).reduce((x, p) => x + p.amt, 0),
+    }));
+    return (
+      pageHead(
+        "Payments",
+        `Collected today: ${tk(total)}`,
+        `<button class="btn pri" data-act="pay-new" data-tour="take-payment">+ Take payment</button>`,
+      ) +
+      `<div class="stack"><div class="grid g3">${byAcct.map(({ a, v }) => `<div class="card kpi"><div class="l">${a.name} · ${monthName(S.period)}</div><div class="v">${tk(v)}</div></div>`).join("")}</div>
+  <div class="card"><div class="ch"><h3>Receipts</h3><p>Newest first. Tap to open.</p></div><div class="cb tw">${payList()}</div></div></div>`
+    );
+  }
+  function viewTokens() {
+    const toks = S.tokens.filter((t) => t.period === S.period);
+    const plan = planMonthEnd();
+    const canRun = UI.role === "admin" && S.period === "2026-09";
+    const settleRows = plan.rows;
+    return (
+      pageHead("Tokens", `${monthName(S.period)} · ${toks.length} tokens`) +
+      `<div class="stack">
+  <div class="card" data-tour="month-end"><div class="ch"><div><h3>Month-end: close ${monthName(plan.close)}, make ${monthName(plan.next)} tokens</h3><p>Runs by itself on 1 ${monthName(plan.next)} at 12:05 AM. Preview first; nothing is saved until you run it.</p></div>${UI.p.preview ? "" : `<button class="btn ${canRun ? "pri" : ""}" data-act="me-preview" ${UI.role !== "admin" ? "disabled" : ""}>Preview</button>`}</div>
+    <div class="cb">${
+      UI.role !== "admin"
+        ? '<p class="muted">Only the admin runs month-end.</p>'
+        : !canRun
+          ? `<div class="note ok">Demo: ${monthName(S.closed[S.closed.length - 1])} is closed and ${monthName(S.period)} tokens are made. The next month-end is on 1 ${monthName(nextP(S.period))}.</div>`
+          : UI.p.preview
+            ? `
+      <div class="note info" style="margin-bottom:12px"><div><b>Meal settlement for ${monthName(plan.close)}</b> — meals × rate (breakfast ${tk(S.rates.b)}, lunch/dinner ${tk(S.rates.l)}) minus the meal deposit billed. + = the student pays more, − = gets money back.</div></div>
+      <div class="tw"><table class="tbl"><thead><tr><th>Student</th><th class="r">B / L / D</th><th class="r">Meals</th><th class="r">Cost</th><th class="r">Deposit</th><th class="r">Result</th></tr></thead><tbody>
+      ${settleRows.map((r) => `<tr><td><b>${esc(r.s.name)}</b><div class="muted" style="font-size:12px">${r.s.bld} · ${r.s.room}-${r.s.seat}</div></td><td class="r">${r.c.b} / ${r.c.l} / ${r.c.d}</td><td class="r">${mealsUnits(r.c)}</td><td class="r">${tk(r.cost)}</td><td class="r">${tk(r.deposit)}</td><td class="r ${r.diff > 0 ? "red" : "green"}">${r.diff > 0 ? "pays " + tk(r.diff) : "gets " + tk(-r.diff)}</td></tr>`).join("")}
+      <tr class="tot"><td>Total</td><td></td><td class="r">${settleRows.reduce((a, r) => a + mealsUnits(r.c), 0)}</td><td class="r">${tk(settleRows.reduce((a, r) => a + r.cost, 0))}</td><td class="r">${tk(settleRows.reduce((a, r) => a + r.deposit, 0))}</td><td class="r">${tk(settleRows.reduce((a, r) => a + r.diff, 0))}</td></tr></tbody></table></div>
+      <div class="row" style="margin-top:14px;justify-content:space-between"><span class="muted">Then ${plan.tokens} tokens for ${monthName(plan.next)}: rent + meal deposit + baburchi + previous balance.</span><button class="btn pri" data-act="me-run">Run month-end (jump to 1 ${monthName(plan.next).split(" ")[0]})</button></div>`
+            : `<p class="muted">${settleRows.length} students to settle, ${plan.tokens} tokens to make.</p>`
+    }</div></div>
+  <div class="card"><div class="ch"><div><h3>${monthName(S.period)} tokens</h3><p>Tap a token to see it as paper. Students see the same on their phone.</p></div><button class="btn sm" data-act="toast" data-t="Print" data-s="আসল software-এ A4 কাগজে ৪টা করে টোকেন প্রিন্ট হয় — দরকার হলে।">Print all</button></div><div class="cb tw"><table class="tbl"><thead><tr><th>Student</th><th>Seat</th><th class="r">Total</th><th class="r">Still unpaid</th><th class="r">Status</th></tr></thead><tbody>
+  ${S.tokens
+    .filter((t) => t.period === S.period)
+    .map((t) => {
+      const s = stud(t.sid),
+        st = tokenStatus(t);
+      return `<tr class="click" data-act="token" data-id="${t.id}"><td><b>${esc(s.name)}</b>${t.kind === "admission" ? ' <span class="pill new">admission</span>' : ""}</td><td>${t.seat}</td><td class="r">${tk(t.total)}</td><td class="r">${st.remaining ? tk(st.remaining) : "—"}</td><td class="r">${statusPill(st.st)}</td></tr>`;
+    })
+    .join("")}
+  </tbody></table></div></div></div>`
+    );
+  }
+  function viewReports() {
+    UI.seen.reports = true;
+    const tab = UI.p.tab || "dues";
+    const tabs = [
+      ["dues", "Dues & advance"],
+      ["coll", "Collections"],
+      ["meals", "Meal settlement"],
+      ["audit", "Audit log"],
+    ];
+    let body = "";
+    if (tab === "dues") {
+      const rows = active().map((s) => ({ s, b: balances(s.id), t: totalOf(s.id), adv: advanceHeld(s.id) }));
+      const byB = S.buildings.map((b) => {
+        const r = rows.filter((x) => x.s.bld === b.code);
+        return {
+          code: b.code,
+          n: r.length,
+          due: r.filter((x) => x.t > 0).reduce((a, x) => a + x.t, 0),
+          cr: r.filter((x) => x.t < 0).reduce((a, x) => a - x.t, 0),
+          adv: r.reduce((a, x) => a + x.adv, 0),
+          wd: r.filter((x) => x.t > 0).length,
+        };
+      });
+      const T = byB.reduce(
+        (a, b) => ({ n: a.n + b.n, due: a.due + b.due, cr: a.cr + b.cr, adv: a.adv + b.adv, wd: a.wd + b.wd }),
+        { n: 0, due: 0, cr: 0, adv: 0, wd: 0 },
+      );
+      body = `<div class="card"><div class="ch"><h3>Building-wise</h3><button class="btn sm" data-act="toast" data-t="Excel (CSV)" data-s="প্রতিটা রিপোর্ট Excel-এ নামানো যায়।">Excel (CSV)</button></div><div class="cb tw"><table class="tbl"><thead><tr><th>Building</th><th class="r">Students</th><th class="r">With due</th><th class="r">Due</th><th class="r">Credit</th><th class="r">Advance held</th></tr></thead><tbody>
+      ${byB.map((b) => `<tr><td><b>${b.code}</b></td><td class="r">${b.n}</td><td class="r">${b.wd}</td><td class="r red">${tk(b.due)}</td><td class="r green">${tk(b.cr)}</td><td class="r">${tk(b.adv)}</td></tr>`).join("")}
+      <tr class="tot"><td>All buildings</td><td class="r">${T.n}</td><td class="r">${T.wd}</td><td class="r red">${tk(T.due)}</td><td class="r green">${tk(T.cr)}</td><td class="r">${tk(T.adv)}</td></tr></tbody></table></div></div>
+      <div class="card"><div class="ch"><h3>Students with due</h3></div><div class="cb tw"><table class="tbl"><thead><tr><th>Student</th><th>Seat</th>${["rent", "meal", "baburchi", "advance"].map((h) => `<th class="r">${HL[h]}</th>`).join("")}<th class="r">Total</th></tr></thead><tbody>
+      ${
+        rows
+          .filter((x) => x.t > 0)
+          .map(
+            (x) =>
+              `<tr><td><b>${esc(x.s.name)}</b></td><td>${x.s.bld} · ${x.s.room}-${x.s.seat}</td>${["rent", "meal", "baburchi", "advance"].map((h) => `<td class="r ${(x.b[h] || 0) > 0 ? "red" : (x.b[h] || 0) < 0 ? "green" : ""}">${x.b[h] ? tk(x.b[h]) : "—"}</td>`).join("")}<td class="r red"><b>${tk(x.t)}</b></td></tr>`,
+          )
+          .join("") || '<tr><td colspan="7" class="muted">Nobody owes money.</td></tr>'
+      }</tbody></table></div></div>`;
+    } else if (tab === "coll") {
+      const ps = S.payments.filter((p) => p.date.slice(0, 7) === S.period);
+      const days = [...new Set(ps.map((p) => p.date))].sort();
+      body = `<div class="grid g2"><div class="card"><div class="ch"><h3>By day · ${monthName(S.period)}</h3></div><div class="cb"><table class="tbl"><tbody>${
+        days
+          .map((d) => {
+            const x = ps.filter((p) => p.date === d);
+            return `<tr><td>${fdate(d)}</td><td class="r muted">${x.length}</td><td class="r"><b>${tk(x.reduce((a, p) => a + p.amt, 0))}</b></td></tr>`;
+          })
+          .join("") || '<tr><td class="muted">Nothing yet this month.</td></tr>'
+      }</tbody></table></div></div>
+      <div class="card"><div class="ch"><h3>By account (where the money is)</h3></div><div class="cb"><table class="tbl"><tbody>${ACCOUNTS.map(
+        (a) => {
+          const x = ps.filter((p) => p.acct === a.id);
+          return `<tr><td>${a.name}</td><td class="r muted">${x.length}</td><td class="r"><b>${tk(x.reduce((q, p) => q + p.amt, 0))}</b></td></tr>`;
+        },
+      ).join(
+        "",
+      )}<tr class="tot"><td>Total</td><td class="r">${ps.length}</td><td class="r">${tk(ps.reduce((a, p) => a + p.amt, 0))}</td></tr></tbody></table></div></div></div>`;
+    } else if (tab === "meals") {
+      const p = S.closed[S.closed.length - 1];
+      const rs = S.settlements.filter((r) => r.period === p);
+      const owe = rs.filter((r) => r.diff > 0).reduce((a, r) => a + r.diff, 0),
+        back = rs.filter((r) => r.diff < 0).reduce((a, r) => a - r.diff, 0);
+      body = `<div class="grid g3"><div class="card kpi"><div class="l">Meal cost · ${monthName(p)}</div><div class="v">${tk(rs.reduce((a, r) => a + r.cost, 0))}</div><div class="n">${rs.length} students</div></div><div class="card kpi"><div class="l">Students pay more</div><div class="v red">${tk(owe)}</div></div><div class="card kpi"><div class="l">Students get back</div><div class="v green">${tk(back)}</div></div></div>
+      <div class="card"><div class="cb tw"><table class="tbl"><thead><tr><th>Student</th><th class="r">B / L / D</th><th class="r">Cost</th><th class="r">Deposit</th><th class="r">Result</th></tr></thead><tbody>${rs.map((r) => `<tr><td><b>${esc(stud(r.sid).name)}</b></td><td class="r">${r.b} / ${r.l} / ${r.d}</td><td class="r">${tk(r.cost)}</td><td class="r">${tk(r.deposit)}</td><td class="r ${r.diff > 0 ? "red" : "green"}">${r.diff > 0 ? "pays " + tk(r.diff) : "gets " + tk(-r.diff)}</td></tr>`).join("")}</tbody></table></div></div>`;
+    } else {
+      body = `<div class="card"><div class="ch"><div><h3>Who did what</h3><p>Every change is written here and cannot be edited. (Demo shows what you did in this session.)</p></div></div><div class="cb">${S.audit.length ? `<table class="tbl"><tbody>${S.audit.map((a) => `<tr><td class="mono" style="white-space:nowrap">${a.at}</td><td>${esc(a.who)}</td><td>${esc(a.t)}</td></tr>`).join("")}</tbody></table>` : '<p class="muted">Nothing yet. Admit a student or take a payment and come back.</p>'}</div></div>`;
+    }
+    return (
+      pageHead("Reports", "All numbers come straight from student accounts and payments.") +
+      `<div class="tabs" data-tour="reports">${tabs.map(([k, l]) => `<button class="${tab === k ? "on" : ""}" data-act="rtab" data-id="${k}">${l}</button>`).join("")}</div><div class="stack">${body}</div>`
+    );
+  }
+  function viewSettings() {
+    UI.seen.settings = true;
+    const r = S.rates;
+    const f = (id, l, v, h = "") =>
+      `<div class="field"><label for="${id}">${l}</label><input id="${id}" inputmode="decimal" value="${v}">${h ? `<span class="hint">${h}</span>` : ""}</div>`;
+    return (
+      pageHead("Settings", "Rates and rules. Each month can have its own rates.") +
+      `<div class="stack"><div class="card" data-tour="rates"><div class="ch"><div><h3>Rates for ${monthName(S.period)}</h3><p>From the client's brief. Change and save to see the demo use them.</p></div></div><div class="cb stack" style="gap:14px">
+    <div class="grid g3">${f("r-b", "Breakfast (৳)", r.b, "Half a meal")}${f("r-l", "Lunch (৳)", r.l)}${f("r-d", "Dinner (৳)", r.d)}</div>
+    <div class="grid g3">${f("r-dep", "Meal deposit (৳ / month)", r.dep)}${f("r-bab", "Baburchi bill (৳ / month)", r.bab)}${f("r-adv", "Advance (months of rent)", r.advM)}</div>
+    <div class="grid g3"><div class="field"><label for="r-rule">Joining mid-month</label><select id="r-rule"><option value="prorata" ${r.rule === "prorata" ? "selected" : ""}>Charge by days</option><option value="full" ${r.rule === "full" ? "selected" : ""}>Charge the whole month</option></select></div>${f("r-sc", "Service charge (৳ / year)", r.sc, "Billed once a year, in the month you tick")}</div>
+    <div><button class="btn pri" data-act="save-rates">Save rates</button></div></div></div>
+  <div class="card"><div class="ch"><div><h3>Meal on/off by students</h3><p>Students can change their own meals until this time on the night before.</p></div></div><div class="cb row">
+    <div class="field" style="min-width:260px"><label for="r-cut">Deadline</label><select id="r-cut">${[18, 19, 20, 21, 22, 23].map((h) => `<option value="${h}" ${r.cutoff === h ? "selected" : ""}>${h % 12 || 12} PM the night before</option>`).join("")}</select></div><button class="btn" data-act="save-cut" style="align-self:flex-end">Save</button></div></div>
+  <div class="card"><div class="ch"><div><h3>Where money is received</h3><p>Students see these numbers on their phone.</p></div></div><div class="cb"><table class="tbl"><tbody>${ACCOUNTS.map((a) => `<tr><td><b>${a.name}</b></td><td>${a.method}</td><td class="mono">${a.details || "—"}</td><td class="r"><span class="pill ok">Active</span></td></tr>`).join("")}</tbody></table></div></div></div>`
+    );
+  }
+
+  /* ================================================================ DEMO: student phone */
+  function renderPhone() {
+    const s = stud();
+    if (!s) {
+      UI.sid = active()[0].id;
+      return renderPhone();
+    }
+    const v = ["home", "account", "meals", "profile"].includes(UI.view) ? UI.view : "home";
+    UI.view = v;
+    let body = v === "home" ? phHome(s) : v === "account" ? phAccount(s) : v === "meals" ? phMeals(s) : phProfile(s);
+    return `<div class="phone" aria-label="Student phone"><div class="ptop"><div><b>রংধনু ছাত্রাবাস</b><br><span>${esc(s.name)} · Student</span></div><span class="mono">${S.time}</span></div>
+    <div class="pbody">${body}</div>
+    <nav class="ptabs">${NAV.student.map(([k, l, i]) => `<button class="${v === k ? "on" : ""}" data-go="${k}" data-tour="ptab-${k}">${ic(i)}${l}</button>`).join("")}</nav></div>`;
+  }
+  function phHome(s) {
+    const r = rahim();
+    if (r && s.id === r.id) {
+      UI.seen.rahimHome = true;
+      if (S.period !== "2026-09") UI.seen.octHome = true;
+    }
+    const t = totalOf(s.id);
+    const tok = S.tokens.filter((x) => x.sid === s.id).slice(-1)[0];
+    const st = tok ? tokenStatus(tok) : null;
+    const mc = mealCount(s, S.period, S.now);
+    const ps = S.payments
+      .filter((p) => p.sid === s.id)
+      .slice(-3)
+      .reverse();
+    return `<div class="row" style="gap:12px"><div class="av" style="background:var(--student);width:48px;height:48px;font-size:17px">${s.name[0]}</div><div><b style="font-size:16px">${esc(s.name)}</b><div class="muted" style="font-size:12.5px">ID ${s.id} · ${s.bld} · Room ${s.room} · Seat ${s.seat}</div></div></div>
+  <div class="due ${t > 0 ? "red" : "green"}" data-tour="due"><div style="font-size:13px">${t > 0 ? "You need to pay" : t < 0 ? "Nothing to pay. You have extra (credit)" : "Nothing to pay"}</div><div class="a">${t > 0 ? tk(t) : t < 0 ? tk(-t) : "All paid ✓"}</div></div>
+  ${
+    tok
+      ? `<div class="card" data-tour="token"><div class="cb" style="padding:14px"><div class="row" style="justify-content:space-between"><b>${tok.kind === "admission" ? "Admission bill" : "Bill for " + monthName(tok.period)}</b>${statusPill(st.st)}</div>
+    <div style="margin-top:8px;font-size:13.5px">${tok.cur.map((l) => `<div class="row" style="justify-content:space-between;border-bottom:1px solid var(--line-2);padding:4px 0"><span>${l.label}</span><span class="num">${tk(l.amt)}</span></div>`).join("")}${tok.prev.map((l) => `<div class="row muted" style="justify-content:space-between;border-bottom:1px solid var(--line-2);padding:4px 0"><span>${l.label}</span><span class="num">${tk(l.amt)}</span></div>`).join("")}<div class="row" style="justify-content:space-between;padding-top:6px;font-weight:700"><span>Total</span><span class="num">${tk(tok.total)}</span></div></div>
+    ${st.remaining ? `<p style="font-size:13px;margin-top:6px">Still unpaid from this bill: <b>${tk(st.remaining)}</b></p>` : ""}<button class="btn sm" style="margin-top:8px" data-act="token" data-id="${tok.id}">Open as paper token</button></div></div>`
+      : ""
+  }
+  ${
+    t > 0
+      ? `<div class="card"><div class="cb" style="padding:14px"><b>How to pay</b>${ACCOUNTS.filter(
+          (a) => a.id !== "cash",
+        )
+          .map(
+            (a) =>
+              `<div style="border:1px solid var(--line);border-radius:8px;padding:8px 10px;margin-top:8px"><b style="font-size:13px">${a.name}</b><div class="mono" style="font-size:15px">${a.details}</div></div>`,
+          )
+          .join(
+            "",
+          )}<p style="font-size:12.5px;margin-top:8px">Or pay cash at the office. Write your Student ID <b>${s.id}</b> in the reference. The office records it, then the receipt appears here.</p></div></div>`
+      : ""
+  }
+  <div class="card"><div class="cb" style="padding:14px;font-size:13.5px"><b>Meals in ${monthName(S.period)}</b><p style="margin-top:4px">Eaten so far: <b>${mealsUnits(mc)} meals</b> <span class="muted">(B ${mc.b}, L ${mc.l}, D ${mc.d})</span> · ${tk(mealCost(mc))}</p><button class="btn sm" style="margin-top:8px" data-go="meals">Turn meals on / off</button></div></div>
+  <div class="card"><div class="cb" style="padding:14px"><b>Recent payments</b><div style="margin-top:6px">${ps.length ? ps.map((p) => `<div class="row click" style="justify-content:space-between;padding:5px 0;cursor:pointer" data-act="receipt" data-id="${p.no}"><span class="mono" style="color:var(--brand)">${p.no}</span><span class="num">${tk(p.amt)}</span></div>`).join("") : '<span class="muted" style="font-size:13px">No payments yet.</span>'}</div></div></div>`;
+  }
+  function phAccount(s) {
+    const r = rahim();
+    if (r && s.id === r.id) UI.seen.rahimAccount = true;
+    return `<b style="font-size:17px">My account</b><div class="card"><div class="cb stack" style="gap:10px;padding:14px">${accountBlock(s.id)}</div></div>
+  <div class="card"><div class="cb" style="padding:14px"><b>Bills (tokens)</b><div style="margin-top:6px">${tokenList(s.id)}</div></div></div>
+  <div class="card" data-tour="receipts"><div class="cb" style="padding:14px"><b>Payments & receipts</b><div style="margin-top:6px">${payList(s.id)}</div></div></div>`;
+  }
+  function phMeals(s) {
+    const first = firstEditable(),
+      last = addDays(S.now, 31);
+    const days = datesOf(S.period).filter((d) => inHostel(s, d));
+    return `<b style="font-size:17px">My meals · ${monthName(S.period)}</b>
+  <div class="note info" style="font-size:12.5px">You can change a day's meals until <b>${cutoffText()}</b> the night before. Right now: from <b>${fdate(first)}</b>. Tap a big ✓ or ✕. Grey ✕ = turned off by the office.</div>
+  <div class="card" data-tour="meal-cal"><div class="cb" style="padding:10px"><table class="tbl" style="font-size:13px"><thead><tr><th>Date</th>${SLOTS.map((sl) => `<th style="text-align:center">${SL[sl].slice(0, 1)}</th>`).join("")}</tr></thead><tbody>
+  ${days
+    .map((d) => {
+      const ed = d >= first && d <= last;
+      return `<tr style="${d === S.now ? "background:var(--brand-50)" : ""}"><td style="white-space:nowrap">${+d.slice(8)} <span class="muted" style="font-size:11.5px">${WD(d)}</span>${d === S.now ? ' <span style="color:var(--brand);font-size:11px">today</span>' : ""}</td>${SLOTS.map(
+        (sl) => {
+          const by = offBy(s.id, d, sl);
+          const cls = !by ? "on" : by === "student" ? "off" : "office";
+          const txt = by ? "✕" : "✓";
+          return `<td style="text-align:center">${ed && by !== "office" ? `<button class="mcell ${cls}" data-act="my-meal" data-d="${d}" data-sl="${sl}" aria-label="${SL[sl]} ${d} ${by ? "off" : "on"}">${txt}</button>` : `<span class="mcell ${cls}">${txt}</span>`}</td>`;
+        },
+      ).join("")}</tr>`;
+    })
+    .join("")}
+  </tbody></table></div></div>`;
+  }
+  function phProfile(s) {
+    return `<b style="font-size:17px">My profile</b><div class="card"><div class="cb" style="padding:14px"><dl class="kv"><dt>Student ID</dt><dd>${s.id}</dd><dt>Building</dt><dd>${s.bld}</dd><dt>Room / Seat</dt><dd>${s.room} / ${s.seat}</dd><dt>Seat rent</dt><dd>${tk(s.rent)}</dd><dt>Phone (login)</dt><dd class="mono">${s.phone}</dd><dt>School</dt><dd>${esc(s.school)}</dd><dt>College</dt><dd>${esc(s.college)}</dd><dt>Batch</dt><dd>${s.batch}</dd></dl></div></div>
+  <p class="muted" style="font-size:12.5px">To correct any of this, tell the hostel office.</p><button class="btn" data-act="toast" data-t="Change password" data-s="ছাত্র যেকোনো সময় নিজের পাসওয়ার্ড বদলাতে পারে।">Change password</button>`;
+  }
+
+  /* ================================================================ Guide */
+  function renderGuide() {
+    const cur = curStep();
+    return `<aside class="guide" aria-label="Guide"><div class="gh"><h2>গাইড: রহিমের প্রথম মাস</h2><p>প্রতিটা ধাপে বলা আছে কোন ভূমিকায় কী চাপবেন। কাজ হলে ধাপটা নিজে সবুজ হয়।</p>
+    <div class="prog"><div class="bar"><i style="width:${Math.round((cur / STEPS.length) * 100)}%"></i></div>${cur}/${STEPS.length}</div></div>
+    <div class="gb">${cur >= STEPS.length ? `<div class="note ok bn">পুরো Phase 1-এর ধারা দেখা হলো। আবার শুরু করতে Reset চাপুন।</div>` : ""}
+    ${STEPS.map((s, k) => {
+      const st = k < cur ? "done" : k === cur ? "cur" : "";
+      const open = k === cur || UI.open[k];
+      return `<div class="gs ${st}"><button class="gt" data-act="g-toggle" data-id="${k}"><span class="no">${k < cur ? "✓" : k + 1}</span><div><div class="t">${s.t}</div><div class="rc" style="color:${ROLES[s.role].hex}">${ROLES[s.role].label}</div></div></button>
+      ${open ? `<div class="gd"><p>${s.d}</p>${k === cur ? `<div><button class="btn sm pri" data-act="g-go" data-id="${k}">সেখানে নিয়ে যান →</button></div>` : ""}</div>` : ""}</div>`;
+    }).join("")}</div></aside>`;
+  }
+  function applyTour() {
+    document.querySelectorAll(".tour").forEach((n) => n.classList.remove("tour"));
+    if (UI.mode !== "demo") {
+      return;
+    }
+    const cur = curStep();
+    if (lastStep !== null && cur > lastStep) {
+      toast(`ধাপ ${cur} শেষ ✓`, cur < STEPS.length ? `পরের ধাপ: ${STEPS[cur].t}` : "পুরো গাইড শেষ!");
+    }
+    lastStep = cur;
+    if (!UI.guide || cur >= STEPS.length || MODAL) return;
+    const s = STEPS[cur];
+    let key = s.tour;
+    if (UI.role !== s.role) key = "role-" + s.role;
+    else if (s.go.view && UI.view !== s.go.view) {
+      key = UI.role === "student" ? "ptab-" + s.go.view : "nav-" + UI.role + "-" + s.go.view;
+    }
+    const el = document.querySelector(`[data-tour="${key}"]`);
+    if (el) el.classList.add("tour");
+  }
+
+  /* ================================================================ Modals */
+  function renderModal() {
+    const m = MODAL;
+    const wrap = (title, sub, body, foot) =>
+      `<div class="ov" data-act="ov"><div class="modal" role="dialog" aria-modal="true" aria-label="${esc(title)}"><div class="mh"><div><h2>${title}</h2>${sub ? `<p>${sub}</p>` : ""}</div><button class="btn sm ghost" data-act="close" aria-label="Close">✕</button></div><div class="mb">${body}</div>${foot ? `<div class="mf">${foot}</div>` : ""}</div></div>`;
+    if (m.type === "admit") {
+      const f = m.f,
+        seats = freeSeats();
+      const steps = ["Student", "Seat & rent", "First bill"];
+      const stepper = `<div class="stepper">${steps.map((s, i) => `<span class="${i === m.step ? "on" : i < m.step ? "done" : ""}">${i + 1}. ${s}</span>`).join("")}</div>`;
+      const inp = (k, l, h = "") =>
+        `<div class="field"><label for="a-${k}">${l}</label><input id="a-${k}" data-f="${k}" value="${esc(f[k] || "")}">${h ? `<span class="hint">${h}</span>` : ""}</div>`;
+      let body = stepper;
+      if (m.step === 0)
+        body += `<button class="btn sm" data-act="admit-example" style="align-self:flex-start">উদাহরণ দিয়ে ভরুন (রহিম)</button><div class="grid g2">${inp("name", "Full name")}${inp("phone", "Mobile (login)", "Their own number. First password = last 6 digits.")}${inp("father", "Father's name")}${inp("guardian", "Guardian phone")}${inp("school", "School")}${inp("college", "College")}${inp("batch", "Batch")}</div>`;
+      if (m.step === 1)
+        body += `<div class="field"><label for="a-seat">Free seat</label><select id="a-seat" data-f="seat">${seats
+          .map((x) => {
+            const k = `${x.bld}|${x.room}|${x.seat}`;
+            return `<option value="${k}" ${f.seat === k ? "selected" : ""}>${x.bld} · Room ${x.room} · Seat ${x.seat} — default ${tk(x.rent)}</option>`;
+          })
+          .join(
+            "",
+          )}</select><span class="hint">Only empty seats are listed. The rent fills from the room's default.</span></div>${inp("rent", "Monthly rent (৳)", "Change it if this student pays differently.")}<div class="note">Admission date: <b>${fdate(S.now)}</b> (today)</div>`;
+      if (m.step === 2) {
+        const al = admissionLines(+f.rent, S.now);
+        const tot = al.lines.reduce((a, l) => a + l.amt, 0);
+        body += `<div class="note info"><div>${S.rates.rule === "prorata" ? `Joining on ${fdate(S.now)}: ${al.days} of ${al.full} days left this month, so rent, meal deposit and baburchi are charged by days.` : "Charged for the whole month."} Advance = ${S.rates.advM} months of rent (held, returned when leaving).</div></div>
+      <div class="paper"><h4>Admission bill · ${esc(f.name)}</h4><table>${al.lines.map((l) => `<tr><td>${l.label}</td><td>${GROUP.format(l.amt)}</td></tr>`).join("")}<tr class="t"><td>Total</td><td>${GROUP.format(tot)}</td></tr></table></div>`;
+      }
+      const foot = `${m.step > 0 ? `<button class="btn" data-act="admit-back">Back</button>` : ""}<button class="btn pri" data-act="admit-next" data-tour="admit-next">${m.step < 2 ? "Continue →" : "Admit student ✓"}</button>`;
+      return wrap("New student", "Admission: profile, seat and first bill", body, foot);
+    }
+    if (m.type === "admitted") {
+      const s = stud(m.sid),
+        t = S.tokens.find((x) => x.sid === s.id && x.kind === "admission");
+      return wrap(
+        "Student admitted ✓",
+        "",
+        `<div class="note ok"><div><b>${esc(s.name)}</b> · Student ID <b>${s.id}</b> · ${s.bld} · Room ${s.room} · Seat ${s.seat}</div></div>
+      <dl class="kv"><dt>Login</dt><dd class="mono">${s.phone}</dd><dt>First password</dt><dd class="mono">${s.phone.replace(/\D/g, "").slice(-6)}</dd><dt>First bill</dt><dd>${tk(t.total)}</dd></dl>
+      <p class="muted bn" style="font-size:13.5px">প্রথম লগইনে ছাত্রকে নিজের পাসওয়ার্ড বানাতে হবে। বিলটা এখনই তার ফোনে দেখা যাচ্ছে।</p>`,
+        `<button class="btn" data-act="close">Close</button><button class="btn pri" data-act="to-student" data-sid="${s.id}">See it on ${esc(s.name.split(" ")[0])}'s phone →</button>`,
+      );
+    }
+    if (m.type === "pay") {
+      const list = active();
+      const sid = m.sid || rahim()?.id || list[0].id;
+      const s = stud(sid),
+        due = totalOf(sid);
+      const amt = m.amt ?? Math.max(0, due);
+      return wrap(
+        "Take payment",
+        "A receipt is made automatically.",
+        `
+      <div class="field"><label for="p-sid">Student</label><select id="p-sid" data-pf="sid">${list.map((x) => `<option value="${x.id}" ${x.id === sid ? "selected" : ""}>${esc(x.name)} · ${x.id} · ${x.bld} ${x.room}-${x.seat}</option>`).join("")}</select></div>
+      <div class="note ${due > 0 ? "warn" : "ok"}">Due now: <b>${due > 0 ? tk(due) : "nothing"}</b>${
+        dues(sid).length
+          ? ` — oldest first: ${dues(sid)
+              .slice(0, 3)
+              .map((d) => `${monthName(d.period).split(" ")[0]} ${HL[d.head].toLowerCase()} ${tk(d.amt)}`)
+              .join(", ")}${dues(sid).length > 3 ? "…" : ""}`
+          : ""
+      }</div>
+      <div class="grid g2"><div class="field"><label for="p-amt">Amount (৳)</label><input id="p-amt" data-pf="amt" inputmode="decimal" value="${amt}"></div>
+      <div class="field"><label for="p-acct">Received in</label><select id="p-acct" data-pf="acct">${ACCOUNTS.map((a) => `<option value="${a.id}" ${(m.acct || "bkash") === a.id ? "selected" : ""}>${a.name}</option>`).join("")}</select></div>
+      <div class="field"><label for="p-trx">bKash / Nagad TrxID</label><input id="p-trx" data-pf="trx" value="${esc(m.trx ?? "BKH7Q2M9XZ")}"></div>
+      <div class="field"><label>Date</label><input value="${fdate(S.now)}" disabled></div></div>`,
+        `<button class="btn" data-act="close">Cancel</button><button class="btn pri" data-act="pay-save" data-tour="pay-save">Save & make receipt</button>`,
+      );
+    }
+    if (m.type === "receipt") {
+      const p = S.payments.find((x) => x.no === m.no),
+        s = stud(p.sid),
+        a = ACCOUNTS.find((x) => x.id === p.acct);
+      return wrap(
+        "Receipt " + p.no,
+        "",
+        `<div class="receipt"><div class="rt"><b>Rangdhanu Chatrabash</b><span class="mono">${p.no}</span></div>
+      <dl class="kv"><dt>Date</dt><dd>${fdate(p.date)}</dd><dt>Student</dt><dd>${esc(s.name)} (ID ${s.id})</dd><dt>College</dt><dd>${esc(s.college)}</dd><dt>Building / Room / Seat</dt><dd>${s.bld} / ${s.room} / ${s.seat}</dd><dt>Paid by</dt><dd>${a.name}${p.trx ? ` · <span class="mono">${esc(p.trx)}</span>` : ""}</dd><dt>Received by</dt><dd>${esc(p.by)}</dd></dl>
+      <table class="tbl" style="margin-top:10px"><thead><tr><th>For</th><th class="r">Amount</th></tr></thead><tbody>${p.allocs.map((x) => `<tr><td>${monthName(x.period)} · ${HL[x.head]}</td><td class="r">${tk(x.amt)}</td></tr>`).join("")}<tr class="tot"><td>Paid</td><td class="r">${tk(p.amt)}</td></tr></tbody></table>
+      <div class="row" style="justify-content:space-between;margin-top:8px"><span class="muted">Due before: ${tk(Math.max(0, p.before))}</span><b class="${p.after > 0 ? "red" : "green"}">${p.after > 0 ? "Remaining due " + tk(p.after) : "Fully paid"}</b></div></div>
+      <p class="muted bn" style="font-size:13px">ভুল হলে এই রসিদ মোছা যায় না — অ্যাডমিন কারণ লিখে "Void" করেন, আর টাকা আবার বাকিতে ফিরে আসে।</p>`,
+        `<button class="btn" data-act="close">Close</button>`,
+      );
+    }
+    if (m.type === "token") {
+      const t = S.tokens.find((x) => x.id === m.id),
+        s = stud(t.sid),
+        st = tokenStatus(t);
+      const title =
+        (t.kind === "admission" ? "Admission bill " : "Accounts of ") +
+        MON[+t.period.slice(5) - 1] +
+        "-" +
+        t.period.slice(0, 4);
+      return wrap(
+        t.kind === "admission" ? "Admission bill" : "Token · " + monthName(t.period),
+        "Same as the paper token, also on the student's phone",
+        `<div class="paper"><h4>Rangdhanu Chatrabash<br>Building No: ${s.bld}<br>${title}</h4>
+      <table><tr><td>Student Name</td><td><b>${esc(s.name)}</b></td></tr><tr><td>Student ID</td><td>${s.id}</td></tr><tr><td>Room / Seat</td><td>${s.room}-${s.seat}</td></tr>
+      ${t.cur.map((l) => `<tr><td>${l.label}</td><td>${GROUP.format(l.amt)}</td></tr>`).join("")}<tr><td><b>This month total</b></td><td><b>${GROUP.format(t.curT)}</b></td></tr>
+      ${t.prev.map((l) => `<tr><td>${l.label}</td><td>${GROUP.format(Math.round(l.amt * 100) / 100)}</td></tr>`).join("")}<tr class="t"><td>Total</td><td>${GROUP.format(Math.round(t.total * 100) / 100)}</td></tr></table>
+      <p style="font-size:12px;margin-top:8px">bKash: 01712-345678 · Nagad: 01819-876543</p>
+      <p style="font-size:11.5px;margin-top:4px">N:B: You must pay your bill in 1st week of this month. Otherwise your meal service will be off from 2nd week. Write your Student ID as reference & collect your money receipt.</p></div>
+      <div class="row" style="justify-content:space-between"><span>Status</span>${statusPill(st.st)}</div>`,
+        `<button class="btn" data-act="close">Close</button>`,
+      );
+    }
+    return "";
+  }
+
+  /* ================================================================ Actions */
+  function toast(t, s) {
+    const d = document.createElement("div");
+    d.className = "toast";
+    d.innerHTML = `<b>${esc(t)}</b>${s ? `<small>${esc(s)}</small>` : ""}`;
+    $("#toasts").appendChild(d);
+    setTimeout(() => d.remove(), 3800);
+  }
+  function go(view, p = {}) {
+    UI.view = view;
+    UI.p = p;
+    MODAL = null;
+    render();
+    window.scrollTo(0, 0);
+  }
+  const ACT = {
+    guide() {
+      UI.guide = !UI.guide;
+      render();
+    },
+    reset() {
+      try {
+        localStorage.removeItem(KEY);
+      } catch (_) {}
+      S = freshState();
+      seedHistory();
+      UI = { mode: "demo", role: "admin", view: "dash", sid: "10005", p: {}, guide: true, seen: {}, open: {} };
+      MODAL = null;
+      lastStep = 0;
+      render();
+      toast("Demo reset", "সব আবার শুরু থেকে।");
+    },
+    close() {
+      MODAL = null;
+      render();
+    },
+    ov(e) {
+      if (e.target.classList.contains("ov")) {
+        MODAL = null;
+        render();
+      }
+    },
+    toast(e, el) {
+      toast(el.dataset.t, el.dataset.s);
+    },
+    "g-toggle"(e, el) {
+      UI.open[el.dataset.id] = !UI.open[el.dataset.id];
+      render();
+    },
+    "g-go"(e, el) {
+      const s = STEPS[+el.dataset.id];
+      UI.mode = "demo";
+      UI.role = s.role;
+      if (s.go.sid === "rahim" && rahim()) UI.sid = rahim().id;
+      MODAL = null;
+      go(s.go.view, s.go.p || {});
+    },
+    admit() {
+      MODAL = { type: "admit", step: 0, f: { batch: "2026" } };
+      render();
+    },
+    "admit-example"() {
+      const fs = freeSeats();
+      const pick = fs.find((x) => x.bld === "207" && x.room === "603") || fs[0];
+      MODAL.f = {
+        name: "Rahim Uddin",
+        phone: "01711223344",
+        father: "Karim Uddin",
+        guardian: "01911223344",
+        school: "Bhola Govt. High School",
+        college: "Notre Dame College",
+        batch: "2026",
+        seat: `${pick.bld}|${pick.room}|${pick.seat}`,
+        rent: String(pick.rent),
+      };
+      render();
+    },
+    "admit-back"() {
+      MODAL.step--;
+      render();
+    },
+    "admit-next"() {
+      const f = MODAL.f;
+      if (MODAL.step === 0) {
+        if (!f.name || f.name.trim().length < 2) {
+          toast("Name is missing");
+          return;
+        }
+        if (!/^01[3-9]\d{8}$/.test((f.phone || "").replace(/\D/g, ""))) {
+          toast("Enter a valid mobile number", "যেমন 01711223344");
+          return;
+        }
+        if (S.students.some((s) => s.phone === f.phone.replace(/\D/g, ""))) {
+          toast("This phone is already used");
+          return;
+        }
+        if (!f.seat) {
+          const x = freeSeats()[0];
+          f.seat = `${x.bld}|${x.room}|${x.seat}`;
+          f.rent = String(x.rent);
+        }
+        MODAL.step = 1;
+        render();
+        return;
+      }
+      if (MODAL.step === 1) {
+        if (!(+f.rent > 0)) {
+          toast("Enter the monthly rent");
+          return;
+        }
+        MODAL.step = 2;
+        render();
+        return;
+      }
+      const [bld, room, seat] = f.seat.split("|");
+      S.counters.student++;
+      const s = {
+        id: String(S.counters.student),
+        name: f.name.trim(),
+        phone: f.phone.replace(/\D/g, ""),
+        bld,
+        room,
+        seat,
+        rent: +f.rent,
+        college: f.college || "—",
+        school: f.school || "—",
+        batch: f.batch || "—",
+        father: f.father || "—",
+        start: S.now,
+        admission: S.now,
+        status: "active",
+      };
+      S.students.push(s);
+      makeToken(s, S.period, "admission", admissionLines(s.rent, S.now).lines);
+      log(`student.admit ${s.name} (${s.id}) · ${bld} ${room}-${seat}`);
+      MODAL = { type: "admitted", sid: s.id };
+      render();
+    },
+    "to-student"(e, el) {
+      UI.role = "student";
+      UI.sid = el.dataset.sid;
+      MODAL = null;
+      go("home");
+    },
+    "pay-new"(e, el) {
+      MODAL = { type: "pay", sid: el.dataset.sid || UI.p.id };
+      render();
+    },
+    "pay-save"() {
+      const m = MODAL;
+      const sid = $("#p-sid").value,
+        amt = +String($("#p-amt").value).replace(/,/g, ""),
+        acct = $("#p-acct").value,
+        trx = $("#p-trx").value.trim();
+      if (!(amt > 0)) {
+        toast("Amount must be more than 0");
+        return;
+      }
+      if (acct !== "cash" && !trx) {
+        toast("Enter the TrxID", "bKash/Nagad-এর জন্য TrxID লাগে।");
+        return;
+      }
+      const p = takePayment(sid, amt, acct, S.now, acct === "cash" ? "" : trx, ROLES[UI.role].user || "Office");
+      MODAL = { type: "receipt", no: p.no };
+      render();
+      toast("Payment saved · " + p.no, "রসিদ ছাত্রের ফোনেও চলে গেল।");
+    },
+    receipt(e, el) {
+      MODAL = { type: "receipt", no: el.dataset.id };
+      render();
+    },
+    token(e, el) {
+      MODAL = { type: "token", id: el.dataset.id };
+      render();
+    },
+    "grid-tog"(e, el) {
+      const date = UI.p.date || S.now;
+      const { sid, sl } = el.dataset;
+      if (offBy(sid, date, sl)) clearOff(sid, date, sl);
+      else setOff(sid, date, sl, "office");
+      log(`meal.save_day ${date} ${stud(sid).name} ${SL[sl]}`);
+      render();
+    },
+    "meal-day"(e, el) {
+      const d = addDays(UI.p.date || S.now, +el.dataset.d);
+      UI.p = { ...UI.p, date: d };
+      render();
+    },
+    "my-meal"(e, el) {
+      const s = stud();
+      const { d, sl } = el.dataset;
+      if (d < firstEditable()) {
+        toast("Too late", "আগের রাতের সময় পার হয়ে গেছে।");
+        return;
+      }
+      if (offBy(s.id, d, sl) === "student") {
+        clearOff(s.id, d, sl);
+        toast(`${SL[sl]} on ${fdate(d)}: ON`);
+      } else {
+        setOff(s.id, d, sl, "student");
+        toast(`${SL[sl]} on ${fdate(d)}: OFF`, 'অফিসের গ্রিডে "by student" দেখাবে।');
+      }
+      log(`meal.student ${fdate(d)} ${SL[sl]}`);
+      render();
+    },
+    "me-preview"() {
+      UI.p = { ...UI.p, preview: true };
+      render();
+    },
+    "me-run"() {
+      runMonthEnd();
+      UI.p = {};
+      render();
+      toast("Month-end done", `${monthName(prevP(S.period))} বন্ধ, ${monthName(S.period)}-এর টোকেন তৈরি।`);
+    },
+    rtab(e, el) {
+      UI.p = { tab: el.dataset.id };
+      render();
+    },
+    "save-rates"() {
+      const n = (id) => +String($(id).value).replace(/,/g, "");
+      const r = S.rates;
+      const nv = {
+        b: n("#r-b"),
+        l: n("#r-l"),
+        d: n("#r-d"),
+        dep: n("#r-dep"),
+        bab: n("#r-bab"),
+        advM: n("#r-adv"),
+        sc: n("#r-sc"),
+      };
+      if (Object.values(nv).some((v) => !(v >= 0))) {
+        toast("Check the numbers");
+        return;
+      }
+      Object.assign(r, nv, { rule: $("#r-rule").value });
+      log("rates.save " + monthName(S.period));
+      render();
+      toast("Rates saved");
+    },
+    "save-cut"() {
+      S.rates.cutoff = +$("#r-cut").value;
+      log("settings.meal_cutoff " + cutoffText());
+      render();
+      toast("Saved", `ছাত্ররা আগের রাত ${cutoffText()} পর্যন্ত মিল বদলাতে পারবে।`);
+    },
+  };
+  document.addEventListener("click", (e) => {
+    const m = e.target.closest("[data-mode]");
+    if (m) {
+      UI.mode = m.dataset.mode;
+      MODAL = null;
+      render();
+      window.scrollTo(0, 0);
+      return;
+    }
+    const j = e.target.closest("[data-jump]");
+    if (j) {
+      document.getElementById(j.dataset.jump)?.scrollIntoView({ behavior: "smooth" });
+      return;
+    }
+    const r = e.target.closest("[data-role]");
+    if (r) {
+      UI.role = r.dataset.role;
+      UI.view = UI.role === "student" ? "home" : "dash";
+      UI.p = {};
+      if (UI.role === "student" && rahim() && !UI.sidChosen) UI.sid = rahim().id;
+      MODAL = null;
+      render();
+      return;
+    }
+    const g = e.target.closest("[data-go]");
+    if (g && !e.target.closest("[data-act]")) {
+      let p = {};
+      try {
+        p = g.dataset.p ? JSON.parse(g.dataset.p) : {};
+      } catch (_) {}
+      go(g.dataset.go, p);
+      return;
+    }
+    const a = e.target.closest("[data-act]");
+    if (a && ACT[a.dataset.act] && a.tagName !== "SELECT") {
+      ACT[a.dataset.act](e, a);
+    }
+  });
+  document.addEventListener("input", (e) => {
+    const f = e.target.dataset.f;
+    if (f && MODAL && MODAL.f) {
+      MODAL.f[f] = e.target.value;
+      if (f === "seat") {
+        const [b, rm] = e.target.value.split("|");
+        MODAL.f.rent = String(S.buildings.find((x) => x.code === b).rooms[rm].rent);
+        const ri = $("#a-rent");
+        if (ri) ri.value = MODAL.f.rent;
+      }
+    }
+  });
+  document.addEventListener("change", (e) => {
+    if (e.target.id === "sidpick") {
+      UI.sid = e.target.value;
+      UI.sidChosen = true;
+      render();
+      return;
+    }
+    if (e.target.dataset.act === "meal-bld") {
+      UI.p = { ...UI.p, bld: e.target.value };
+      render();
+      return;
+    }
+    if (e.target.id === "p-sid" && MODAL) {
+      MODAL = { type: "pay", sid: e.target.value, acct: $("#p-acct").value, trx: $("#p-trx").value };
+      render();
+      return;
+    }
+    const f = e.target.dataset.f;
+    if (f && MODAL && MODAL.f) {
+      MODAL.f[f] = e.target.value;
+      if (f === "seat") {
+        const [b, rm] = e.target.value.split("|");
+        MODAL.f.rent = String(S.buildings.find((x) => x.code === b).rooms[rm].rent);
+        render();
+      }
+    }
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && MODAL) {
+      MODAL = null;
+      render();
+    }
+  });
+  window.addEventListener("resize", () => {
+    const tb = $("#top");
+    if (tb) document.documentElement.style.setProperty("--th", tb.offsetHeight + "px");
+  });
+
+  load();
+  if (window.innerWidth < 1180) UI.guide = false;
+  lastStep = curStep();
+  render();
+</script>

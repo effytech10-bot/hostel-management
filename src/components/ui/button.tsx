@@ -4,22 +4,23 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all outline-none disabled:pointer-events-none disabled:opacity-50 focus-visible:ring-[3px] focus-visible:ring-ring/50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+  "inline-flex shrink-0 items-center justify-center gap-1.5 whitespace-nowrap font-semibold transition-colors outline-none cursor-pointer disabled:pointer-events-none disabled:opacity-45 disabled:cursor-not-allowed [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground shadow-xs hover:bg-primary/90",
-        destructive: "bg-destructive text-white shadow-xs hover:bg-destructive/90",
-        outline: "border bg-background shadow-xs hover:bg-accent hover:text-accent-foreground",
-        secondary: "bg-secondary text-secondary-foreground shadow-xs hover:bg-secondary/80",
-        ghost: "hover:bg-accent hover:text-accent-foreground",
-        link: "text-primary underline-offset-4 hover:underline",
+        default: "border border-brand bg-brand text-white hover:bg-brand-600 shadow-xs",
+        outline: "border border-line bg-surface text-ink hover:bg-surface-2",
+        secondary: "border border-line bg-surface-3 text-ink-2 hover:bg-line/60",
+        success: "border border-ok bg-ok text-white hover:bg-ok/90 shadow-xs",
+        destructive: "border border-bad bg-bad text-white hover:bg-bad/90 shadow-xs",
+        ghost: "border border-transparent bg-transparent text-ink hover:bg-surface-2",
+        link: "border border-transparent text-brand underline-offset-4 hover:underline",
       },
       size: {
-        default: "h-10 px-4 py-2",
-        sm: "h-8 gap-1.5 px-3",
-        lg: "h-11 px-6 text-base",
-        icon: "size-10",
+        default: "h-[35px] px-[13px] py-2 text-[13.5px] rounded-[9px]",
+        sm: "h-[27px] px-[10px] py-[5px] text-[12.5px] rounded-[8px]",
+        lg: "h-10 px-4 py-2 text-[14.5px] rounded-[9px]",
+        icon: "size-[35px] p-0 rounded-[9px]",
       },
     },
     defaultVariants: { variant: "default", size: "default" },

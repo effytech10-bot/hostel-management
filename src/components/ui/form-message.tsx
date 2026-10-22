@@ -6,8 +6,8 @@ export function FormMessage({ error, message, className }: { error?: string; mes
     <p
       role={error ? "alert" : "status"}
       className={cn(
-        "rounded-md px-3 py-2 text-sm",
-        error ? "bg-red-50 text-red-700" : "bg-emerald-50 text-emerald-700",
+        "rounded-[10px] border px-3 py-2 text-[13px] leading-normal",
+        error ? "border-bad-line bg-bad-bg text-bad" : "border-ok-line bg-ok-bg text-ok",
         className,
       )}
     >
@@ -18,5 +18,5 @@ export function FormMessage({ error, message, className }: { error?: string; mes
 
 export function FieldError({ errors }: { errors?: string[] }) {
   if (!errors?.length) return null;
-  return <p className="text-sm text-red-600">{errors[0]}</p>;
+  return <p className="text-bad mt-1 text-[11.5px] font-medium">{errors[0]}</p>;
 }

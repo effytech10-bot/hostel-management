@@ -405,8 +405,8 @@ export async function TokenDetailPage({
 
       <div className="mb-4 flex flex-wrap items-center gap-2">
         <TokenStateBadge state={view.state} />
-        {token.early && <Badge variant="outline">Made early</Badge>}
-        {token.kind === "admission" && <Badge variant="outline">Admission token</Badge>}
+        {token.early && <Badge variant="info">Made early</Badge>}
+        {token.kind === "admission" && <Badge variant="info">Admission token</Badge>}
       </div>
 
       {!view.isLatest && view.latestCode && (

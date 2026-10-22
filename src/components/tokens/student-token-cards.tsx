@@ -37,7 +37,7 @@ export function LatestTokenCard({
             <div className="flex flex-wrap items-center gap-2">
               <span className="font-mono text-lg font-semibold">{latest.code}</span>
               <TokenStateBadge state={latest.state} />
-              {latest.early && <Badge variant="outline">Early</Badge>}
+              {latest.early && <Badge variant="info">Early</Badge>}
             </div>
             <dl className="grid grid-cols-3 gap-2 text-sm">
               <div>

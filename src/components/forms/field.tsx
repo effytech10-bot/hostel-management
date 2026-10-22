@@ -19,7 +19,7 @@ export function Field({ name, label, hint, errors, wrapperClassName, id, ...inpu
     <div className={cn("flex flex-col gap-2", wrapperClassName)}>
       <Label htmlFor={inputId}>{label}</Label>
       <Input id={inputId} name={name} aria-invalid={!!fieldErrors?.length} {...inputProps} />
-      {hint && !fieldErrors?.length && <p className="text-muted-foreground text-xs">{hint}</p>}
+      {hint && !fieldErrors?.length && <p className="text-muted-foreground text-[11.5px]">{hint}</p>}
       <FieldError errors={fieldErrors} />
     </div>
   );
