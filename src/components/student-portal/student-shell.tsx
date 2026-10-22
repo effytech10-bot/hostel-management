@@ -83,8 +83,8 @@ export function StudentShell({ user, children }: { user: SessionUser; children: 
                 key={tab.href}
                 href={tab.href}
                 className={cn(
-                  "flex flex-col items-center justify-center gap-1 py-2 pb-2.5 px-1 text-[11.5px] font-semibold transition-colors select-none",
-                  active ? "text-[#c9581a]" : "text-muted hover:text-ink-2",
+                  "flex flex-col items-center justify-center gap-1 py-2 pb-2.5 px-1 text-[11.5px] font-semibold transition-colors select-none focus:outline-none focus-visible:ring-1 focus-visible:ring-brand",
+                  active ? "text-student" : "text-muted hover:text-ink-2",
                 )}
                 aria-current={active ? "page" : undefined}
               >
