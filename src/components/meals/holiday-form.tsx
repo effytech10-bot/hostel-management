@@ -20,9 +20,11 @@ export function HolidayForm({ buildings }: { buildings: { id: string; code: stri
     <form action={formAction} className="grid gap-4 sm:grid-cols-2">
       <Field name="from" label="From" type="date" defaultValue={today} required errors={e} />
       <Field name="to" label="To" type="date" defaultValue={today} required errors={e} />
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="holiday-building">Building</Label>
-        <Select id="holiday-building" name="buildingId" defaultValue="">
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="holiday-building" className="text-[12.5px] font-semibold text-ink-2">
+          Building
+        </Label>
+        <Select id="holiday-building" name="buildingId" defaultValue="" className="h-10 text-[13.5px]">
           <option value="">All buildings</option>
           {buildings.map((b) => (
             <option key={b.id} value={b.id}>
@@ -31,12 +33,12 @@ export function HolidayForm({ buildings }: { buildings: { id: string; code: stri
           ))}
         </Select>
       </div>
-      <div className="flex flex-col gap-2">
-        <span className="text-sm font-medium">Meals</span>
+      <div className="flex flex-col gap-1.5">
+        <span className="text-[12.5px] font-semibold text-ink-2">Meals</span>
         <div className="flex h-10 items-center gap-4">
           {MEAL_SLOTS.map((slot) => (
-            <label key={slot} className="flex items-center gap-1.5 text-sm">
-              <input type="checkbox" name="slots" value={slot} defaultChecked />
+            <label key={slot} className="flex items-center gap-1.5 text-[13px] font-medium text-ink cursor-pointer">
+              <input type="checkbox" name="slots" value={slot} defaultChecked className="accent-brand" />
               {MEAL_SLOT_LABEL[slot]}
             </label>
           ))}
