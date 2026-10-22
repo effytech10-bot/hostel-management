@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { HowToPay, DueNow, StudentStrip, TokenView } from "@/components/student-portal/parts";
 import { PaymentHistory } from "@/components/payments/account-summary";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { currentPeriod, formatPeriod } from "@/lib/dates";
 import { formatTaka } from "@/lib/money";
@@ -28,7 +29,7 @@ export default async function StudentHome() {
   const printable = printed?.tokens[0] ?? null;
 
   return (
-    <div className="mx-auto flex max-w-xl flex-col gap-4">
+    <div className="flex flex-col gap-3">
       <StudentStrip me={me} />
       <DueNow totalPaisa={money.totalPaisa} />
 
@@ -46,7 +47,7 @@ export default async function StudentHome() {
               accounts={printed?.accounts ?? []}
             />
           ) : (
-            <p className="text-muted-foreground text-sm">
+            <p className="text-muted text-[13px]">
               No token yet. Your token appears here at the start of each month.
             </p>
           )}
@@ -69,21 +70,23 @@ export default async function StudentHome() {
           <CardHeader>
             <CardTitle>Meals in {formatPeriod(period)}</CardTitle>
           </CardHeader>
-          <CardContent className="flex flex-col gap-2 text-sm">
+          <CardContent className="flex flex-col gap-2 text-[13.5px]">
             <p>
-              Eaten so far: <span className="font-semibold">{formatMealUnits(meals.soFar.halfUnits)} meals</span>{" "}
-              <span className="text-muted-foreground">
+              Eaten so far: <span className="font-semibold text-ink">{formatMealUnits(meals.soFar.halfUnits)} meals</span>{" "}
+              <span className="text-muted text-[12.5px]">
                 (breakfast {meals.soFar.breakfast}, lunch {meals.soFar.lunch}, dinner {meals.soFar.dinner})
               </span>
             </p>
             {meals.soFarCostPaisa !== null && (
               <p>
-                Meal cost so far: <span className="font-semibold tabular-nums">{formatTaka(meals.soFarCostPaisa)}</span>
+                Meal cost so far: <span className="font-semibold tabular-nums text-ink">{formatTaka(meals.soFarCostPaisa)}</span>
               </p>
             )}
-            <Link href="/student/meals" className="text-primary hover:underline">
-              {meals.rules.cutoffText ? "Turn meals on / off, see day by day" : "See day by day"}
-            </Link>
+            <Button asChild size="sm" variant="outline" className="mt-1 self-start">
+              <Link href="/student/meals">
+                {meals.rules.cutoffText ? "Turn meals on / off, see day by day" : "See day by day"}
+              </Link>
+            </Button>
           </CardContent>
         </Card>
       )}
@@ -92,10 +95,10 @@ export default async function StudentHome() {
         <CardHeader>
           <CardTitle>Recent payments</CardTitle>
         </CardHeader>
-        <CardContent className="flex flex-col gap-2">
+        <CardContent className="flex flex-col gap-2.5">
           <PaymentHistory payments={money.payments.slice(0, 5)} refunds={money.refunds.slice(0, 2)} />
-          <Link href="/student/account" className="text-primary text-sm hover:underline">
-            Full account and all tokens
+          <Link href="/student/account" className="text-brand text-[13px] font-semibold hover:underline mt-1 self-start">
+            Full account and all tokens →
           </Link>
         </CardContent>
       </Card>

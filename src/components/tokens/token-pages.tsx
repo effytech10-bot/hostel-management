@@ -390,13 +390,14 @@ export async function TokenDetailPage({
 
   return (
     <>
-      {isStaff && (
-        <p className="mb-2 text-sm">
-          <Link href={basePath} className="text-muted-foreground hover:text-ink hover:underline">
-            ← Tokens
-          </Link>
-        </p>
-      )}
+      <p className="mb-2 text-sm">
+        <Link
+          href={isStaff ? basePath : "/student/account"}
+          className="text-muted-foreground hover:text-ink hover:underline"
+        >
+          ← {isStaff ? "Tokens" : "Account"}
+        </Link>
+      </p>
       <PageHeader
         title={token.code ?? "Token"}
         description={`${formatPeriod(token.period)} · ${student.name} · ID ${student.code}${view.buildingCode ? ` · ${view.buildingCode}` : ""}${token.seatText ? ` · ${token.seatText.replace(/^.*? · /, "")}` : ""}`}

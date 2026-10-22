@@ -12,20 +12,38 @@ import { MEAL_SLOT_LABEL, MEAL_SLOTS, type MealSlot } from "@/server/domain/meal
 import type { ActionState } from "@/server/errors";
 import type { MealDayState, MyMealDay } from "@/server/services/student-portal";
 
+/**
+ * Exact styling from prototype:
+ * .mcell.on { background: #e8f7ed; color: #15803d; border-color: #b9e3c6; }
+ * .mcell.off { background: #fdecec; color: #b42323; border-color: #f3c3c3; }
+ * .mcell.office { background: var(--surface-3); color: var(--muted); border-color: var(--line); }
+ */
 const CELL: Record<MealDayState, { text: string; className: string; title: string }> = {
-  on: { text: "✓", className: "border-emerald-300 bg-emerald-50 text-emerald-800", title: "Meal on" },
-  off: { text: "✕", className: "border-red-200 bg-red-50 text-red-700", title: "You turned this meal off" },
+  on: {
+    text: "✓",
+    className: "border-[#b9e3c6] bg-[#e8f7ed] text-[#15803d]",
+    title: "Meal on",
+  },
+  off: {
+    text: "✕",
+    className: "border-[#f3c3c3] bg-[#fdecec] text-[#b42323]",
+    title: "You turned this meal off",
+  },
   office_off: {
     text: "✕",
-    className: "border-transparent bg-muted text-muted-foreground",
+    className: "border-line bg-surface-3 text-muted",
     title: "Turned off by the office. Ask the office to turn it on.",
   },
-  holiday: { text: "H", className: "border-transparent bg-amber-100 text-amber-800", title: "Hostel holiday" },
+  holiday: {
+    text: "H",
+    className: "border-warn-line bg-warn-bg text-warn",
+    title: "Hostel holiday",
+  },
 };
 
 const WEEKDAY = new Intl.DateTimeFormat("en-GB", { weekday: "short", timeZone: "UTC" });
 
-/** Day-by-day meals. Days the student can still change have tappable cells. */
+/** Day-by-day meals. Days the student can still change have 40×32px tappable cells. */
 export function MyMealCalendar({ days, today }: { days: MyMealDay[]; today: string }) {
   const [pendingKey, setPendingKey] = useState<string | null>(null);
   const [result, setResult] = useState<ActionState>({});
@@ -49,18 +67,18 @@ export function MyMealCalendar({ days, today }: { days: MyMealDay[]; today: stri
   }
 
   if (days.length === 0) {
-    return <p className="text-muted-foreground text-sm">You did not stay in the hostel this month.</p>;
+    return <p className="text-muted text-[13px]">You did not stay in the hostel this month.</p>;
   }
 
   return (
     <div className="flex flex-col gap-2">
       <FormMessage error={result.error} />
-      <table className="w-full text-sm">
+      <table className="w-full text-[13px]">
         <thead>
-          <tr className="text-muted-foreground text-xs">
-            <th className="py-1 text-left font-normal">Date</th>
+          <tr className="border-b border-line text-muted text-[12px]">
+            <th className="py-2 text-left font-semibold">Date</th>
             {MEAL_SLOTS.map((slot) => (
-              <th key={slot} className="py-1 font-normal">
+              <th key={slot} className="py-2 text-center font-semibold">
                 {MEAL_SLOT_LABEL[slot]}
               </th>
             ))}
@@ -71,16 +89,16 @@ export function MyMealCalendar({ days, today }: { days: MyMealDay[]; today: stri
             <tr
               key={d.date}
               className={cn(
-                "border-t",
-                d.date === today && "bg-primary/5 font-medium",
+                "border-b border-line-2 transition-colors",
+                d.date === today && "bg-brand-50/70 font-semibold",
                 !d.editable && d.future && "opacity-80",
               )}
             >
-              <td className="py-1.5 pr-2 whitespace-nowrap">
-                {Number(d.date.slice(8))}{" "}
-                <span className="text-muted-foreground text-xs">{WEEKDAY.format(new Date(`${d.date}T00:00:00Z`))}</span>
-                {d.date === today && <span className="text-primary ml-1 text-xs">today</span>}
-                {d.holidayNote && <span className="text-muted-foreground block text-xs">{d.holidayNote}</span>}
+              <td className="py-2 pr-1 whitespace-nowrap">
+                <span className="font-bold text-ink">{Number(d.date.slice(8))}</span>{" "}
+                <span className="text-muted text-[11.5px]">{WEEKDAY.format(new Date(`${d.date}T00:00:00Z`))}</span>
+                {d.date === today && <span className="text-brand ml-1 text-[11px] font-bold">today</span>}
+                {d.holidayNote && <span className="text-muted block text-[11px]">{d.holidayNote}</span>}
               </td>
               {MEAL_SLOTS.map((slot) => {
                 const state = d.slots[slot];
@@ -88,7 +106,7 @@ export function MyMealCalendar({ days, today }: { days: MyMealDay[]; today: stri
                 const canTap = d.editable && (state === "on" || state === "off");
                 const key = `${d.date}|${slot}`;
                 return (
-                  <td key={slot} className="py-1 text-center">
+                  <td key={slot} className="py-1.5 text-center">
                     {canTap ? (
                       <button
                         type="button"
@@ -97,7 +115,7 @@ export function MyMealCalendar({ days, today }: { days: MyMealDay[]; today: stri
                         title={`${cell.title}. Tap to turn ${state === "on" ? "off" : "on"}.`}
                         aria-label={`${MEAL_SLOT_LABEL[slot]} on ${d.date}: ${state === "on" ? "on" : "off"}. Tap to change.`}
                         className={cn(
-                          "inline-flex h-9 w-12 items-center justify-center rounded-md border-2 text-sm font-semibold shadow-xs",
+                          "inline-flex h-[32px] w-[40px] items-center justify-center rounded-[8px] border-2 text-[13px] font-bold cursor-pointer transition-transform active:scale-95 select-none",
                           cell.className,
                           pendingKey === key && "animate-pulse",
                         )}
@@ -108,7 +126,7 @@ export function MyMealCalendar({ days, today }: { days: MyMealDay[]; today: stri
                       <span
                         title={cell.title}
                         className={cn(
-                          "inline-flex h-7 w-10 items-center justify-center rounded-md border text-xs font-semibold opacity-70",
+                          "inline-flex h-[26px] w-[34px] items-center justify-center rounded-[6px] border text-[12px] font-bold opacity-75 select-none",
                           cell.className,
                         )}
                       >
@@ -133,7 +151,7 @@ export function MealRangeForm({ first, last }: { first: string; last: string }) 
   const e = state.fieldErrors;
 
   return (
-    <form action={formAction} className="flex flex-col gap-4">
+    <form action={formAction} className="flex flex-col gap-3.5">
       <div className="grid grid-cols-2 gap-3">
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="meal-from">From</Label>
@@ -147,33 +165,33 @@ export function MealRangeForm({ first, last }: { first: string; last: string }) 
             onChange={(ev) => setFrom(ev.target.value)}
             required
           />
-          {e?.from && <p className="text-destructive text-xs">{e.from[0]}</p>}
+          {e?.from && <p className="text-bad text-xs">{e.from[0]}</p>}
         </div>
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="meal-to">To (including)</Label>
           <Input id="meal-to" type="date" name="to" min={from || first} max={last} defaultValue={first} required />
-          {e?.to && <p className="text-destructive text-xs">{e.to[0]}</p>}
+          {e?.to && <p className="text-bad text-xs">{e.to[0]}</p>}
         </div>
       </div>
 
-      <fieldset className="flex flex-wrap gap-4 text-sm">
-        <legend className="mb-2 text-sm font-medium">Meals</legend>
+      <fieldset className="flex flex-wrap gap-4 text-[13.5px]">
+        <legend className="mb-1.5 text-[12.5px] font-semibold text-ink-2">Meals</legend>
         {MEAL_SLOTS.map((slot) => (
-          <label key={slot} className="flex items-center gap-2">
-            <input type="checkbox" name="slots" value={slot} defaultChecked className="size-4" />
+          <label key={slot} className="flex items-center gap-1.5 text-ink cursor-pointer">
+            <input type="checkbox" name="slots" value={slot} defaultChecked className="size-4 accent-brand" />
             {MEAL_SLOT_LABEL[slot]}
           </label>
         ))}
       </fieldset>
 
-      <fieldset className="flex flex-wrap gap-4 text-sm">
-        <legend className="mb-2 text-sm font-medium">Turn</legend>
-        <label className="flex items-center gap-2">
-          <input type="radio" name="on" value="false" defaultChecked className="size-4" />
+      <fieldset className="flex flex-wrap gap-4 text-[13.5px]">
+        <legend className="mb-1.5 text-[12.5px] font-semibold text-ink-2">Turn</legend>
+        <label className="flex items-center gap-1.5 text-ink cursor-pointer">
+          <input type="radio" name="on" value="false" defaultChecked className="size-4 accent-brand" />
           OFF (I will not eat)
         </label>
-        <label className="flex items-center gap-2">
-          <input type="radio" name="on" value="true" className="size-4" />
+        <label className="flex items-center gap-1.5 text-ink cursor-pointer">
+          <input type="radio" name="on" value="true" className="size-4 accent-brand" />
           Back ON
         </label>
       </fieldset>
@@ -205,13 +223,13 @@ export function DailyMealSwitch({
   const [state, action, pending] = useActionState<ActionState, FormData>(setMyDailyMealAction, {});
   const label = MEAL_SLOT_LABEL[slot];
   return (
-    <form action={action} className="flex flex-col gap-3">
+    <form action={action} className="flex flex-col gap-2.5">
       <input type="hidden" name="slot" value={slot} />
       <input type="hidden" name="on" value={on ? "false" : "true"} />
-      <div className="flex items-center justify-between gap-4">
-        <div className="text-sm">
-          <p className="font-medium">{label} every day</p>
-          <p className="text-muted-foreground">
+      <div className="flex items-center justify-between gap-3">
+        <div className="text-[13px]">
+          <p className="font-semibold text-ink">{label} every day</p>
+          <p className="text-muted text-[12px] leading-snug">
             {on
               ? `ON. Turn it off to skip ${label.toLowerCase()} every day from ${formatDate(from)}.`
               : since && since > today
@@ -226,24 +244,24 @@ export function DailyMealSwitch({
           aria-label={`${label} every day`}
           disabled={pending}
           className={cn(
-            "relative inline-flex h-8 w-14 shrink-0 items-center rounded-full border-2 transition-colors disabled:opacity-60",
-            on ? "border-emerald-600 bg-emerald-500" : "border-slate-300 bg-slate-200",
+            "relative inline-flex h-7 w-12 shrink-0 items-center rounded-full border transition-colors disabled:opacity-60 cursor-pointer",
+            on ? "border-ok bg-ok" : "border-line bg-surface-3",
           )}
         >
           <span
             className={cn(
-              "inline-block size-6 rounded-full bg-white shadow transition-transform",
-              on ? "translate-x-6" : "translate-x-0.5",
+              "inline-block size-5 rounded-full bg-white shadow-xs transition-transform",
+              on ? "translate-x-5.5" : "translate-x-0.5",
             )}
           />
         </button>
       </div>
       {!on && (
-        <p className="text-muted-foreground text-xs">
+        <p className="text-muted text-[11.5px]">
           You can still turn {label.toLowerCase()} on for any single day in the list below.
         </p>
       )}
-      <FormMessage error={state.error} message={state.message} className="py-1" />
+      <FormMessage error={state.error} message={state.message} className="py-0.5" />
     </form>
   );
 }
