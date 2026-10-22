@@ -42,7 +42,7 @@ export function ActionButton({
       <Button type="submit" variant={variant} size={size} disabled={pending} className={className}>
         {pending ? (pendingLabel ?? "Saving…") : children}
       </Button>
-      {state.error && <span className="max-w-60 text-xs text-red-600">{state.error}</span>}
+      {state.error && <span className="max-w-60 text-xs text-bad font-semibold">{state.error}</span>}
     </form>
   );
 }
