@@ -4,6 +4,8 @@ import type { ReportParams } from "@/lib/report-params";
 import type { SessionUser } from "@/server/auth/session";
 import { HEAD_LABEL } from "@/server/domain/billing";
 import { AppError } from "@/server/errors";
+import { sentenceText } from "@/server/domain/audit-text";
+import { listAuditEntries } from "./audit";
 import { listCollections } from "./payments";
 import { balanceReport, BILLED_HEADS, mealSettlementReport, monthReport } from "./reports";
 
@@ -12,6 +14,42 @@ const tk = (paisa: number) => (paisa / 100).toFixed(2);
 
 export async function reportCsv(actor: SessionUser, p: ReportParams): Promise<{ filename: string; rows: string[][] }> {
   switch (p.r) {
+    case "audit": {
+      const { entries } = await listAuditEntries(
+        actor,
+        {
+          cat: p.cat,
+          who: p.who,
+          q: p.q,
+          from: p.datesSet ? p.from : undefined,
+          to: p.datesSet ? p.to : undefined,
+        },
+        "",
+        5000,
+      );
+      const when = new Intl.DateTimeFormat("en-GB", {
+        timeZone: "Asia/Dhaka",
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+      return {
+        filename: "activity-log",
+        rows: [
+          ["সময়", "কে করেছে", "ভূমিকা", "কী হয়েছে", "কী বদলেছে", "বিস্তারিত"],
+          ...entries.map((e) => [
+            when.format(e.at),
+            e.actor.name,
+            { admin: "অ্যাডমিন", cashier: "ক্যাশিয়ার", student: "ছাত্র", system: "সিস্টেম" }[e.actor.role],
+            sentenceText(e.sentence),
+            e.changes.map((c) => `${c.label}: ${c.from} → ${c.to}`).join("; "),
+            e.facts.map((f) => `${f.label}: ${f.value}`).join("; "),
+          ]),
+        ],
+      };
+    }
     case "dues": {
       const { rows } = await balanceReport(actor, {
         buildingId: p.building,

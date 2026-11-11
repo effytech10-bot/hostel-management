@@ -42,6 +42,14 @@ export function parseReportParams(sp: SP) {
     /** Meal settlement defaults to last month (the latest one that can be closed); others to this month. */
     month: month(r === "meals" ? addMonths(currentPeriod(), -1) : currentPeriod()),
     action: (one(sp.action) ?? "").replace(/[^a-z_]/g, "").slice(0, 40) || undefined,
+    /** Audit log: category, who did it, student search, and whether dates were chosen. */
+    cat: (one(sp.cat) ?? "").replace(/[^a-z]/g, "").slice(0, 20) || undefined,
+    who: (() => {
+      const v = one(sp.who);
+      return v === "system" || v === "students" || (v && UUID_RE.test(v)) ? v : undefined;
+    })(),
+    q: (one(sp.q) ?? "").trim().slice(0, 60) || undefined,
+    datesSet: !!(one(sp.from) || one(sp.to)),
     page: Math.max(1, Math.min(1000, Number(one(sp.page)) || 1)),
   };
 }
