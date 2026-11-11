@@ -1,12 +1,11 @@
 import "server-only";
-import { and, asc, desc, eq, gte, ilike, inArray, isNull, lte, sql, type SQL } from "drizzle-orm";
+import { and, asc, desc, eq, gte, inArray, isNull, lte, sql, type SQL } from "drizzle-orm";
 import { periodEnd, periodStart, type DateString, type Period } from "@/lib/dates";
 import type { Paisa } from "@/lib/money";
 import type { AnyPgColumn } from "drizzle-orm/pg-core";
 import { assertRole, type SessionUser } from "@/server/auth/session";
 import { db } from "@/server/db/client";
 import {
-  auditLogs,
   batches,
   buildings,
   ledgerEntries,
@@ -463,46 +462,4 @@ export async function monthReport(actor: SessionUser, period: Period) {
     },
   );
   return { rows, total };
-}
-
-// ---------------------------------------------------------------------------
-// Audit log (admin only)
-// ---------------------------------------------------------------------------
-
-export const AUDIT_PAGE_SIZE = 100;
-
-export async function listAuditLog(actor: SessionUser, filters: { action?: string; page?: number } = {}) {
-  assertRole(actor, "admin");
-  const where: SQL[] = [eq(auditLogs.orgId, actor.orgId)];
-  if (filters.action) where.push(ilike(auditLogs.action, `${filters.action.replace(/[%_\\]/g, "")}%`));
-  const page = Math.max(1, filters.page ?? 1);
-  const rows = await db()
-    .select({
-      id: auditLogs.id,
-      createdAt: auditLogs.createdAt,
-      action: auditLogs.action,
-      entityType: auditLogs.entityType,
-      entityId: auditLogs.entityId,
-      before: auditLogs.before,
-      after: auditLogs.after,
-      actorName: memberships.fullName,
-      actorRole: memberships.role,
-    })
-    .from(auditLogs)
-    .leftJoin(memberships, eq(memberships.id, auditLogs.actorMembershipId))
-    .where(and(...where))
-    .orderBy(desc(auditLogs.createdAt))
-    .limit(AUDIT_PAGE_SIZE + 1)
-    .offset((page - 1) * AUDIT_PAGE_SIZE);
-  return { rows: rows.slice(0, AUDIT_PAGE_SIZE), hasMore: rows.length > AUDIT_PAGE_SIZE, page };
-}
-
-/** Distinct first word of actions ("payment", "meal", …) for the filter. */
-export async function auditActionGroups(actor: SessionUser): Promise<string[]> {
-  assertRole(actor, "admin");
-  const rows = await db()
-    .selectDistinct({ group: sql<string>`split_part(${auditLogs.action}, '.', 1)` })
-    .from(auditLogs)
-    .where(eq(auditLogs.orgId, actor.orgId));
-  return rows.map((r) => r.group).sort();
 }
