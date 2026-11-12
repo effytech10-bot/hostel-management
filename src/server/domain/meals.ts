@@ -82,6 +82,8 @@ export function countMeals(input: {
   until?: DateString;
   /** Count only from this date (e.g. the day after the previous token's meal days). */
   from?: DateString;
+  /** When given, every meal eaten is also added here under its date (for day-by-day charts). */
+  perDay?: Map<DateString, { breakfast: number; lunch: number; dinner: number }>;
 }): MealCounts {
   const counts: MealCounts = { breakfast: 0, lunch: 0, dinner: 0, days: 0, halfUnits: 0 };
   for (const date of datesInPeriod(input.period)) {
@@ -102,6 +104,11 @@ export function countMeals(input: {
       if (!on) continue;
       counts[slot]++;
       counts.halfUnits += HALF_UNITS[slot];
+      if (input.perDay) {
+        const day = input.perDay.get(date) ?? { breakfast: 0, lunch: 0, dinner: 0 };
+        day[slot]++;
+        input.perDay.set(date, day);
+      }
     }
   }
   return counts;

@@ -1,3 +1,4 @@
+import { compact, Legend, niceScale, shortMonth } from "@/components/charts/charts";
 import { formatTaka } from "@/lib/money";
 import { FUND_COLOR, FUND_LABEL, FUNDS, type Fund } from "@/server/domain/finance";
 import type { CashStep } from "@/server/domain/income-statement";
@@ -11,45 +12,6 @@ const AXIS = "#e0e3ee";
 const SPENT = "#9aa0ba";
 const OK = "#15803d";
 const BAD = "#b42323";
-
-const MON = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-const shortMonth = (p: string) => `${MON[Number(p.slice(5, 7)) - 1]} ${p.slice(2, 4)}`;
-
-/** 0 / 10K / 20K style ticks. */
-function compact(paisa: number) {
-  const t = paisa / 100;
-  const a = Math.abs(t);
-  const s =
-    a >= 100000 ? `${+(a / 100000).toFixed(1)}L` : a >= 1000 ? `${+(a / 1000).toFixed(1)}K` : `${Math.round(a)}`;
-  return `${t < 0 ? "−" : ""}${s}`;
-}
-
-function niceScale(min: number, max: number, ticks = 4) {
-  const lo = Math.min(0, min);
-  const hi = Math.max(0, max);
-  const span = hi - lo || 1;
-  const raw = span / ticks;
-  const mag = 10 ** Math.floor(Math.log10(raw));
-  const step = [1, 2, 2.5, 5, 10].map((m) => m * mag).find((s) => span / s <= ticks) ?? 10 * mag;
-  const start = Math.floor(lo / step) * step;
-  const end = Math.ceil(hi / step) * step;
-  const values: number[] = [];
-  for (let v = start; v <= end + step / 2; v += step) values.push(Math.round(v));
-  return { lo: start, hi: end, values };
-}
-
-function Legend({ items }: { items: { label: string; color: string; dashed?: boolean }[] }) {
-  return (
-    <div className="text-ink-2 mb-1.5 flex flex-wrap gap-x-4 gap-y-1 text-[12px] font-medium">
-      {items.map((i) => (
-        <span key={i.label} className="inline-flex items-center gap-1.5">
-          <span aria-hidden className="h-2.5 w-2.5 rounded-[3px]" style={{ background: i.color }} />
-          {i.label}
-        </span>
-      ))}
-    </div>
-  );
-}
 
 // ---------------------------------------------------------------------------
 // Profit per month, one line per account

@@ -1,5 +1,6 @@
 import { Download } from "lucide-react";
 import Link from "next/link";
+import { CHART, Columns, compact, RowBars, shortDate, shortMonth, type Column } from "@/components/charts/charts";
 import { PageHeader } from "@/components/layout/app-shell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -10,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { TabsNav } from "@/components/ui/tabs-nav";
-import { formatPeriod } from "@/lib/dates";
+import { dhakaDate, formatPeriod } from "@/lib/dates";
 import { formatTaka } from "@/lib/money";
 import { parseReportParams, reportQuery, type ReportName, type ReportParams } from "@/lib/report-params";
 import { METHOD_LABEL } from "@/lib/validation/payments";
@@ -376,6 +377,25 @@ async function CollectionsReport({ actor, area, p, buildings = [] }: Props) {
         </div>
       </div>
 
+      {data.count > 0 && (
+        <Card className="mb-6">
+          <CardHeader>
+            <div>
+              <CardTitle>Collected over time</CardTitle>
+              <CardDescription>Point at a column to see the amount and the number of receipts.</CardDescription>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <Columns
+              label="Money collected over time"
+              series={[{ label: "Collected", color: CHART.in }]}
+              tick={compact}
+              cols={collectionColumns(p.from, p.to, data.byDay)}
+            />
+          </CardContent>
+        </Card>
+      )}
+
       <div className="grid gap-6 lg:grid-cols-2">
         {small(
           "By day",
@@ -521,6 +541,34 @@ async function MonthReport({ actor, p }: Props) {
           <Input id="month" type="month" name="month" defaultValue={p.month} className="h-9 w-auto text-[13.5px]" />
         </div>
       </FilterBar>
+      {rows.some((r) => r.billedTotalPaisa > 0 || r.collectedPaisa > 0) && (
+        <Card className="mb-6">
+          <CardHeader>
+            <div>
+              <CardTitle>Billed and collected, by building</CardTitle>
+              <CardDescription>
+                {total
+                  ? `${formatPeriod(p.month)}: billed ${money(total.billedTotalPaisa)}, collected ${money(total.collectedPaisa)}. Collected can include old dues paid this month.`
+                  : `${formatPeriod(p.month)}. Collected can include old dues paid this month.`}
+              </CardDescription>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <RowBars
+              format={money}
+              series={[
+                { label: "Billed this month", color: CHART.owed },
+                { label: "Collected this month", color: CHART.in },
+              ]}
+              rows={rows.map((r) => ({
+                key: r.buildingCode,
+                label: r.buildingCode,
+                values: [r.billedTotalPaisa, r.collectedPaisa],
+              }))}
+            />
+          </CardContent>
+        </Card>
+      )}
       <Card>
         <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2">
           <div>
@@ -584,4 +632,59 @@ async function MonthReport({ actor, p }: Props) {
       </Card>
     </>
   );
+}
+
+// ---------------------------------------------------------------------------
+
+/** Columns for the collections chart: one per day up to two months, otherwise one per month. */
+function collectionColumns(
+  from: string,
+  to: string,
+  byDay: { date: string; totalPaisa: number; count: number }[],
+): Column[] {
+  const map = new Map(byDay.map((d) => [d.date, d]));
+  const dates: string[] = [];
+  for (let d = new Date(`${from}T00:00:00Z`); d.toISOString().slice(0, 10) <= to; d.setUTCDate(d.getUTCDate() + 1)) {
+    dates.push(d.toISOString().slice(0, 10));
+    if (dates.length > 3700) break;
+  }
+  const today = dhakaDate();
+  if (dates.length <= 62) {
+    return dates.map((date, i) => {
+      const d = map.get(date);
+      const day = Number(date.slice(8, 10));
+      const first = i === 0 || day === 1;
+      const tick =
+        dates.length <= 10 || first
+          ? shortDate(date)
+          : day % 5 === 0 || i === dates.length - 1
+            ? String(day)
+            : undefined;
+      return {
+        key: date,
+        tick,
+        mark: date === today,
+        future: date > today,
+        title: `${shortDate(date)}: ${money(d?.totalPaisa ?? 0)} · ${d?.count ?? 0} receipt(s)`,
+        values: [d?.totalPaisa ?? 0],
+      };
+    });
+  }
+  const months = new Map<string, { totalPaisa: number; count: number }>();
+  for (const date of dates) {
+    const m = date.slice(0, 7);
+    const cur = months.get(m) ?? { totalPaisa: 0, count: 0 };
+    const d = map.get(date);
+    if (d) {
+      cur.totalPaisa += d.totalPaisa;
+      cur.count += d.count;
+    }
+    months.set(m, cur);
+  }
+  return [...months].map(([m, v]) => ({
+    key: m,
+    tick: shortMonth(m),
+    title: `${formatPeriod(m)}: ${money(v.totalPaisa)} · ${v.count} receipt(s)`,
+    values: [v.totalPaisa],
+  }));
 }

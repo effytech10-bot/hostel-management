@@ -1,5 +1,6 @@
 import { AlertTriangle, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
+import { CHART, Columns, compact, dayTick, RowBars, shortDate, SplitBar } from "@/components/charts/charts";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -19,7 +20,7 @@ export function DashboardView({ data, area, isAdmin }: { data: Data; area: strin
   return (
     <div className="flex flex-col gap-4">
       {/* 4 KPI tiles in responsive grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 min-[1180px]:grid-cols-4 gap-3.5">
+      <div className="grid grid-cols-1 gap-3.5 min-[1180px]:grid-cols-4 sm:grid-cols-2">
         <KpiTile
           label="Collected today"
           value={formatTaka(data.collectedToday.totalPaisa)}
@@ -47,8 +48,40 @@ export function DashboardView({ data, area, isAdmin }: { data: Data; area: strin
         />
       </div>
 
+      {/* Money collected each day of this month */}
+      <Card>
+        <CardHeader>
+          <div>
+            <CardTitle>Money collected each day · {formatPeriod(data.period)}</CardTitle>
+            <CardDescription>
+              {data.collectedMonth.count === 0
+                ? "Nothing collected this month yet."
+                : `${formatTaka(data.collectedMonth.totalPaisa)} so far · best day ${bestDay(data.collectionDays)}. Point at a day to see the amount.`}
+            </CardDescription>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <Columns
+            label={`Money collected each day of ${formatPeriod(data.period)}`}
+            height={170}
+            series={[{ label: "Collected", color: CHART.in }]}
+            tick={compact}
+            cols={data.collectionDays.map((d) => ({
+              key: d.date,
+              tick: dayTick(d.date, data.collectionDays.length, data.today),
+              mark: d.date === data.today,
+              future: d.future,
+              title: d.future
+                ? `${shortDate(d.date)}: not yet`
+                : `${shortDate(d.date)}${d.date === data.today ? " (today)" : ""}: ${formatTaka(d.totalPaisa)} · ${d.count} receipt(s)`,
+              values: [d.totalPaisa],
+            }))}
+          />
+        </CardContent>
+      </Card>
+
       {/* 2-column cards: Tokens status and Month-end */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+      <div className="grid grid-cols-1 gap-3.5 md:grid-cols-2">
         <Card>
           <CardHeader>
             <div>
@@ -62,11 +95,32 @@ export function DashboardView({ data, area, isAdmin }: { data: Data; area: strin
           </CardHeader>
           <CardContent className="flex flex-wrap items-center gap-2">
             {tokens.total > 0 ? (
-              <>
-                <Badge variant="success">{tokens.paid} paid</Badge>
-                <Badge variant="warn">{tokens.partial} partly paid</Badge>
-                <Badge variant="destructive">{tokens.unpaid} unpaid</Badge>
-              </>
+              <SplitBar
+                unit="tokens"
+                parts={[
+                  {
+                    key: "paid",
+                    label: "paid",
+                    value: tokens.paid,
+                    color: "var(--ok)",
+                    href: `${area}/tokens?status=paid`,
+                  },
+                  {
+                    key: "partial",
+                    label: "partly paid",
+                    value: tokens.partial,
+                    color: "var(--warn)",
+                    href: `${area}/tokens?status=partial`,
+                  },
+                  {
+                    key: "unpaid",
+                    label: "unpaid",
+                    value: tokens.unpaid,
+                    color: "var(--bad)",
+                    href: `${area}/tokens?status=unpaid`,
+                  },
+                ]}
+              />
             ) : (
               <Button asChild variant="outline" size="sm">
                 <Link href={`${area}/tokens`}>Tokens →</Link>
@@ -96,15 +150,15 @@ export function DashboardView({ data, area, isAdmin }: { data: Data; area: strin
               </CardDescription>
             </div>
             {monthEnd.neverRun ? (
-              <Badge variant="destructive" className="gap-1 shrink-0">
+              <Badge variant="destructive" className="shrink-0 gap-1">
                 <AlertTriangle className="size-3" /> Not started
               </Badge>
             ) : monthEnd.needsClosing ? (
-              <Badge variant="warn" className="gap-1 shrink-0">
+              <Badge variant="warn" className="shrink-0 gap-1">
                 <AlertTriangle className="size-3" /> Needs closing
               </Badge>
             ) : (
-              <Badge variant="success" className="gap-1 shrink-0">
+              <Badge variant="success" className="shrink-0 gap-1">
                 <CheckCircle2 className="size-3" /> Up to date
               </Badge>
             )}
@@ -160,46 +214,68 @@ export function DashboardView({ data, area, isAdmin }: { data: Data; area: strin
               )}
             </p>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Building</TableHead>
-                  <TableHead className="text-right">Occupied</TableHead>
-                  <TableHead className="text-right">Vacant</TableHead>
-                  <TableHead className="text-right">Students with due</TableHead>
-                  <TableHead className="text-right">Due</TableHead>
-                  <TableHead className="text-right">Collected this month</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {data.buildings.map((b) => (
-                  <TableRow key={b.id}>
-                    <TableCell>
-                      <Link
-                        href={`${reports}?r=dues&building=${b.id}`}
-                        className="text-brand font-bold hover:underline"
-                      >
-                        {b.code}
-                      </Link>
-                    </TableCell>
-                    <TableCell className="text-right font-medium tabular-nums">
-                      {b.occupied} / {b.seats}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground text-right tabular-nums">{b.vacant}</TableCell>
-                    <TableCell className="text-right font-medium tabular-nums">{b.withDue}</TableCell>
-                    <TableCell className="text-bad text-right font-semibold tabular-nums">
-                      {formatTaka(b.duePaisa)}
-                    </TableCell>
-                    <TableCell className="text-right font-semibold tabular-nums">
-                      {formatTaka(b.collectedMonthPaisa)}
-                    </TableCell>
+            <>
+              <div className="mb-5">
+                <RowBars
+                  format={formatTaka}
+                  series={[
+                    { label: "Collected this month", color: CHART.in },
+                    { label: "Students still owe (now)", color: CHART.owed },
+                  ]}
+                  rows={data.buildings.map((b) => ({
+                    key: b.id,
+                    label: b.code,
+                    href: `${reports}?r=dues&building=${b.id}`,
+                    values: [b.collectedMonthPaisa, b.duePaisa],
+                  }))}
+                />
+              </div>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Building</TableHead>
+                    <TableHead className="text-right">Occupied</TableHead>
+                    <TableHead className="text-right">Vacant</TableHead>
+                    <TableHead className="text-right">Students with due</TableHead>
+                    <TableHead className="text-right">Due</TableHead>
+                    <TableHead className="text-right">Collected this month</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {data.buildings.map((b) => (
+                    <TableRow key={b.id}>
+                      <TableCell>
+                        <Link
+                          href={`${reports}?r=dues&building=${b.id}`}
+                          className="text-brand font-bold hover:underline"
+                        >
+                          {b.code}
+                        </Link>
+                      </TableCell>
+                      <TableCell className="text-right font-medium tabular-nums">
+                        {b.occupied} / {b.seats}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground text-right tabular-nums">{b.vacant}</TableCell>
+                      <TableCell className="text-right font-medium tabular-nums">{b.withDue}</TableCell>
+                      <TableCell className="text-bad text-right font-semibold tabular-nums">
+                        {formatTaka(b.duePaisa)}
+                      </TableCell>
+                      <TableCell className="text-right font-semibold tabular-nums">
+                        {formatTaka(b.collectedMonthPaisa)}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </>
           )}
         </CardContent>
       </Card>
     </div>
   );
+}
+
+function bestDay(days: { date: string; totalPaisa: number }[]) {
+  const best = days.reduce((a, d) => (d.totalPaisa > a.totalPaisa ? d : a), days[0]);
+  return `${shortDate(best.date)} (${formatTaka(best.totalPaisa)})`;
 }

@@ -1,6 +1,6 @@
 import "server-only";
 import { and, asc, eq, gt, gte, inArray, isNull, lte, or, type SQL } from "drizzle-orm";
-import { dhakaDate, periodEnd, periodOf, periodStart, type DateString, type Period } from "@/lib/dates";
+import { datesInPeriod, dhakaDate, periodEnd, periodOf, periodStart, type DateString, type Period } from "@/lib/dates";
 import type { HolidayInput, MealDayInput } from "@/lib/validation/meals";
 import { writeAudit } from "@/server/audit";
 import { assertRole, type SessionUser } from "@/server/auth/session";
@@ -442,7 +442,14 @@ export async function computeMealCounts(
   period: Period,
   buildingIds: string[] | null,
   /** allOn: count every meal as eaten except holidays ("how many meals were expected"). */
-  opts: { studentIds?: string[]; until?: DateString; from?: DateString; allOn?: boolean } = {},
+  opts: {
+    studentIds?: string[];
+    until?: DateString;
+    from?: DateString;
+    allOn?: boolean;
+    /** Filled with meals eaten per date (all students together). */
+    perDay?: Map<DateString, { breakfast: number; lunch: number; dinner: number }>;
+  } = {},
 ): Promise<MealReportRow[]> {
   if (buildingIds && buildingIds.length === 0) return [];
   const start = periodStart(period);
@@ -527,6 +534,7 @@ export async function computeMealCounts(
       holidaysByBuilding,
       until: opts.until ?? latest.leftDate ?? undefined,
       from: opts.from,
+      perDay: opts.perDay,
     });
     return {
       ...counts,
@@ -554,7 +562,12 @@ export async function getMealReport(actor: SessionUser, period: Period, building
   assertRole(actor, "admin", "cashier");
   const allowed = await accessibleBuildingIds(actor);
   if (buildingId) await assertBuildingAccess(actor, buildingId);
-  const rows = await computeMealCounts(db(), actor.orgId, period, buildingId ? [buildingId] : allowed);
+  const perDay = new Map<DateString, { breakfast: number; lunch: number; dinner: number }>();
+  const rows = await computeMealCounts(db(), actor.orgId, period, buildingId ? [buildingId] : allowed, { perDay });
+  const days = datesInPeriod(period).map((date) => ({
+    date,
+    ...(perDay.get(date) ?? { breakfast: 0, lunch: 0, dinner: 0 }),
+  }));
 
   const totals = rows.reduce(
     (t, r) => ({
@@ -566,7 +579,7 @@ export async function getMealReport(actor: SessionUser, period: Period, building
     }),
     emptyTotals(),
   );
-  return { rows, totals };
+  return { rows, totals, days };
 }
 
 function emptyTotals(): MealCounts {
