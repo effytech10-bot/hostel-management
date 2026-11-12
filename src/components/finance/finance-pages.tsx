@@ -317,13 +317,31 @@ function AccountCard({
         <SubTitle>Money in and out this month</SubTitle>
         <Row label="At the start of the month" value={tk(a.openingPaisa)} />
         <Row label="Students paid" value={signed(a.studentInPaisa)} />
-        {a.movedPaisa !== 0 && (
-          <Row
-            label="Student credit moved"
-            hint={a.movedPaisa > 0 ? "from another account" : "to another account"}
-            value={signed(a.movedPaisa)}
-          />
-        )}
+        {(Object.entries(a.movedWith ?? {}) as [Fund, number][])
+          .filter(([, amount]) => amount !== 0)
+          .map(([other, amount]) => (
+            <Row
+              key={other}
+              label={amount > 0 ? `From ${FUND_LABEL[other]}` : `To ${FUND_LABEL[other]}`}
+              hint={
+                amount > 0
+                  ? `a student's extra money kept there paid their ${FUND_SHORT[a.fund].toLowerCase()} due`
+                  : `a student's extra money kept here paid their ${FUND_SHORT[other].toLowerCase()} due`
+              }
+              value={signed(amount)}
+            />
+          ))}
+        {(() => {
+          const named = Object.values(a.movedWith ?? {}).reduce((s, v) => s + (v ?? 0), 0);
+          const rest = a.movedPaisa - named;
+          return rest !== 0 ? (
+            <Row
+              label="Student credit moved"
+              hint={rest > 0 ? "from another account" : "to another account"}
+              value={signed(rest)}
+            />
+          ) : null;
+        })()}
         {a.refundedPaisa !== 0 && <Row label="Given back to students" value={signed(-a.refundedPaisa)} />}
         {a.ownerInPaisa !== 0 && <Row label="Owner put in" value={signed(a.ownerInPaisa)} />}
         <Row label="Expenses" value={signed(-a.expensePaisa)} />

@@ -7,8 +7,10 @@
  *
  * Rules (from the owner, 12 Nov 2026):
  * 1. A payment has a total and a part for each account. Typing only the total fills the accounts in the
- *    hostel's order (Settings; default Rent → Meal → Service). The cashier may change the three parts.
- * 2. Money beyond all dues goes to the rent account by default ("Extra paid" on the next token).
+ *    hostel's order (Settings; default Rent → Meal → Service). The total is what the student handed over and
+ *    never changes when the cashier edits a part: lowering a part moves the difference to the accounts after
+ *    it in the order (up to their dues), and anything still left goes to the Meal account.
+ * 2. Money beyond all dues goes to the Meal account and is kept there as meal deposit (owner, 12 Nov 2026).
  * 3. Profit of an account = what it earned − what it spent. Advance is the student's money (given back when
  *    they leave), so it is never income. Meal income is the meals actually eaten × the rates, not the deposit.
  * 4. The owner taking money out or putting money in changes the balance, never the profit.
@@ -89,7 +91,7 @@ export function fundDues(dues: readonly Due[]): FundAmounts {
   return out;
 }
 
-/** Fill the accounts' dues in `order`; whatever is left goes to the rent account. */
+/** Fill the accounts' dues in `order`; whatever is left goes to the Meal account (kept as meal deposit). */
 export function splitPayment(totalPaisa: Paisa, dues: FundAmounts, order: readonly Fund[]): FundAmounts {
   if (!Number.isSafeInteger(totalPaisa) || totalPaisa < 0) throw new Error("Payment must be a whole number of paisa.");
   const out = zeroFunds();
@@ -99,8 +101,37 @@ export function splitPayment(totalPaisa: Paisa, dues: FundAmounts, order: readon
     out[f] = take;
     left -= take;
   }
-  out.rent += left;
+  out.meal += left;
   return out;
+}
+
+/**
+ * The cashier typed a new amount in one account's box. The total stays what the student handed over:
+ * accounts before the changed one (in the hostel's order) keep their amounts, accounts after it are filled
+ * again up to their dues, and money still left goes to the Meal account.
+ * `unplacedPaisa` > 0 = money that is in no account (only when the Meal box itself was changed),
+ * < 0 = the boxes add up to more than the total. Either way the form must not be saved until it is 0.
+ */
+export function rebalanceParts(
+  totalPaisa: Paisa,
+  current: FundAmounts,
+  dues: FundAmounts,
+  order: readonly Fund[],
+  changed: Fund,
+): { parts: FundAmounts; unplacedPaisa: Paisa } {
+  const parts = { ...current };
+  const at = order.indexOf(changed);
+  let left = totalPaisa - order.slice(0, at + 1).reduce((s, f) => s + parts[f], 0);
+  const after = order.slice(at + 1);
+  for (const f of after) {
+    parts[f] = Math.min(Math.max(0, left), Math.max(0, dues[f]));
+    left -= parts[f];
+  }
+  if (left > 0 && changed !== "meal") {
+    parts.meal += left;
+    left = 0;
+  }
+  return { parts, unplacedPaisa: left };
 }
 
 /**
@@ -192,6 +223,11 @@ export type FundMovement = {
   studentInPaisa: Paisa;
   /** Student credit moved between accounts: + came in, − went out. */
   movedPaisa: Paisa;
+  /**
+   * The same, per other account: a student's extra money kept in one account paid their due in another
+   * (on a new token or when leaving). + came from that account, − went to it. No money was transferred by hand.
+   */
+  movedWith?: Partial<Record<Fund, Paisa>>;
   refundedPaisa: Paisa;
   ownerInPaisa: Paisa;
   ownerOutPaisa: Paisa;
@@ -205,13 +241,11 @@ export type Flow = { left: FlowNode[]; middle: FlowNode[]; right: FlowNode[]; li
 const LEFT_LABEL: Record<string, string> = {
   students: "Students paid",
   owner_in: "Owner put in",
-  moved_in: "Moved from another account",
   earlier: "Used from earlier balance",
 };
 const RIGHT_LABEL: Record<string, string> = {
   refund: "Given back to students",
   owner_out: "Owner took out",
-  moved_out: "Moved to another account",
   kept: "Stayed in the accounts",
 };
 
@@ -242,11 +276,18 @@ export function buildFlow(movements: readonly FundMovement[], maxCategories = 6)
     const f = `fund:${m.fund}`;
     link("students", f, m.fund, Math.max(0, m.studentInPaisa));
     link("owner_in", f, m.fund, m.ownerInPaisa);
-    link("moved_in", f, m.fund, Math.max(0, m.movedPaisa));
+    const withOther = Object.entries(m.movedWith ?? {}) as [Fund, Paisa][];
+    for (const [other, amount] of withOther) {
+      link(`from:${other}`, f, m.fund, Math.max(0, amount));
+      link(f, `to:${other}`, m.fund, Math.max(0, -amount));
+    }
+    const namedIn = withOther.reduce((s, [, a]) => s + Math.max(0, a), 0);
+    const namedOut = withOther.reduce((s, [, a]) => s + Math.max(0, -a), 0);
+    link("moved_in", f, m.fund, Math.max(0, m.movedPaisa) - namedIn);
     for (const e of m.expenses) link(f, top.has(e.name) ? `cat:${e.name}` : "cat:", m.fund, e.amountPaisa);
     link(f, "refund", m.fund, m.refundedPaisa + Math.max(0, -m.studentInPaisa));
     link(f, "owner_out", m.fund, m.ownerOutPaisa);
-    link(f, "moved_out", m.fund, Math.max(0, -m.movedPaisa));
+    link(f, "moved_out", m.fund, Math.max(0, -m.movedPaisa) - namedOut);
     const sum = (side: "from" | "to") => links.filter((l) => l[side] === f).reduce((s, l) => s + l.amountPaisa, 0);
     const kept = sum("to") - sum("from");
     link(f, "kept", m.fund, kept);
@@ -263,19 +304,39 @@ export function buildFlow(movements: readonly FundMovement[], maxCategories = 6)
     .map((id) => node(id, id === "cat:" ? "Other expenses" : id.slice(4), "to"))
     .sort((a, b) => Number(a.id === "cat:") - Number(b.id === "cat:") || b.amountPaisa - a.amountPaisa);
 
+  const fromOther = FUNDS.filter((o) => used(`from:${o}`)).map((o) =>
+    node(`from:${o}`, `From ${FUND_LABEL[o]}`, "from"),
+  );
+  const toOther = FUNDS.filter((o) => used(`to:${o}`)).map((o) => node(`to:${o}`, `To ${FUND_LABEL[o]}`, "to"));
+  const leftIds = ["students", "owner_in"];
   return {
-    left: Object.keys(LEFT_LABEL)
-      .filter(used)
-      .map((id) => node(id, LEFT_LABEL[id], "from")),
+    left: [
+      ...leftIds.filter(used).map((id) => node(id, LEFT_LABEL[id], "from")),
+      ...fromOther,
+      ...(used("moved_in") ? [node("moved_in", "From another account", "from")] : []),
+      ...(used("earlier") ? [node("earlier", LEFT_LABEL.earlier, "from")] : []),
+    ],
     middle: movements
       .filter((m) => used(`fund:${m.fund}`))
       .map((m) => node(`fund:${m.fund}`, FUND_LABEL[m.fund], "to")),
     right: [
       ...categories,
-      ...Object.keys(RIGHT_LABEL)
-        .filter(used)
-        .map((id) => node(id, RIGHT_LABEL[id], "to")),
+      ...["refund", "owner_out"].filter(used).map((id) => node(id, RIGHT_LABEL[id], "to")),
+      ...toOther,
+      ...(used("moved_out") ? [node("moved_out", "To another account", "to")] : []),
+      ...(used("kept") ? [node("kept", RIGHT_LABEL.kept, "to")] : []),
     ],
     links,
   };
+}
+
+/**
+ * Which account a "netting" ledger row moved money from / to. Rows are written in pairs by the token engine
+ * and the leave service: the head that received money says "Paid from <head>", the one that gave it
+ * "Used for <head>". Returns the other account, or null when the text is not one of these.
+ */
+export function nettingOtherFund(description: string | null | undefined): Fund | null {
+  const m = /^(?:Paid from|Used for) ([a-z_]+)$/.exec(description ?? "");
+  const head = m?.[1] as LedgerHead | undefined;
+  return head && head in HEAD_FUND ? HEAD_FUND[head] : null;
 }

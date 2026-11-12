@@ -43,13 +43,13 @@ export function TokenSearch({
 }) {
   return (
     <form method="get" action={action} className="flex flex-col gap-2">
-      <div className="flex flex-wrap sm:flex-nowrap gap-2">
+      <div className="flex flex-wrap gap-2 sm:flex-nowrap">
         <Input
           name="find"
           defaultValue={defaultValue}
           placeholder="Token ID, Student ID or phone (e.g. 2610-207601A-001)"
           autoFocus
-          className="h-10 sm:max-w-md text-[13.5px]"
+          className="h-10 text-[13.5px] sm:max-w-md"
         />
         <Button type="submit" className="h-10">
           Open token
@@ -90,8 +90,9 @@ async function TokenRunPanel({ actor, basePath }: { actor: SessionUser; basePath
         <div>
           <CardTitle>Tokens for {formatPeriod(period)}</CardTitle>
           <CardDescription>
-            Every student gets one token a month. It is made by itself on the 1st at 12:05 AM once the first run has been
-            done here. Students whose {formatPeriod(period)} token was already made (at admission or early) are skipped.
+            Every student gets one token a month. It is made by itself on the 1st at 12:05 AM once the first run has
+            been done here. Students whose {formatPeriod(period)} token was already made (at admission or early) are
+            skipped.
             {!plan.alreadyClosed && ` ${formatPeriod(plan.closePeriod)} is locked when this runs.`}
           </CardDescription>
         </div>
@@ -105,20 +106,20 @@ async function TokenRunPanel({ actor, basePath }: { actor: SessionUser; basePath
                 <li key={b}>{b}</li>
               ))}
             </ul>
-            <Link href="/admin/settings" className="mt-1 font-semibold underline hover:text-bad">
+            <Link href="/admin/settings" className="hover:text-bad mt-1 font-semibold underline">
               Open Settings →
             </Link>
           </Note>
         )}
-        <div className="grid grid-cols-1 sm:grid-cols-2 min-[1180px]:grid-cols-4 gap-3.5">
+        <div className="grid grid-cols-1 gap-3.5 min-[1180px]:grid-cols-4 sm:grid-cols-2">
           <KpiTile label="New tokens" value={plan.tokens.length} />
           <KpiTile label="Already made" value={plan.tokensAlreadyMade} />
           <KpiTile label="This month's charges" value={formatTaka(thisMonth)} />
           <KpiTile label="Total (with dues)" value={formatTaka(total)} />
         </div>
         {plan.tokens.length > 0 && (
-          <details className="rounded-lg border border-line-2 bg-surface p-3">
-            <summary className="text-brand font-semibold cursor-pointer text-[13.5px] select-none hover:underline">
+          <details className="border-line-2 bg-surface rounded-lg border p-3">
+            <summary className="text-brand cursor-pointer text-[13.5px] font-semibold select-none hover:underline">
               Preview every token ({plan.tokens.length})
             </summary>
             <Table className="mt-3">
@@ -138,7 +139,7 @@ async function TokenRunPanel({ actor, basePath }: { actor: SessionUser; basePath
                     <TableCell className="font-mono text-xs">{t.code}</TableCell>
                     <TableCell>
                       <span className="font-semibold">{t.student.fullName}</span>{" "}
-                      <span className="text-muted-foreground text-xs font-mono">{t.student.studentCode}</span>
+                      <span className="text-muted-foreground font-mono text-xs">{t.student.studentCode}</span>
                     </TableCell>
                     <TableCell className="text-right tabular-nums">{formatTaka(t.currentTotalPaisa)}</TableCell>
                     <TableCell className="text-right tabular-nums">
@@ -234,12 +235,12 @@ export async function TokensPage({
 
       <form method="get" className="mb-4 flex flex-wrap items-end gap-2.5">
         <div className="flex flex-col gap-1">
-          <label className="text-[12.5px] font-semibold text-ink-2">Month</label>
-          <Input type="month" name="month" defaultValue={period} className="w-auto h-9 text-[13.5px]" />
+          <label className="text-ink-2 text-[12.5px] font-semibold">Month</label>
+          <Input type="month" name="month" defaultValue={period} className="h-9 w-auto text-[13.5px]" />
         </div>
         <div className="flex flex-col gap-1">
-          <label className="text-[12.5px] font-semibold text-ink-2">Building</label>
-          <Select name="building" defaultValue={buildingId ?? ""} className="w-auto min-w-36 h-9 text-[13.5px]">
+          <label className="text-ink-2 text-[12.5px] font-semibold">Building</label>
+          <Select name="building" defaultValue={buildingId ?? ""} className="h-9 w-auto min-w-36 text-[13.5px]">
             <option value="">All buildings</option>
             {buildingList.map((b) => (
               <option key={b.id} value={b.id}>
@@ -249,8 +250,8 @@ export async function TokensPage({
           </Select>
         </div>
         <div className="flex flex-col gap-1">
-          <label className="text-[12.5px] font-semibold text-ink-2">Status</label>
-          <Select name="status" defaultValue={filter ?? ""} className="w-auto min-w-40 h-9 text-[13.5px]">
+          <label className="text-ink-2 text-[12.5px] font-semibold">Status</label>
+          <Select name="status" defaultValue={filter ?? ""} className="h-9 w-auto min-w-40 text-[13.5px]">
             <option value="">All</option>
             <option value="due">Not fully paid</option>
             <option value="unpaid">Unpaid</option>
@@ -265,14 +266,10 @@ export async function TokensPage({
       </form>
 
       {rows.length > 0 && (
-        <div className="mb-4 grid grid-cols-1 sm:grid-cols-2 min-[1180px]:grid-cols-4 gap-3.5">
+        <div className="mb-4 grid grid-cols-1 gap-3.5 min-[1180px]:grid-cols-4 sm:grid-cols-2">
           <KpiTile label={`Tokens (${formatPeriod(period)})`} value={formatTaka(total)} />
           <KpiTile label="Paid on these tokens" value={formatTaka(paid)} />
-          <KpiTile
-            label="Still to collect"
-            value={formatTaka(remaining)}
-            tone={remaining > 0 ? "red" : "default"}
-          />
+          <KpiTile label="Still to collect" value={formatTaka(remaining)} tone={remaining > 0 ? "red" : "default"} />
           <KpiTile
             label="Paid · Partly · Unpaid · Carried"
             value={`${counts.paid} · ${counts.partial} · ${counts.unpaid} · ${counts.carried}`}
@@ -321,10 +318,10 @@ export async function TokensPage({
                       )}
                     </TableCell>
                     <TableCell>
-                      <Link href={`${studentsPath}/${r.studentId}`} className="font-semibold text-ink hover:underline">
+                      <Link href={`${studentsPath}/${r.studentId}`} className="text-ink font-semibold hover:underline">
                         {r.fullName}
                       </Link>{" "}
-                      <span className="text-muted-foreground text-xs font-mono">{r.studentCode}</span>
+                      <span className="text-muted-foreground font-mono text-xs">{r.studentCode}</span>
                     </TableCell>
                     <TableCell className="text-right tabular-nums">{formatTaka(r.currentTotalPaisa)}</TableCell>
                     <TableCell className="text-right tabular-nums">{formatTaka(r.previousTotalPaisa)}</TableCell>
@@ -439,7 +436,8 @@ export async function TokenDetailPage({
           </div>
           {extraPaisa > 0 && (
             <Note variant="ok" className="text-sm">
-              {formatTaka(extraPaisa)} extra paid. It will show as &quot;Extra Paid&quot; on the next token.
+              {formatTaka(extraPaisa)} extra paid. It is kept in the Meal account (as meal deposit) and taken off the
+              next token.
             </Note>
           )}
 
@@ -465,10 +463,14 @@ export async function TokenDetailPage({
                     {view.payments.map((p) => (
                       <TableRow key={p.id} className={p.voidedAt ? "opacity-60" : undefined}>
                         <TableCell className="tabular-nums">
-                          <Link href={`/receipts/${p.id}`} target="_blank" className="text-brand font-semibold hover:underline">
+                          <Link
+                            href={`/receipts/${p.id}`}
+                            target="_blank"
+                            className="text-brand font-semibold hover:underline"
+                          >
                             {p.paidDate}
                           </Link>
-                          <span className="text-muted-foreground ml-1 text-xs font-mono">{p.receiptNo}</span>
+                          <span className="text-muted-foreground ml-1 font-mono text-xs">{p.receiptNo}</span>
                           {p.voidedAt && (
                             <Badge variant="destructive" className="ml-2">
                               Void
@@ -480,7 +482,9 @@ export async function TokenDetailPage({
                         <TableCell className="font-mono text-xs">{p.trxId ?? ""}</TableCell>
                         <TableCell className="text-muted-foreground">{p.receivedByName ?? ""}</TableCell>
                         <TableCell
-                          className={p.voidedAt ? "text-right tabular-nums line-through" : "text-right font-medium tabular-nums"}
+                          className={
+                            p.voidedAt ? "text-right tabular-nums line-through" : "text-right font-medium tabular-nums"
+                          }
                         >
                           {formatTaka(p.amountPaisa)}
                         </TableCell>
@@ -498,7 +502,9 @@ export async function TokenDetailPage({
             <CardHeader>
               <div>
                 <CardTitle>Take payment</CardTitle>
-                <CardDescription>Type the total. It is shared between the three accounts; change a part if needed.</CardDescription>
+                <CardDescription>
+                  Type the total. It is shared between the three accounts; change a part if needed.
+                </CardDescription>
               </div>
             </CardHeader>
             <CardContent>

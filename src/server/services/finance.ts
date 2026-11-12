@@ -36,7 +36,9 @@ import {
   CASH_SOURCES,
   chargedIncome,
   fundOfHead,
+  FUND_LABEL,
   FUNDS,
+  nettingOtherFund,
   sumFunds,
   zeroFunds,
   type Fund,
@@ -316,6 +318,26 @@ async function ledgerCash(orgId: string, r: Range) {
     .groupBy(ledgerEntries.head, ledgerEntries.sourceType);
 }
 
+/** Student credit moved between accounts inside the range, per head and the head named in the description. */
+async function ledgerMoves(orgId: string, r: Range) {
+  return db()
+    .select({
+      head: ledgerEntries.head,
+      description: ledgerEntries.description,
+      during: sql`coalesce(sum(${moneyIn}), 0)`.mapWith(num),
+    })
+    .from(ledgerEntries)
+    .where(
+      and(
+        eq(ledgerEntries.orgId, orgId),
+        eq(ledgerEntries.sourceType, "netting"),
+        gte(ledgerEntries.entryDate, r.start),
+        lte(ledgerEntries.entryDate, r.to),
+      ),
+    )
+    .groupBy(ledgerEntries.head, ledgerEntries.description);
+}
+
 /** Everything in the ledger that belongs to billing month `period` (or to all months up to it). */
 async function ledgerOfPeriod(orgId: string, period: Period, upTo = false) {
   const rows = await db()
@@ -446,7 +468,11 @@ async function mealMonth(orgId: string, period: Period, until: DateString | unde
 }
 
 /** Each account's totals out of the grouped rows above. */
-function fundTotals(cash: Awaited<ReturnType<typeof ledgerCash>>, sums: Awaited<ReturnType<typeof financeSums>>) {
+function fundTotals(
+  cash: Awaited<ReturnType<typeof ledgerCash>>,
+  sums: Awaited<ReturnType<typeof financeSums>>,
+  moves: Awaited<ReturnType<typeof ledgerMoves>> = [],
+) {
   const out = Object.fromEntries(
     FUNDS.map((f) => [
       f,
@@ -455,6 +481,7 @@ function fundTotals(cash: Awaited<ReturnType<typeof ledgerCash>>, sums: Awaited<
         openingPaisa: 0,
         studentInPaisa: 0,
         movedPaisa: 0,
+        movedWith: {} as Partial<Record<Fund, Paisa>>,
         refundedPaisa: 0,
         ownerInPaisa: 0,
         ownerOutPaisa: 0,
@@ -471,6 +498,13 @@ function fundTotals(cash: Awaited<ReturnType<typeof ledgerCash>>, sums: Awaited<
     if (r.sourceType === "netting") t.movedPaisa += r.during;
     else if (r.sourceType === "refund") t.refundedPaisa += -r.during;
     else t.studentInPaisa += r.during;
+  }
+  for (const r of moves) {
+    const own = fundOfHead(r.head as LedgerHead);
+    const other = nettingOtherFund(r.description);
+    if (!other || other === own || r.during === 0) continue;
+    const w = out[own].movedWith!;
+    w[other] = (w[other] ?? 0) + r.during;
   }
   for (const r of sums) {
     const t = out[r.fund];
@@ -506,7 +540,7 @@ export async function getFinanceOverview(actor: SessionUser, period: Period) {
   const orgId = actor.orgId;
   const range = monthRange(period);
 
-  const [cash, sums, month, wallets, meals, studentRows, [tokenCount]] = await Promise.all([
+  const [cash, sums, month, wallets, meals, studentRows, [tokenCount], moves] = await Promise.all([
     ledgerCash(orgId, range),
     financeSums(orgId, range),
     ledgerOfPeriod(orgId, period),
@@ -531,9 +565,10 @@ export async function getFinanceOverview(actor: SessionUser, period: Period) {
       .select({ n: sql`count(*)`.mapWith(num) })
       .from(tokens)
       .where(and(eq(tokens.orgId, orgId), eq(tokens.period, period))),
+    ledgerMoves(orgId, range),
   ]);
 
-  const totals = fundTotals(cash, sums);
+  const totals = fundTotals(cash, sums, moves);
   const income = chargedIncome(month);
   income.meal += meals.eaten.costPaisa;
 
@@ -620,6 +655,27 @@ const CASH_TEXT: Record<string, string> = {
   refund: "Refund",
 };
 
+/** Cash-book wording; for credit moved between accounts it names the other account. */
+function cashText(sourceType: string, amountPaisa: Paisa, notes: string | null, fund: Fund): string {
+  if (sourceType === "netting") {
+    const others = [
+      ...new Set(
+        (notes ?? "")
+          .split("|")
+          .map(nettingOtherFund)
+          .filter((f): f is Fund => !!f && f !== fund),
+      ),
+    ];
+    if (others.length) {
+      const names = others.map((f) => FUND_LABEL[f]).join(" / ");
+      return amountPaisa >= 0
+        ? `Student's extra money from ${names} paid a due here`
+        : `Student's extra money kept here paid a due in ${names}`;
+    }
+  }
+  return CASH_TEXT[sourceType] ?? sourceType;
+}
+
 export async function getCashbook(actor: SessionUser, fund: Fund, period: Period) {
   assertRole(actor, "admin");
   const orgId = actor.orgId;
@@ -639,6 +695,7 @@ export async function getCashbook(actor: SessionUser, fund: Fund, period: Period
         studentCode: students.studentCode,
         receiptNo: payments.receiptNo,
         amountPaisa: sql`sum(${moneyIn})`.mapWith(num),
+        notes: sql<string | null>`string_agg(distinct ${ledgerEntries.description}, '|')`,
         at: sql<string>`min(${ledgerEntries.createdAt})`,
       })
       .from(ledgerEntries)
@@ -696,7 +753,7 @@ export async function getCashbook(actor: SessionUser, fund: Fund, period: Period
       .map((r) => ({
         key: `l-${r.sourceType}-${r.sourceId ?? r.studentId}-${r.date}`,
         date: r.date,
-        text: `${CASH_TEXT[r.sourceType] ?? r.sourceType} · ${r.studentName}`,
+        text: `${cashText(r.sourceType, r.amountPaisa, r.notes, fund)} · ${r.studentName}`,
         detail: `ID ${r.studentCode}`,
         ref: r.receiptNo,
         href: r.receiptNo && r.sourceId ? `/receipts/${r.sourceId}` : null,

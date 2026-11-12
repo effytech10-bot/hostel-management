@@ -21,7 +21,7 @@ export const organizations = pgTable(
     mealCutoffHour: smallint("meal_cutoff_hour").default(22),
     /**
      * Which account a payment fills first, second, third when the cashier types only the total
-     * (see domain/finance.ts). Money beyond all dues always goes to the rent account.
+     * (see domain/finance.ts). Money beyond all dues always goes to the Meal account.
      */
     paymentOrder: text("payment_order").notNull().default("rent,meal,service"),
     ...timestamps,
