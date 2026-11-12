@@ -10,7 +10,7 @@ import {
   type DateString,
   type Period,
 } from "@/lib/dates";
-import type { Paisa } from "@/lib/money";
+import { formatTaka, type Paisa } from "@/lib/money";
 import type { FinanceEntryInput, VoidFinanceEntryInput } from "@/lib/validation/finance";
 import { writeAudit } from "@/server/audit";
 import { assertRole, type SessionUser } from "@/server/auth/session";
@@ -44,6 +44,7 @@ import {
   type Fund,
   type FundMovement,
 } from "@/server/domain/finance";
+import { cashSteps, incomeLines, sumLines, type StatementLine } from "@/server/domain/income-statement";
 import { AppError } from "@/server/errors";
 import { computeMealCounts } from "./meals";
 import { getEffectiveRates } from "./rates";
@@ -929,3 +930,162 @@ export async function getStatements(actor: SessionUser, period: Period) {
   };
 }
 export type Statements = Awaited<ReturnType<typeof getStatements>>;
+
+// ---------------------------------------------------------------------------
+// Income statement of each account (page + Excel)
+// ---------------------------------------------------------------------------
+
+/** Earned, spent and profit of each account for the last `count` months up to `period` (oldest first). */
+async function monthlyTrend(orgId: string, period: Period, count: number) {
+  const first = await firstPeriod(orgId, period);
+  const months: Period[] = [];
+  for (let p = addMonths(period, -(count - 1)); p <= period; p = addMonths(p, 1)) if (p >= first) months.push(p);
+  return Promise.all(
+    months.map(async (p) => {
+      const range = monthRange(p);
+      const [ledger, sums, meals] = await Promise.all([
+        ledgerOfPeriod(orgId, p),
+        financeSums(orgId, range),
+        mealMonth(orgId, p, range.until),
+      ]);
+      const income = chargedIncome(ledger);
+      income.meal += meals.eaten.costPaisa;
+      const spent = zeroFunds();
+      for (const r of sums) if (r.kind === "expense") spent[r.fund] += r.during;
+      return {
+        period: p,
+        funds: FUNDS.map((f) => ({
+          fund: f,
+          earnedPaisa: income[f],
+          spentPaisa: spent[f],
+          profitPaisa: income[f] - spent[f],
+        })),
+      };
+    }),
+  );
+}
+
+export async function getIncomeStatement(actor: SessionUser, period: Period) {
+  assertRole(actor, "admin");
+  const orgId = actor.orgId;
+  const [st, ov, entries, monthLedger, allLedger, trend] = await Promise.all([
+    getStatements(actor, period),
+    getFinanceOverview(actor, period),
+    listFinanceEntries(actor, { period }),
+    ledgerOfPeriod(orgId, period),
+    ledgerOfPeriod(orgId, period, true),
+    monthlyTrend(orgId, period, 6),
+  ]);
+  const pl = st.profitLoss;
+  const lines = incomeLines(monthLedger, allLedger, pl.mealsEaten);
+
+  const accounts = FUNDS.map((f) => {
+    const a = ov.accounts.find((x) => x.fund === f)!;
+    const income = lines[f];
+    const expenses: StatementLine[] = pl.expenses
+      .filter((e) => e.fund === f)
+      .map((e) => ({ key: `exp-${e.name}`, label: e.name, monthPaisa: e.monthPaisa, allPaisa: e.allPaisa }));
+    const earned = sumLines(income);
+    const spent = sumLines(expenses);
+    const memo: { label: string; value: string; tone?: "ok" | "bad" }[] = [];
+    if (f === "rent") {
+      memo.push(
+        { label: `Rent expected (${ov.rent.tokens} tokens)`, value: formatTaka(ov.rent.expectedPaisa) },
+        { label: "Rent received for this month", value: formatTaka(ov.rent.receivedPaisa), tone: "ok" },
+        {
+          label: "Rent not received yet",
+          value: formatTaka(Math.max(0, ov.rent.expectedPaisa + ov.rent.changedPaisa - ov.rent.receivedPaisa)),
+          tone: "bad",
+        },
+        { label: "Advance held (students' money, not income)", value: formatTaka(ov.rent.advanceHeldPaisa) },
+      );
+    } else if (f === "meal") {
+      memo.push(
+        {
+          label: "Meals expected (nobody turns a meal off)",
+          value: `${ov.meal.expected.meals} · ${formatTaka(ov.meal.expected.costPaisa)}`,
+        },
+        { label: "Meals eaten so far", value: `${ov.meal.eaten.meals} · ${formatTaka(ov.meal.eaten.costPaisa)}` },
+        { label: "Meal money received for this month", value: formatTaka(ov.meal.receivedPaisa), tone: "ok" },
+      );
+      if (ov.meal.costPerMealPaisa !== null)
+        memo.push({
+          label: "Cost of one full meal (spent ÷ meals eaten)",
+          value: formatTaka(ov.meal.costPerMealPaisa),
+        });
+    } else {
+      memo.push(
+        { label: "Charged this month", value: formatTaka(ov.service.chargedPaisa) },
+        { label: "Received for this month", value: formatTaka(ov.service.receivedPaisa), tone: "ok" },
+      );
+    }
+    memo.push(
+      {
+        label: "Students still owe this account (now)",
+        value: formatTaka(a.dueNowPaisa),
+        tone: a.dueNowPaisa > 0 ? "bad" : undefined,
+      },
+      { label: "Students' extra money kept in this account (now)", value: formatTaka(a.creditNowPaisa) },
+    );
+    const progress: { label: string; part: number; whole: number; unit: "taka" | "meals" }[] =
+      f === "rent"
+        ? [
+            {
+              label: "Rent of this month received",
+              part: ov.rent.receivedPaisa,
+              whole: ov.rent.expectedPaisa + ov.rent.changedPaisa,
+              unit: "taka",
+            },
+          ]
+        : f === "meal"
+          ? [
+              {
+                label: "Meals eaten of meals expected",
+                part: ov.meal.eaten.meals,
+                whole: ov.meal.expected.meals,
+                unit: "meals",
+              },
+              {
+                label: "Meal money of this month received",
+                part: ov.meal.receivedPaisa,
+                whole: ov.meal.expected.costPaisa,
+                unit: "taka",
+              },
+            ]
+          : [
+              {
+                label: "Service charges received",
+                part: ov.service.receivedPaisa,
+                whole: ov.service.chargedPaisa,
+                unit: "taka",
+              },
+            ];
+    return {
+      fund: f,
+      progress,
+      income,
+      earned,
+      expenses,
+      spent,
+      profit: { monthPaisa: earned.monthPaisa - spent.monthPaisa, allPaisa: earned.allPaisa - spent.allPaisa },
+      cash: cashSteps({ ...a, fundLabel: (x) => FUND_LABEL[x] }),
+      closingPaisa: a.closingPaisa,
+      memo,
+    };
+  });
+
+  return {
+    period,
+    asOf: st.asOf,
+    accounts,
+    trend,
+    ratesMissing: pl.ratesMissing,
+    entries: entries.map((e) => ({ ...e, fundLabel: FUND_LABEL[e.fund] })),
+    totals: {
+      earned: sumLines(accounts.map((a) => a.earned)),
+      spent: sumLines(accounts.map((a) => a.spent)),
+      profit: sumLines(accounts.map((a) => a.profit)),
+    },
+  };
+}
+export type IncomeStatement = Awaited<ReturnType<typeof getIncomeStatement>>;
