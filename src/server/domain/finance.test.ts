@@ -8,7 +8,9 @@ import {
   chargedIncome,
   fundDues,
   headOrder,
+  nettingOtherFund,
   parseFundOrder,
+  rebalanceParts,
   receiptBoxes,
   splitPayment,
   sumFunds,
@@ -38,10 +40,54 @@ describe("splitting a payment over the three accounts", () => {
     });
   });
 
-  it("money beyond all dues goes to the rent account", () => {
+  it("money beyond all dues goes to the meal account (kept as meal deposit)", () => {
     const parts = splitPayment(tk("2000"), fundDues(dues), ["rent", "meal", "service"]);
-    expect(parts).toEqual({ rent: tk("1000"), meal: tk("500"), service: tk("500") });
+    expect(parts).toEqual({ rent: tk("500"), meal: tk("1000"), service: tk("500") });
     expect(sumFunds(parts)).toBe(tk("2000"));
+  });
+
+  describe("the cashier changes one account; the total stays", () => {
+    // Anan's November token: rent 50,000, meal 12,375, service 5,200 due.
+    const due = { rent: tk("50000"), meal: tk("12375"), service: tk("5200") };
+    const order = ["rent", "meal", "service"] as const;
+    const start = splitPayment(tk("60000"), due, order);
+
+    it("lowering rent fills meal, then service", () => {
+      expect(start).toEqual({ rent: tk("50000"), meal: tk("10000"), service: 0 });
+      const r = rebalanceParts(tk("60000"), { ...start, rent: tk("40000") }, due, order, "rent");
+      expect(r).toEqual({ parts: { rent: tk("40000"), meal: tk("14800"), service: tk("5200") }, unplacedPaisa: 0 });
+    });
+
+    it("what is left after all dues goes to meal", () => {
+      const r = rebalanceParts(tk("67575"), { rent: tk("30000"), meal: 0, service: 0 }, due, order, "rent");
+      expect(r.parts).toEqual({ rent: tk("30000"), meal: tk("32375"), service: tk("5200") });
+      expect(r.unplacedPaisa).toBe(0);
+      expect(sumFunds(r.parts)).toBe(tk("67575"));
+    });
+
+    it("lowering meal fills service; the rest goes back to meal only if it is not the changed box", () => {
+      const r = rebalanceParts(tk("67575"), { rent: tk("50000"), meal: tk("5000"), service: 0 }, due, order, "meal");
+      expect(r.parts).toEqual({ rent: tk("50000"), meal: tk("5000"), service: tk("5200") });
+      expect(r.unplacedPaisa).toBe(tk("7375"));
+    });
+
+    it("lowering service sends the rest to meal", () => {
+      const r = rebalanceParts(
+        tk("67575"),
+        { rent: tk("50000"), meal: tk("12375"), service: tk("1000") },
+        due,
+        order,
+        "service",
+      );
+      expect(r.parts).toEqual({ rent: tk("50000"), meal: tk("16575"), service: tk("1000") });
+      expect(r.unplacedPaisa).toBe(0);
+    });
+
+    it("more than the total empties the later boxes and reports it", () => {
+      const r = rebalanceParts(tk("60000"), { ...start, rent: tk("65000") }, due, order, "rent");
+      expect(r.parts).toEqual({ rent: tk("65000"), meal: 0, service: 0 });
+      expect(r.unplacedPaisa).toBe(-tk("5000"));
+    });
   });
 
   it("advance counts as rent account, other charges as service account", () => {
@@ -130,6 +176,48 @@ describe("income from charges", () => {
         { head: "rent", sourceType: "opening", amountPaisa: tk("999") },
       ]),
     ).toEqual({ rent: tk("6000"), meal: -tk("100"), service: tk("6000") });
+  });
+});
+
+describe("credit moved between accounts", () => {
+  it("names the other account from the ledger text", () => {
+    expect(nettingOtherFund("Paid from credit")).toBe("rent");
+    expect(nettingOtherFund("Used for meal")).toBe("meal");
+    expect(nettingOtherFund("Advance returned")).toBeNull();
+  });
+
+  it("the picture names the accounts", () => {
+    const flow = buildFlow([
+      {
+        fund: "rent",
+        studentInPaisa: tk("1000"),
+        movedPaisa: -tk("500"),
+        movedWith: { meal: -tk("500") },
+        refundedPaisa: 0,
+        ownerInPaisa: 0,
+        ownerOutPaisa: 0,
+        expenses: [],
+      },
+      {
+        fund: "meal",
+        studentInPaisa: 0,
+        movedPaisa: tk("500"),
+        movedWith: { rent: tk("500") },
+        refundedPaisa: 0,
+        ownerInPaisa: 0,
+        ownerOutPaisa: 0,
+        expenses: [],
+      },
+    ]);
+    expect(flow.left.find((n) => n.id === "from:rent")).toMatchObject({
+      label: "From Rent & advance account",
+      amountPaisa: tk("500"),
+    });
+    expect(flow.right.find((n) => n.id === "to:meal")).toMatchObject({
+      label: "To Meal account",
+      amountPaisa: tk("500"),
+    });
+    expect(flow.left.some((n) => n.id === "moved_in")).toBe(false);
   });
 });
 

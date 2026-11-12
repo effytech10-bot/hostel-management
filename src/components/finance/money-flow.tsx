@@ -63,6 +63,7 @@ export function MoneyFlow({ flow }: { flow: Flow }) {
       return { ...r, d };
     });
 
+  const moved = [...flow.left, ...flow.right].some((n) => /^(from|to):|^moved_/.test(n.id));
   const funds = FUNDS.filter((f) => flow.middle.some((n) => n.id === `fund:${f}`));
   const fundOf = (id: string) => id.slice(5) as Fund;
 
@@ -85,18 +86,18 @@ export function MoneyFlow({ flow }: { flow: Flow }) {
       </figcaption>
       <div className="overflow-x-auto">
         <svg
-          viewBox={`0 -8 ${W} ${H + 16}`}
+          viewBox={`0 -34 ${W} ${H + 42}`}
           className="h-auto w-full min-w-[760px]"
           role="img"
           aria-label="Money flow: where money came from, which account it went to, and where it was spent"
         >
-          <text x={X.left + NODE_W} y={-1} textAnchor="end" fontSize="11" fontWeight="600" fill={MUTED}>
+          <text x={X.left + NODE_W} y={-20} textAnchor="end" fontSize="11" fontWeight="600" fill={MUTED}>
             MONEY IN
           </text>
-          <text x={X.middle + NODE_W / 2} y={-1} textAnchor="middle" fontSize="11" fontWeight="600" fill={MUTED}>
+          <text x={X.middle + NODE_W / 2} y={-20} textAnchor="middle" fontSize="11" fontWeight="600" fill={MUTED}>
             ACCOUNTS
           </text>
-          <text x={X.right} y={-1} fontSize="11" fontWeight="600" fill={MUTED}>
+          <text x={X.right} y={-20} fontSize="11" fontWeight="600" fill={MUTED}>
             MONEY OUT
           </text>
 
@@ -150,6 +151,13 @@ export function MoneyFlow({ flow }: { flow: Flow }) {
           ))}
         </svg>
       </div>
+      {moved && (
+        <p className="text-muted-foreground mt-2 text-[12.5px]">
+          <b className="text-ink-2 font-semibold">From / To an account:</b> nobody moved money by hand. A student had
+          extra money kept in one account (for example a payment above their dues), and their new token used it to pay a
+          due that belongs to another account. The account cards below show the same amounts.
+        </p>
+      )}
     </figure>
   );
 }

@@ -16,6 +16,7 @@ import {
   FUND_COLOR,
   FUND_SHORT,
   fundOrderLabel,
+  rebalanceParts,
   splitPayment,
   sumFunds,
   zeroFunds,
@@ -30,7 +31,9 @@ const PART_NAME: Record<Fund, string> = { rent: "rentAmount", meal: "mealAmount"
 
 /**
  * Take a payment on the student's newest token. Typing the total shares it between the three accounts in the
- * hostel's order; typing in an account's box changes only that part (the total follows).
+ * hostel's order. The total is what the student handed over: changing an account's box never changes it;
+ * the accounts after that box (in the hostel's order) take the difference, and money left after all dues
+ * goes to the Meal account (see `rebalanceParts`).
  */
 export function TokenPaymentForm({
   studentId,
@@ -54,6 +57,9 @@ export function TokenPaymentForm({
 
   const [total, setTotal] = useState(plain(remainingPaisa));
   const [parts, setParts] = useState(() => toText(remainingPaisa > 0 ? split(remainingPaisa) : zeroFunds()));
+  const [unplaced, setUnplaced] = useState(0);
+  // True when the cashier started with an empty total and is typing the accounts: then the total follows them.
+  const [partsLead, setPartsLead] = useState(false);
   const [accountId, setAccountId] = useState(accounts.find((a) => a.method === "cash")?.id ?? accounts[0]?.id ?? "");
   const account = accounts.find((a) => a.id === accountId);
   const e = state.fieldErrors;
@@ -62,19 +68,42 @@ export function TokenPaymentForm({
   const values = { rent: paisa("rent"), meal: paisa("meal"), service: paisa("service") };
   const valid = Object.values(values).every((v) => v !== null && v >= 0);
   const typed = valid ? sumFunds(values as FundAmounts) : null;
+  const totalPaisa = total.trim() === "" ? null : tryParseTaka(total);
   const after = typed !== null && typed > 0 ? remainingPaisa - typed : null;
+  const balanced = totalPaisa !== null && typed !== null && typed === totalPaisa && unplaced === 0;
 
   function onTotal(text: string) {
     setTotal(text);
+    setPartsLead(false);
     const p = text.trim() === "" ? 0 : tryParseTaka(text);
-    if (p !== null && p >= 0) setParts(toText(split(p)));
+    if (p !== null && p >= 0) {
+      setParts(toText(split(p)));
+      setUnplaced(0);
+    }
   }
 
   function onPart(f: Fund, text: string) {
-    const next = { ...parts, [f]: text };
-    setParts(next);
-    const all = order.map((k) => (next[k].trim() === "" ? 0 : tryParseTaka(next[k])));
-    if (all.every((v) => v !== null && v >= 0)) setTotal(plain(all.reduce<number>((s, v) => s + (v ?? 0), 0)));
+    const typedPart = text.trim() === "" ? 0 : tryParseTaka(text);
+    const now = { ...parts, [f]: text };
+    if (typedPart === null || typedPart < 0) {
+      setParts(now);
+      return;
+    }
+    // No total yet: the boxes make the total.
+    if (partsLead || totalPaisa === null || totalPaisa === 0) {
+      setPartsLead(true);
+      setUnplaced(0);
+      setParts(now);
+      const all = order.map((k) => (now[k].trim() === "" ? 0 : tryParseTaka(now[k])));
+      if (all.every((v) => v !== null && v >= 0)) setTotal(plain(all.reduce<number>((s, v) => s + (v ?? 0), 0)));
+      return;
+    }
+    // The total stays; the accounts after this one take the difference.
+    const current = { ...zeroFunds() };
+    for (const k of order) current[k] = k === f ? typedPart : (paisa(k) ?? 0);
+    const r = rebalanceParts(totalPaisa, current, fundDues, order, f);
+    setParts({ ...toText(r.parts), [f]: text });
+    setUnplaced(r.unplacedPaisa);
   }
 
   if (state.recorded) {
@@ -113,7 +142,7 @@ export function TokenPaymentForm({
         value={total}
         onChange={(ev) => onTotal(ev.target.value)}
         className="h-11 text-xl font-bold tabular-nums"
-        hint={`Fills ${fundOrderLabel(order)}. Extra money goes to Rent.`}
+        hint={`Fills ${fundOrderLabel(order)}. Money above all dues goes to Meal (kept as meal deposit). Changing an account below does not change this total.`}
         required
         errors={e}
       />
@@ -178,18 +207,34 @@ export function TokenPaymentForm({
       </div>
 
       {!valid && <Note variant="bad">Enter amounts in taka, e.g. 500 or 27.50.</Note>}
+      {valid && unplaced > 0 && (
+        <Note variant="bad">
+          {formatTaka(unplaced)} of the total is not in any account. Put it in Meal or another account.
+        </Note>
+      )}
+      {valid && (unplaced < 0 || (typed !== null && totalPaisa !== null && typed > totalPaisa)) && (
+        <Note variant="bad">
+          The accounts add up to {formatTaka(typed ?? 0)}, more than the total {formatTaka(totalPaisa ?? 0)}. Lower an
+          account.
+        </Note>
+      )}
       {after !== null && (
         <Note variant={after > 0 ? "warn" : "ok"} className="text-[13px] font-medium">
           {after > 0
             ? `Still due on this token after this: ${formatTaka(after)}`
             : after < 0
-              ? `Fully paid. ${formatTaka(-after)} extra will be taken off the next token.`
+              ? `Fully paid. ${formatTaka(-after)} extra is kept in the Meal account and taken off the next token.`
               : "Fully paid after this."}
         </Note>
       )}
 
       <FormMessage error={state.error} />
-      <Button type="submit" size="default" disabled={pending || accounts.length === 0 || !valid} className="w-fit">
+      <Button
+        type="submit"
+        size="default"
+        disabled={pending || accounts.length === 0 || !valid || !balanced}
+        className="w-fit"
+      >
         {pending ? "Saving…" : "Save payment & make receipt"}
       </Button>
     </form>

@@ -111,8 +111,9 @@ The hostel keeps its money in **three accounts**: **Rent & advance**, **Meal**, 
 
 - **Money in is never typed twice.** A student payment has a total and a part for each account
   (Take payment: Total, Rent acc, Meal acc, Service acc). Typing the total fills the accounts in the order chosen
-  in Settings (default Rent → Meal → Service); money beyond all dues goes to Rent. The cashier may change the
-  three parts. Which account got the money follows from the ledger head it was credited to
+  in Settings (default Rent → Meal → Service); money beyond all dues goes to Meal (kept as meal deposit). The total
+  is what the student handed over and never changes when the cashier edits a part: lowering one account moves the
+  difference to the accounts after it in the order (up to their dues), then to Meal. Which account got the money follows from the ledger head it was credited to
   (`src/server/domain/finance.ts`: rent/advance/credit → Rent, meal → Meal, service charge/other → Service).
 - **Money out** is typed by the admin (Finance → Expenses & owner money): title, category (pick or type a new
   one), amount, which account, paid from (cash / bKash / bank), building (optional), note. "Owner took money" and
