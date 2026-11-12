@@ -36,15 +36,16 @@ rules for tokens, payments, admission and leaving. Read it before changing anyth
 
 ## Where the important logic is
 
-| Area                                                              | Files                                                                                     |
-| ----------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
-| Token rules (ID, lines, admission, early token, states)           | `src/server/domain/tokens.ts`, `src/server/services/token-engine.ts`, `tokens.ts`         |
-| Ledger, dues, payment allocation                                  | `src/server/domain/billing.ts`, `src/server/services/ledger.ts`, `payments.ts`            |
-| Meals (defaults, day exceptions, cut-off, locks)                  | `src/server/domain/meals.ts`, `src/server/services/meals.ts`, `student-portal.ts`         |
-| Leaving / refunds                                                 | `src/server/domain/stay.ts`, `src/server/services/leave.ts`                               |
-| Reports, CSV, audit log                                           | `src/server/services/reports.ts`, `reports-csv.ts`, `audit.ts`, `src/components/reports/` |
-| Monthly cron (1st, 12:05 AM Dhaka; runs nightly, skips when done) | `src/app/api/cron/month-end/route.ts`, `vercel.json`                                      |
-| Design system (tokens, fonts, components)                         | `docs/design/DESIGN.md`, `src/app/globals.css`, `src/components/ui/`                      |
+| Area                                                              | Files                                                                                       |
+| ----------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| Token rules (ID, lines, admission, early token, states)           | `src/server/domain/tokens.ts`, `src/server/services/token-engine.ts`, `tokens.ts`           |
+| Ledger, dues, payment allocation                                  | `src/server/domain/billing.ts`, `src/server/services/ledger.ts`, `payments.ts`              |
+| Meals (defaults, day exceptions, cut-off, locks)                  | `src/server/domain/meals.ts`, `src/server/services/meals.ts`, `student-portal.ts`           |
+| Leaving / refunds                                                 | `src/server/domain/stay.ts`, `src/server/services/leave.ts`                                 |
+| Reports, CSV, audit log                                           | `src/server/services/reports.ts`, `reports-csv.ts`, `audit.ts`, `src/components/reports/`   |
+| Monthly cron (1st, 12:05 AM Dhaka; runs nightly, skips when done) | `src/app/api/cron/month-end/route.ts`, `vercel.json`                                        |
+| Design system (tokens, fonts, components)                         | `docs/design/DESIGN.md`, `src/app/globals.css`, `src/components/ui/`                        |
+| Finance (3 accounts, payment split, expenses, P&L, balance sheet) | `src/server/domain/finance.ts`, `src/server/services/finance.ts`, `src/components/finance/` |
 
 ## Workflow
 
@@ -55,7 +56,7 @@ rules for tokens, payments, admission and leaving. Read it before changing anyth
   (https://hostel-management-theta-one.vercel.app).
 - Report honestly: what changed, what was actually run and its result, and anything not verified.
 
-## Project status (updated 11 Nov 2026)
+## Project status (updated 12 Nov 2026)
 
 ### Done and live (Phase 1)
 
@@ -76,8 +77,8 @@ rules for tokens, payments, admission and leaving. Read it before changing anyth
 7. **Admission rule (changed 21 Oct 2026):** admission on any day makes the token for **that** month with the
    full month's rent + meal deposit + advance + one-time service charge. An earlier version billed the next
    month with the rest of the month as due: that rule is gone, do not bring it back.
-8. **Paper token format kept** everywhere (token page, print 4-per-A4, receipt, student phone). A receipt
-   opens the token with that payment highlighted; there is no separate money-receipt layout any more.
+8. **Paper token format kept** everywhere (token page, print 4-per-A4, student phone). Since PR #7 a payment
+   also has its own paper-style money receipt (`/receipts/<payment>`, see item 14) with an "Open token" button.
 9. **Leaving:** preview then confirm; settles meals since the newest token, gives back unused rent (by-days
    rule), returns the paid advance against dues, refund now or later.
 10. **Reports:** dues & advance, collections, meal settlement, month summary, CSV downloads.
@@ -86,6 +87,25 @@ rules for tokens, payments, admission and leaving. Read it before changing anyth
     `docs/design/DESIGN.md`, plan and QA notes in `docs/design/UI-PLAN.md` and `QA-REPORT.md`.
 13. **Audit log in plain Bangla** (PR #6, 11 Nov 2026): sentences, before -> after, filters by kind / person /
     date / student, summary tiles, Excel download.
+14. **Finance module** (PR #7, 12 Nov 2026, admin → Finance; details in README "Finance"):
+    - Three accounts (funds): **Rent & advance**, **Meal**, **Service**. Money in is derived from
+      `ledger_entries` (head → fund in `domain/finance.ts`); money out and owner money are rows in
+      `finance_entries` (void = opposite row with `reverses_id`, never deleted), categories in
+      `expense_categories`, voucher numbers `V-000001` from `nextCounter("voucher")`.
+    - Take payment has 4 fields (Total, Rent acc, Meal acc, Service acc). The total is split by
+      `splitPayment` in the order from Settings (`organizations.payment_order`, default `rent,meal,service`);
+      money beyond all dues goes to Rent; the cashier can edit the parts (they must add up to the total).
+      Inside one account the oldest month is paid first (`allocateByFund`).
+    - Screens: Overview (earned / spent / profit / money in hand, money-flow diagram, one card per account,
+      cash-bKash-bank balances), Expenses & owner money, Cash book per account, Profit & loss, Balance sheet.
+      Meal card compares expected meals with meals eaten; Rent card compares rent charged with rent received.
+    - Profit: Rent = rent charged, Meal = meals eaten × rate (not the deposit), Service = service + other
+      charges. Advance is the student's money, never income. Owner took / put money changes balance, not profit.
+    - Two checks shown on screen must always hold: the 3 accounts = cash + bKash + bank, and
+      has − owes = profit + owner money + opening (`differencePaisa` = 0).
+    - Money receipt boxes: Rent, Meal, Pmb (pre meal), Total M.b (meal part of this payment), L.Num (token
+      ID), Amount, Due Amount, Adv., Service C.; "Received by" = who saved the payment.
+    - Migration `drizzle/0012_finance.sql` is applied on live.
 
 Removed on purpose: the separate baburchi bill (the column still exists in `billing_rates`, the form sends 0)
 and the "service charge this month" switch. Do not re-add them.
@@ -98,7 +118,17 @@ and the "service charge this month" switch. Do not re-add them.
   leaving) and each has a date range (`meal_settlements.from_date / to_date`); the report still lists them by
   `period` without showing the range.
 - **Token lines:** "Advance due" and "Service charge due" carry no detail text; "Meal due" (unpaid meal money
-  from older tokens) is shown separately from "Pre meal" by design.
+  from older tokens) is shown separately from "Pre meal" by design. In the database advance and service charge
+  are separate heads; only the paper card adds them into one box ("Due:Advance/S.Charge"). The paper card's
+  "Pre. Meal Balance" likewise adds Pre meal + Meal due, while its date range is only the pre meal window, so
+  a student can misread it (seen on demo token `2611-207603A-005`). Not changed; ask the client first.
+- **Finance rules to confirm with the client** (built on these assumptions): meal income = meals eaten × rate;
+  "other" charges count as Service; student credit is netted in the Settings payment order; the default
+  expense date range is from the 1st of last month to today.
+- **Finance test rows in the demo org** (marked "self-test", all voided / cancelled): payments R-000092,
+  R-000093, R-000095, vouchers V-000001 to V-000005, categories "Bazar" and "Gas cylinder".
+- **No account-to-account transfer** in Finance (not chosen); vendors, salary/payroll and stock do not exist
+  yet (salary is only an expense category).
 - **`package-lock.json`** is slightly out of sync with `package.json` (`npm ci` can fail with "@emnapi
   missing"). Fix: run `npm install` once and commit the lock file.
 - **Data:** everything in both orgs is test data so far. The real org (`rangdhanu`) has 4 test students with
