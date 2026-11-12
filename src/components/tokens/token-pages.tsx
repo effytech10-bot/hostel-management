@@ -498,7 +498,7 @@ export async function TokenDetailPage({
             <CardHeader>
               <div>
                 <CardTitle>Take payment</CardTitle>
-                <CardDescription>Any amount. Pay as many times as needed on this token.</CardDescription>
+                <CardDescription>Type the total. It is shared between the three accounts; change a part if needed.</CardDescription>
               </div>
             </CardHeader>
             <CardContent>
@@ -511,6 +511,8 @@ export async function TokenDetailPage({
                   studentId={student.id}
                   tokenCode={token.code ?? ""}
                   remainingPaisa={view.remainingPaisa}
+                  fundDues={view.fundDues}
+                  order={view.paymentOrder}
                   accounts={view.accounts.map((a) => ({ id: a.id, name: a.name, method: a.method }))}
                 />
               )}

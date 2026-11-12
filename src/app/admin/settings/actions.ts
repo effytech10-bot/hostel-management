@@ -1,12 +1,13 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { paymentOrderSchema } from "@/lib/validation/finance";
 import { mealCutoffSchema } from "@/lib/validation/meals";
 import { ratesSchema } from "@/lib/validation/rates";
 import { requireRole } from "@/server/auth/session";
 import type { ActionState } from "@/server/errors";
 import { formToObject, runForm } from "@/server/forms";
-import { saveMealCutoffHour } from "@/server/services/org-settings";
+import { saveMealCutoffHour, savePaymentOrder } from "@/server/services/org-settings";
 import { saveRates } from "@/server/services/rates";
 
 export async function saveRatesAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
@@ -25,5 +26,15 @@ export async function saveMealCutoffAction(_prev: ActionState, formData: FormDat
   if (!state.ok) return state;
   revalidatePath("/admin/settings");
   revalidatePath("/student", "layout");
+  return { ok: true, message: "Saved." };
+}
+
+export async function savePaymentOrderAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const actor = await requireRole("admin");
+  const { state } = await runForm(paymentOrderSchema, formToObject(formData), (d) => savePaymentOrder(actor, d.order));
+  if (!state.ok) return state;
+  revalidatePath("/admin/settings");
+  revalidatePath("/admin/tokens", "layout");
+  revalidatePath("/cashier/tokens", "layout");
   return { ok: true, message: "Saved." };
 }

@@ -27,13 +27,13 @@ import {
 } from "@/server/db/schema";
 import {
   balancesByHead,
-  DEFAULT_ALLOCATION_ORDER,
   mealCost,
   netCredits,
   openDues,
   type LedgerHead,
   type LedgerLine,
 } from "@/server/domain/billing";
+import { headOrder } from "@/server/domain/finance";
 import { shiftDate } from "@/server/domain/meals";
 import {
   admissionDrafts,
@@ -49,6 +49,7 @@ import {
 import { AppError } from "@/server/errors";
 import { postLedger, type NewLedgerEntry } from "./ledger";
 import { computeMealCounts } from "./meals";
+import { getPaymentOrder } from "./org-settings";
 import { getEffectiveRates } from "./rates";
 
 /**
@@ -271,6 +272,8 @@ export async function planTokens(
   const blockers = new Set<string>();
   const rates = await getEffectiveRates(tx, orgId, period);
   if (!rates) blockers.add(`Set the rates for ${formatPeriod(period)} in Settings first.`);
+  // Money a student already has with the hostel pays their dues in the hostel's order (Settings).
+  const creditOrder = headOrder(await getPaymentOrder(tx, orgId));
 
   const ids = list.map((s) => s.studentId);
   const latest = await latestTokens(tx, ids);
@@ -363,7 +366,7 @@ export async function planTokens(
         mealFrom: hasDays ? w.from : null,
         mealTo: w.to >= w.from || !w.prev?.mealTo ? w.to : w.prev.mealTo,
         mealPostPeriod: w.prev?.period ?? previousPeriod(period),
-        transfers: netCredits(after, DEFAULT_ALLOCATION_ORDER),
+        transfers: netCredits(after, creditOrder),
       });
     }
   }

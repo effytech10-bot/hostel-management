@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   Building,
   FileText,
+  Landmark,
   LayoutDashboard,
   Receipt,
   Settings,
@@ -25,6 +26,7 @@ const ICONS: Record<NavIcon, LucideIcon> = {
   meals: UtensilsCrossed,
   payments: Wallet,
   tokens: Receipt,
+  finance: Landmark,
   reports: FileText,
   users: UserCog,
   settings: Settings,

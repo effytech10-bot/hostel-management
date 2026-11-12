@@ -19,9 +19,20 @@ export const organizations = pgTable(
      * NULL = students cannot change meals; only the office can.
      */
     mealCutoffHour: smallint("meal_cutoff_hour").default(22),
+    /**
+     * Which account a payment fills first, second, third when the cashier types only the total
+     * (see domain/finance.ts). Money beyond all dues always goes to the rent account.
+     */
+    paymentOrder: text("payment_order").notNull().default("rent,meal,service"),
     ...timestamps,
   },
-  (t) => [check("organizations_meal_cutoff_hour_range", sql`${t.mealCutoffHour} between 0 and 23`)],
+  (t) => [
+    check("organizations_meal_cutoff_hour_range", sql`${t.mealCutoffHour} between 0 and 23`),
+    check(
+      "organizations_payment_order",
+      sql`${t.paymentOrder} in ('rent,meal,service','rent,service,meal','meal,rent,service','meal,service,rent','service,rent,meal','service,meal,rent')`,
+    ),
+  ],
 ).enableRLS();
 
 export type Organization = typeof organizations.$inferSelect;

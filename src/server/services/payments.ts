@@ -19,13 +19,16 @@ import {
   seatAssignments,
   seats,
   students,
+  tokenLines,
   tokens,
   type PaymentMethod,
 } from "@/server/db/schema";
-import { allocatePayment, type Allocation, type LedgerHead } from "@/server/domain/billing";
+import { type Allocation, type LedgerHead } from "@/server/domain/billing";
+import { allocateByFund, fundDues, splitPayment, sumFunds, type FundAmounts } from "@/server/domain/finance";
 import { AppError } from "@/server/errors";
 import { accessibleBuildingIds } from "./buildings";
 import { postLedger, studentAccount } from "./ledger";
+import { getPaymentOrder } from "./org-settings";
 import { assertPeriodOpen } from "./periods";
 import { advanceHeld, listStudentRefunds } from "./leave";
 import { latestTokens } from "./token-engine";
@@ -225,7 +228,15 @@ export async function recordPayment(actor: SessionUser, input: PaymentInput): Pr
       }
 
       const before = await studentAccount(tx, actor.orgId, student.id);
-      const { allocations, leftoverPaisa } = allocatePayment(before.dues, input.amount);
+      // The three parts typed by the cashier, or (only a total) the hostel's order: see domain/finance.ts.
+      const typed = [input.rentAmount, input.mealAmount, input.serviceAmount].some((v) => v != null);
+      const split: FundAmounts = typed
+        ? { rent: input.rentAmount ?? 0, meal: input.mealAmount ?? 0, service: input.serviceAmount ?? 0 }
+        : splitPayment(input.amount, fundDues(before.dues), await getPaymentOrder(tx, actor.orgId));
+      if (sumFunds(split) !== input.amount) {
+        throw new AppError("VALIDATION", "Rent + Meal + Service must add up to the total.");
+      }
+      const allocations = allocateByFund(before.dues, split, periodOf(input.paidDate));
 
       const receiptNo = formatReceiptNo(await nextCounter(tx, actor.orgId, "receipt", 1));
       const [payment] = await tx
@@ -258,20 +269,10 @@ export async function recordPayment(actor: SessionUser, input: PaymentInput): Pr
         sourceId: payment.id,
         createdBy: actor.membershipId,
       };
-      await postLedger(tx, [
-        ...allocations.map((a) => ({ ...base, period: a.period, head: a.head, amountPaisa: -a.amountPaisa })),
-        ...(leftoverPaisa > 0
-          ? [
-              {
-                ...base,
-                period: periodOf(input.paidDate),
-                head: "credit" as const,
-                amountPaisa: -leftoverPaisa,
-                description: "Paid in advance",
-              },
-            ]
-          : []),
-      ]);
+      await postLedger(
+        tx,
+        allocations.map((a) => ({ ...base, period: a.period, head: a.head, amountPaisa: -a.amountPaisa })),
+      );
 
       await writeAudit(tx, {
         orgId: actor.orgId,
@@ -286,7 +287,7 @@ export async function recordPayment(actor: SessionUser, input: PaymentInput): Pr
           account: account.name,
           trxId: input.trxId,
           allocations,
-          leftoverPaisa,
+          split,
         },
       });
       return { paymentId: payment.id, receiptNo, tokenCode: latest.code, duplicate: false };
@@ -404,6 +405,7 @@ export async function getReceipt(actor: SessionUser, paymentId: string) {
       buildingCode: buildings.code,
       receivedByName: memberships.fullName,
       tokenCode: tokens.code,
+      tokenPeriod: tokens.period,
     })
     .from(payments)
     .innerJoin(students, eq(students.id, payments.studentId))
@@ -444,9 +446,25 @@ export async function getReceipt(actor: SessionUser, paymentId: string) {
     .where(and(eq(ledgerEntries.sourceType, "payment"), eq(ledgerEntries.sourceId, row.payment.id)))
     .orderBy(asc(ledgerEntries.period));
 
+  // "Pmb" on the paper receipt: the pre meal balance printed on the token this money was paid on.
+  const [preMeal] = row.payment.tokenId
+    ? await db()
+        .select({ total: sql<string>`coalesce(sum(${tokenLines.amountPaisa}), 0)`.mapWith(Number) })
+        .from(tokenLines)
+        .where(
+          and(
+            eq(tokenLines.tokenId, row.payment.tokenId),
+            eq(tokenLines.kind, "previous"),
+            eq(tokenLines.head, "meal"),
+          ),
+        )
+    : [];
+
   return {
     ...row,
     seat: seat ?? null,
+    tokenPeriod: row.tokenPeriod,
+    preMealPaisa: preMeal?.total ?? 0,
     allocations: lines.map((l) => ({ head: l.head, period: l.period, amountPaisa: l.creditPaisa })) as Allocation[],
   };
 }
