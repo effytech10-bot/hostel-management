@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { PageHeader } from "@/components/layout/app-shell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { CHART, Columns, compact, shortMonth } from "@/components/charts/charts";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
@@ -79,9 +80,9 @@ export async function StudentsListPage({
         </Button>
       </PageHeader>
 
-      <form method="get" className="mb-4 grid gap-2.5 sm:grid-cols-[1fr_auto_auto_auto_auto] items-end">
+      <form method="get" className="mb-4 grid items-end gap-2.5 sm:grid-cols-[1fr_auto_auto_auto_auto]">
         <div className="flex flex-col gap-1">
-          <label className="text-[12.5px] font-semibold text-ink-2">Search</label>
+          <label className="text-ink-2 text-[12.5px] font-semibold">Search</label>
           <Input
             name="q"
             defaultValue={filters.q}
@@ -90,8 +91,8 @@ export async function StudentsListPage({
           />
         </div>
         <div className="flex flex-col gap-1">
-          <label className="text-[12.5px] font-semibold text-ink-2">Building</label>
-          <Select name="building" defaultValue={filters.buildingId ?? ""} className="h-9 text-[13.5px] min-w-32">
+          <label className="text-ink-2 text-[12.5px] font-semibold">Building</label>
+          <Select name="building" defaultValue={filters.buildingId ?? ""} className="h-9 min-w-32 text-[13.5px]">
             <option value="">All buildings</option>
             {buildingList.map((b) => (
               <option key={b.id} value={b.id}>
@@ -101,8 +102,8 @@ export async function StudentsListPage({
           </Select>
         </div>
         <div className="flex flex-col gap-1">
-          <label className="text-[12.5px] font-semibold text-ink-2">Batch</label>
-          <Select name="batch" defaultValue={filters.batchId ?? ""} className="h-9 text-[13.5px] min-w-28">
+          <label className="text-ink-2 text-[12.5px] font-semibold">Batch</label>
+          <Select name="batch" defaultValue={filters.batchId ?? ""} className="h-9 min-w-28 text-[13.5px]">
             <option value="">All batches</option>
             {batchList.map((b) => (
               <option key={b.id} value={b.id}>
@@ -112,8 +113,8 @@ export async function StudentsListPage({
           </Select>
         </div>
         <div className="flex flex-col gap-1">
-          <label className="text-[12.5px] font-semibold text-ink-2">Status</label>
-          <Select name="status" defaultValue={filters.status} className="h-9 text-[13.5px] min-w-28">
+          <label className="text-ink-2 text-[12.5px] font-semibold">Status</label>
+          <Select name="status" defaultValue={filters.status} className="h-9 min-w-28 text-[13.5px]">
             <option value="active">Active</option>
             <option value="left">Former (left)</option>
             <option value="all">All</option>
@@ -165,12 +166,12 @@ export async function StudentsListPage({
                       )}
                     </TableCell>
                     <TableCell className="font-mono text-xs">{s.phone}</TableCell>
-                    <TableCell className="text-right tabular-nums font-semibold">
+                    <TableCell className="text-right font-semibold tabular-nums">
                       {s.rentPaisa != null ? formatTaka(s.rentPaisa) : "—"}
                     </TableCell>
                     <TableCell className="text-muted-foreground text-xs">{s.batchName ?? "—"}</TableCell>
                     <TableCell className="text-right">
-                      <Link href={`${basePath}/${s.id}`} className="text-brand font-medium hover:underline text-xs">
+                      <Link href={`${basePath}/${s.id}`} className="text-brand text-xs font-medium hover:underline">
                         Open →
                       </Link>
                     </TableCell>
@@ -308,7 +309,7 @@ export async function StudentDetailPage({
       </PageHeader>
 
       <div className="mb-6 flex flex-wrap items-center gap-4">
-        <div className="bg-surface-2 border-line size-16 shrink-0 overflow-hidden rounded-[12px] border shadow-card flex items-center justify-center">
+        <div className="bg-surface-2 border-line shadow-card flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-[12px] border">
           {photoUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={photoUrl} alt={student.fullName} className="size-full object-cover" />
@@ -331,7 +332,7 @@ export async function StudentDetailPage({
               </Badge>
             )}
           </div>
-          <p className="text-muted-foreground mt-0.5 text-xs font-mono">
+          <p className="text-muted-foreground mt-0.5 font-mono text-xs">
             ID {student.studentCode} · {student.phone}
             {student.admissionDate && ` · Admitted ${student.admissionDate}`}
           </p>
@@ -361,6 +362,53 @@ export async function StudentDetailPage({
               />
             </CardContent>
           </Card>
+
+          {studentTokens.length > 0 && (
+            <Card>
+              <CardHeader>
+                <div>
+                  <CardTitle>Paid and not paid, month by month</CardTitle>
+                  <CardDescription>
+                    Each column is one token (bill). Blue = paid on it. Orange = not paid: it moved to the next token,
+                    or is still due on the newest one.
+                  </CardDescription>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <Columns
+                  label="Paid and not paid on each token"
+                  width={380}
+                  maxBar={30}
+                  height={190}
+                  series={[
+                    { label: "Paid", color: CHART.in },
+                    { label: "Not paid", color: CHART.owed },
+                  ]}
+                  tick={compact}
+                  cols={studentTokens
+                    .slice(0, 12)
+                    .reverse()
+                    .map((t, i, list) => {
+                      const latest = i === list.length - 1;
+                      const left = latest ? t.remainingPaisa : Math.max(0, t.totalPaisa - t.paidHerePaisa);
+                      return {
+                        key: t.id,
+                        tick: t.kind === "admission" ? `${shortMonth(t.period)}*` : shortMonth(t.period),
+                        title: `${shortMonth(t.period)}${t.kind === "admission" ? " admission" : ""} token: bill ${formatTaka(t.totalPaisa)} · paid ${formatTaka(t.paidHerePaisa)} · ${
+                          left > 0
+                            ? `not paid ${formatTaka(left)}${latest ? " (still due)" : " (moved to the next token)"}`
+                            : "nothing left"
+                        }`,
+                        values: [t.paidHerePaisa, left],
+                      };
+                    })}
+                />
+                {studentTokens.some((t) => t.kind === "admission") && (
+                  <p className="text-muted mt-1 text-[11.5px]">* admission bill</p>
+                )}
+              </CardContent>
+            </Card>
+          )}
 
           <Card>
             <CardHeader>
@@ -397,9 +445,7 @@ export async function StudentDetailPage({
               <CardHeader>
                 <div>
                   <CardTitle>Student leaving (admin)</CardTitle>
-                  <CardDescription>
-                    Settles meals, returns advance against dues, and frees the seat.
-                  </CardDescription>
+                  <CardDescription>Settles meals, returns advance against dues, and frees the seat.</CardDescription>
                 </div>
               </CardHeader>
               <CardContent>
@@ -413,9 +459,7 @@ export async function StudentDetailPage({
               <CardHeader>
                 <div>
                   <CardTitle>Adjust account (admin)</CardTitle>
-                  <CardDescription>
-                    Opening balance from old records, an extra charge, or a waiver.
-                  </CardDescription>
+                  <CardDescription>Opening balance from old records, an extra charge, or a waiver.</CardDescription>
                 </div>
               </CardHeader>
               <CardContent>
@@ -490,9 +534,7 @@ export async function StudentDetailPage({
               <CardHeader>
                 <div>
                   <CardTitle>Change seat or rent</CardTitle>
-                  <CardDescription>
-                    Pick a new seat, or keep the current seat and change the rent.
-                  </CardDescription>
+                  <CardDescription>Pick a new seat, or keep the current seat and change the rent.</CardDescription>
                 </div>
               </CardHeader>
               <CardContent>
@@ -529,10 +571,12 @@ export async function StudentDetailPage({
                       <TableCell>
                         {h.roomNumber}-{h.seatLabel}
                       </TableCell>
-                      <TableCell className="text-right tabular-nums font-semibold">{formatTaka(h.rentPaisa)}</TableCell>
+                      <TableCell className="text-right font-semibold tabular-nums">{formatTaka(h.rentPaisa)}</TableCell>
                       <TableCell className="text-muted-foreground text-xs">{h.startDate}</TableCell>
                       <TableCell className="text-xs">{h.endDate ?? <Badge variant="success">Current</Badge>}</TableCell>
-                      <TableCell className="text-muted-foreground text-xs">{h.endReason?.replace("_", " ") ?? ""}</TableCell>
+                      <TableCell className="text-muted-foreground text-xs">
+                        {h.endReason?.replace("_", " ") ?? ""}
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>

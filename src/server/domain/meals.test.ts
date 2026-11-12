@@ -48,6 +48,36 @@ describe("countMeals", () => {
     expect(formatMealUnits(c.halfUnits)).toBe("35");
   });
 
+  it("adds every meal eaten to its day when perDay is given, for all students together", () => {
+    const perDay = new Map<string, { breakfast: number; lunch: number; dinner: number }>();
+    const offs = new Set([mealKey("2026-09-20", "lunch"), mealKey("2026-09-21", "breakfast")]);
+    const a = countMeals({
+      period: "2026-09",
+      intervals: [{ start: "2026-09-16", end: null, buildingId: "B207" }],
+      offs,
+      holidaysAll: none,
+      holidaysByBuilding: noBuildingHolidays,
+      perDay,
+    });
+    countMeals({
+      period: "2026-09",
+      intervals: [{ start: "2026-09-20", end: null, buildingId: "B207" }],
+      offs: none,
+      holidaysAll: none,
+      holidaysByBuilding: noBuildingHolidays,
+      perDay,
+    });
+    expect(perDay.get("2026-09-15")).toBeUndefined();
+    expect(perDay.get("2026-09-16")).toEqual({ breakfast: 1, lunch: 1, dinner: 1 });
+    expect(perDay.get("2026-09-20")).toEqual({ breakfast: 2, lunch: 1, dinner: 2 });
+    expect(perDay.get("2026-09-21")).toEqual({ breakfast: 1, lunch: 2, dinner: 2 });
+    const first = [...perDay]
+      .filter(([d]) => d < "2026-09-20")
+      .reduce((s, [, v]) => s + v.breakfast + v.lunch + v.dinner, 0);
+    expect(first).toBe(4 * 3);
+    expect(a.breakfast + a.lunch + a.dinner).toBe(15 * 3 - 2);
+  });
+
   it("applies holidays for all buildings and for the student's building on that day", () => {
     const intervals: SeatInterval[] = [
       { start: "2026-09-01", end: "2026-09-15", buildingId: "B178" },

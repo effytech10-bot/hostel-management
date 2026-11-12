@@ -1,6 +1,6 @@
 import "server-only";
 import { count, eq } from "drizzle-orm";
-import { currentPeriod, dhakaDate, periodStart, previousPeriod } from "@/lib/dates";
+import { currentPeriod, datesInPeriod, dhakaDate, periodStart, previousPeriod } from "@/lib/dates";
 import { assertRole, type SessionUser } from "@/server/auth/session";
 import { db } from "@/server/db/client";
 import { memberships } from "@/server/db/schema";
@@ -59,12 +59,22 @@ export async function getDashboard(actor: SessionUser) {
       collectedMonthPaisa: collectedByCode.get(b.code) ?? 0,
     }));
 
+  // Every day of the month (days still to come have nothing yet), for the daily collection chart.
+  const byDate = new Map(collectedMonth.byDay.map((d) => [d.date, d]));
+  const collectionDays = datesInPeriod(period).map((date) => ({
+    date,
+    totalPaisa: byDate.get(date)?.totalPaisa ?? 0,
+    count: byDate.get(date)?.count ?? 0,
+    future: date > today,
+  }));
+
   const previous = previousPeriod(period);
   return {
     today,
     period,
     collectedToday: { totalPaisa: collectedToday.totalPaisa, count: collectedToday.count },
     collectedMonth: { totalPaisa: collectedMonth.totalPaisa, count: collectedMonth.count },
+    collectionDays,
     dues: dues.totals,
     formerDues: formerDues.totals,
     tokens: tokenCounts,

@@ -3,7 +3,8 @@ import { PageHeader } from "@/components/layout/app-shell";
 import { ActionButton } from "@/components/forms/action-button";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { CHART, Columns, dayTick, shortDate } from "@/components/charts/charts";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { KpiTile } from "@/components/ui/kpi";
 import { Select } from "@/components/ui/select";
@@ -38,7 +39,9 @@ function MealTabs({ basePath, active, isAdmin }: { basePath: string; active: str
   const tabs = [
     { href: basePath, label: "Daily entry", key: "day", active: active === "day" },
     { href: `${basePath}/report`, label: "Monthly count", key: "report", active: active === "report" },
-    ...(isAdmin ? [{ href: `${basePath}/holidays`, label: "Holidays", key: "holidays", active: active === "holidays" }] : []),
+    ...(isAdmin
+      ? [{ href: `${basePath}/holidays`, label: "Holidays", key: "holidays", active: active === "holidays" }]
+      : []),
   ];
   return <TabsNav items={tabs} className="mb-6" />;
 }
@@ -89,8 +92,8 @@ export async function MealDayPage({
         <>
           <form method="get" className="mb-4 flex flex-wrap items-end gap-2.5">
             <div className="flex flex-col gap-1">
-              <label className="text-[12.5px] font-semibold text-ink-2">Building</label>
-              <Select name="building" defaultValue={building?.id ?? ""} className="w-auto min-w-40 h-9 text-[13.5px]">
+              <label className="text-ink-2 text-[12.5px] font-semibold">Building</label>
+              <Select name="building" defaultValue={building?.id ?? ""} className="h-9 w-auto min-w-40 text-[13.5px]">
                 <option value="">Choose building…</option>
                 {buildingList.map((b) => (
                   <option key={b.id} value={b.id}>
@@ -100,8 +103,8 @@ export async function MealDayPage({
               </Select>
             </div>
             <div className="flex flex-col gap-1">
-              <label className="text-[12.5px] font-semibold text-ink-2">Date</label>
-              <Input type="date" name="date" defaultValue={date} className="w-auto h-9 text-[13.5px]" />
+              <label className="text-ink-2 text-[12.5px] font-semibold">Date</label>
+              <Input type="date" name="date" defaultValue={date} className="h-9 w-auto text-[13.5px]" />
             </div>
             <Button type="submit" variant="outline" size="sm" className="h-9">
               Open
@@ -114,7 +117,7 @@ export async function MealDayPage({
                 <Button asChild variant="outline" size="sm">
                   <Link href={hrefFor(shiftDate(date, -1))}>← Previous day</Link>
                 </Button>
-                <div className="flex items-center gap-2 px-2 font-semibold text-[14.5px] text-ink">
+                <div className="text-ink flex items-center gap-2 px-2 text-[14.5px] font-semibold">
                   <span>{formatDay(date)}</span>
                   {date === today && <Badge variant="info">Today</Badge>}
                   {date === shiftDate(today, 1) && <Badge variant="info">Tomorrow</Badge>}
@@ -162,12 +165,13 @@ export async function MealReportPage({
   const period = periodParam && isValidPeriod(periodParam) ? periodParam : currentPeriod();
   const buildingParam = one(searchParams.building);
   const buildingId = buildingList.some((b) => b.id === buildingParam) ? buildingParam : undefined;
-  const [{ rows, totals }, effective] = await Promise.all([
+  const [{ rows, totals, days }, effective] = await Promise.all([
     getMealReport(actor, period, buildingId),
     getEffectiveRates(db(), actor.orgId, period),
   ]);
   const rates = effective?.rates ?? null;
   const isCurrent = period === currentPeriod();
+  const today = dhakaDate();
 
   return (
     <>
@@ -179,12 +183,12 @@ export async function MealReportPage({
 
       <form method="get" className="mb-4 flex flex-wrap items-end gap-2.5">
         <div className="flex flex-col gap-1">
-          <label className="text-[12.5px] font-semibold text-ink-2">Month</label>
-          <Input type="month" name="month" defaultValue={period} className="w-auto h-9 text-[13.5px]" />
+          <label className="text-ink-2 text-[12.5px] font-semibold">Month</label>
+          <Input type="month" name="month" defaultValue={period} className="h-9 w-auto text-[13.5px]" />
         </div>
         <div className="flex flex-col gap-1">
-          <label className="text-[12.5px] font-semibold text-ink-2">Building</label>
-          <Select name="building" defaultValue={buildingId ?? ""} className="w-auto min-w-40 h-9 text-[13.5px]">
+          <label className="text-ink-2 text-[12.5px] font-semibold">Building</label>
+          <Select name="building" defaultValue={buildingId ?? ""} className="h-9 w-auto min-w-40 text-[13.5px]">
             <option value="">All my buildings</option>
             {buildingList.map((b) => (
               <option key={b.id} value={b.id}>
@@ -196,7 +200,7 @@ export async function MealReportPage({
         <Button type="submit" variant="outline" size="sm" className="h-9">
           Show
         </Button>
-        <Button asChild variant="ghost" size="sm" className="h-9 text-brand hover:text-brand-600">
+        <Button asChild variant="ghost" size="sm" className="text-brand hover:text-brand-600 h-9">
           <Link
             href={`${basePath}/report?month=${addMonths(period, -1)}${buildingId ? `&building=${buildingId}` : ""}`}
           >
@@ -205,12 +209,46 @@ export async function MealReportPage({
         </Button>
       </form>
 
-      <div className="mb-4 grid grid-cols-2 lg:grid-cols-4 gap-3.5">
+      <div className="mb-4 grid grid-cols-2 gap-3.5 lg:grid-cols-4">
         <KpiTile label="Breakfasts (½ meal)" value={totals.breakfast} />
         <KpiTile label="Lunches" value={totals.lunch} />
         <KpiTile label="Dinners" value={totals.dinner} />
         <KpiTile label="Total meals" value={formatMealUnits(totals.halfUnits)} />
       </div>
+
+      {rows.length > 0 && (
+        <Card className="mb-4">
+          <CardHeader>
+            <div>
+              <CardTitle>Meals each day</CardTitle>
+              <CardDescription>
+                How many breakfasts, lunches and dinners are eaten on each day of {formatPeriod(period)}
+                {isCurrent ? " (lighter columns = days still to come, meals planned now)" : ""}. Point at a day to see
+                the numbers.
+              </CardDescription>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <Columns
+              label={`Meals each day of ${formatPeriod(period)}`}
+              series={[
+                { label: "Breakfast", color: CHART.breakfast },
+                { label: "Lunch", color: CHART.lunch },
+                { label: "Dinner", color: CHART.dinner },
+              ]}
+              tick={(v) => String(v)}
+              cols={days.map((d) => ({
+                key: d.date,
+                tick: dayTick(d.date, days.length, today),
+                mark: d.date === today,
+                dim: d.date > today,
+                title: `${shortDate(d.date)}${d.date === today ? " (today)" : d.date > today ? " (planned)" : ""}: breakfast ${d.breakfast} · lunch ${d.lunch} · dinner ${d.dinner}`,
+                values: [d.breakfast, d.lunch, d.dinner],
+              }))}
+            />
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardContent>
@@ -236,18 +274,18 @@ export async function MealReportPage({
                 {rows.map((r) => (
                   <TableRow key={r.studentId}>
                     <TableCell className="font-mono text-xs tabular-nums">{r.studentCode}</TableCell>
-                    <TableCell className="font-semibold text-ink">{r.fullName}</TableCell>
+                    <TableCell className="text-ink font-semibold">{r.fullName}</TableCell>
                     <TableCell>{r.buildingCode}</TableCell>
                     <TableCell className="font-mono text-xs">{r.seatText}</TableCell>
                     <TableCell className="text-right tabular-nums">{r.days}</TableCell>
                     <TableCell className="text-right tabular-nums">{r.breakfast}</TableCell>
                     <TableCell className="text-right tabular-nums">{r.lunch}</TableCell>
                     <TableCell className="text-right tabular-nums">{r.dinner}</TableCell>
-                    <TableCell className="text-right font-bold tabular-nums">
-                      {formatMealUnits(r.halfUnits)}
-                    </TableCell>
+                    <TableCell className="text-right font-bold tabular-nums">{formatMealUnits(r.halfUnits)}</TableCell>
                     {rates && (
-                      <TableCell className="text-right font-semibold tabular-nums text-ink">{formatTaka(mealCost(r, rates))}</TableCell>
+                      <TableCell className="text-ink text-right font-semibold tabular-nums">
+                        {formatTaka(mealCost(r, rates))}
+                      </TableCell>
                     )}
                   </TableRow>
                 ))}
