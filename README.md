@@ -105,6 +105,28 @@ A token is the student's bill for one month **and** the place where their paymen
   so they show as "previous due" on the first token. Re-uploading the same file skips students already imported.
   Then make the first tokens by hand (Admin → Tokens) on the 1st of the start month.
 
+## Finance (admin → Finance)
+
+The hostel keeps its money in **three accounts**: **Rent & advance**, **Meal**, **Service**.
+
+- **Money in is never typed twice.** A student payment has a total and a part for each account
+  (Take payment: Total, Rent acc, Meal acc, Service acc). Typing the total fills the accounts in the order chosen
+  in Settings (default Rent → Meal → Service); money beyond all dues goes to Rent. The cashier may change the
+  three parts. Which account got the money follows from the ledger head it was credited to
+  (`src/server/domain/finance.ts`: rent/advance/credit → Rent, meal → Meal, service charge/other → Service).
+- **Money out** is typed by the admin (Finance → Expenses & owner money): title, category (pick or type a new
+  one), amount, which account, paid from (cash / bKash / bank), building (optional), note. "Owner took money" and
+  "Owner put money in" change the balance but not the profit. A wrong entry is cancelled (an opposite row is
+  added, table `finance_entries`), never deleted.
+- **Profit** of an account = earned − spent. Rent: rent charged. Meal: meals actually eaten × rates (not the
+  deposit); the card also shows expected meals vs eaten. Service: service and other charges. Advance is the
+  student's money and is never income.
+- **Screens:** Overview (earned / spent / profit / money in hand, a money-flow picture, one card per account,
+  cash-bKash-bank balances), Cash book per account, Profit & loss, Balance sheet. Two checks are shown on screen:
+  the three accounts together = cash + bKash + bank, and "has − owes" = profit + owner's money.
+- **Money receipt** (`/receipts/<payment>`): the hostel's paper receipt with the same boxes (Rent, Meal, Pmb,
+  Total M.b, L.Num = token ID, Amount, Due Amount, Adv., Service C.); "Received by" is whoever saved the payment.
+
 ## Deployment
 
 Vercel, region `bom1` (Mumbai, same region as the Supabase project) — see `vercel.json`.
