@@ -24,6 +24,7 @@ import {
 } from "@/server/domain/finance";
 import { formatMealUnits } from "@/server/domain/meals";
 import { listBuildings } from "@/server/services/buildings";
+import { IncomeStatementView } from "./income-statement-view";
 import {
   getCashbook,
   getFinanceOverview,
@@ -43,6 +44,7 @@ const TABS = [
   { key: "overview", label: "Overview" },
   { key: "expenses", label: "Expenses & owner money" },
   { key: "cashbook", label: "Cash book" },
+  { key: "income", label: "Income statement" },
   { key: "statements", label: "Profit & balance sheet" },
 ] as const;
 type Tab = (typeof TABS)[number]["key"];
@@ -155,6 +157,7 @@ export async function FinancePage({
       {tab === "overview" && <Overview actor={actor} period={period} href={href} />}
       {tab === "expenses" && <Expenses actor={actor} period={period} />}
       {tab === "cashbook" && <Cashbook actor={actor} period={period} fund={fund} href={href} />}
+      {tab === "income" && <IncomeStatementView actor={actor} period={period} />}
       {tab === "statements" && <StatementsView actor={actor} period={period} />}
     </>
   );
