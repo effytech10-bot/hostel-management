@@ -18,7 +18,7 @@ function Detail({ text }: { text: string | null | undefined }) {
 
 /**
  * The paper token, exactly as the hostel prints it (Rent, Meal Deposit, Total, Pre. Meal Balance,
- * Due:Advance/S.Charge, Due:Monthly Rent, To Be Paid), plus the token ID and the payments made on it.
+ * Due:Advance, Due:S.Charge, Due:Monthly Rent, To Be Paid), plus the token ID and the payments made on it.
  */
 export function TokenCard({
   token,
@@ -40,7 +40,8 @@ export function TokenCard({
   const rent = cur("rent");
   const deposit = cur("meal");
   const preMeal = due("meal");
-  const advance = due("advance", "service_charge");
+  const advance = due("advance");
+  const serviceCharge = due("service_charge");
   const monthlyRent = due("rent");
   const other = due("other", "baburchi");
   const extra = due("credit");
@@ -54,7 +55,8 @@ export function TokenCard({
     { label: "Meal Deposit", value: <Money paisa={sum(deposit)} /> },
     { label: "Total", value: <Money paisa={token.currentTotalPaisa} /> },
     { label: "Pre. Meal Balance", value: <Money paisa={sum(preMeal)} />, detail: firstDetail(preMeal, "Pre meal") },
-    { label: "Due:Advance/S.Charge", value: <Money paisa={sum(advance)} /> },
+    { label: "Due:Advance", value: <Money paisa={sum(advance)} /> },
+    { label: "Due:S.Charge", value: <Money paisa={sum(serviceCharge)} /> },
     {
       label: "Due:Monthly Rent",
       value: <Money paisa={sum(monthlyRent)} />,
