@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { isValidDate, isValidPeriod } from "@/lib/dates";
 import { tryParseTaka } from "@/lib/money";
-import { dateField, optionalText, requiredTaka } from "./fields";
+import { dateField, optionalTaka, optionalText, requiredTaka } from "./fields";
 
 export const PAYMENT_METHODS = ["cash", "bkash", "nagad", "bank", "other"] as const;
 export const METHOD_LABEL: Record<(typeof PAYMENT_METHODS)[number], string> = {
@@ -16,6 +16,10 @@ export const paymentSchema = z.object({
   requestId: z.uuid(),
   studentId: z.uuid(),
   amount: requiredTaka("amount").refine((p) => p > 0, "Amount must be more than 0"),
+  /** How the total is shared between the three accounts. All empty = split automatically. */
+  rentAmount: optionalTaka(),
+  mealAmount: optionalTaka(),
+  serviceAmount: optionalTaka(),
   accountId: z.uuid({ message: "Choose where the money was received" }),
   trxId: optionalText(60).transform((v) => (v ? v.replace(/\s+/g, "").toUpperCase() : null)),
   paidDate: dateField(),

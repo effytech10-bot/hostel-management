@@ -119,6 +119,82 @@ describe("audit sentences", () => {
     expect(v.changes[0]).toEqual({ label: "সময়সীমা", from: "আগের রাত 10টা পর্যন্ত", to: "আগের রাত 9টা পর্যন্ত" });
   });
 
+  it("expense, owner money, cancelled entry", () => {
+    const expense = describeAudit(
+      row("finance.expense", "finance_entry", null, null, {
+        voucherNo: "V-000004",
+        title: "Friday bazar",
+        category: "Bazar",
+        amountPaisa: 350000,
+        fund: "meal",
+        account: "Cash in hand",
+        buildingId: B1,
+        entryDate: "2026-11-12",
+      }),
+      L,
+    );
+    expect(sentenceText(expense.sentence)).toBe("৳3,500 খরচ লেখা হয়েছে: Friday bazar");
+    expect(expense.category).toBe("money");
+    expect(expense.facts.map((f) => f.value)).toEqual([
+      "V-000004",
+      "মিল",
+      "Bazar",
+      "Cash in hand",
+      "207",
+      "12 নভেম্বর 2026",
+    ]);
+
+    const owner = describeAudit(
+      row("finance.owner_withdraw", "finance_entry", null, null, {
+        amountPaisa: 1000000,
+        fund: "rent",
+        account: "Bank",
+      }),
+      L,
+    );
+    expect(sentenceText(owner.sentence)).toBe("৳10,000 মালিক তুলে নিয়েছেন");
+
+    const cancelled = describeAudit(
+      row(
+        "finance.void",
+        "finance_entry",
+        null,
+        { voucherNo: "V-000004", kind: "expense", title: "Friday bazar", amountPaisa: 350000, fund: "meal" },
+        { reason: "typed twice" },
+      ),
+      L,
+    );
+    expect(sentenceText(cancelled.sentence)).toContain("Friday bazar বাতিল করা হয়েছে");
+    expect(cancelled.facts[0].value).toBe("typed twice");
+  });
+
+  it("payment shows the three accounts; payment order change", () => {
+    const paid = describeAudit(
+      row("payment.create", "payment", P1, null, {
+        amountPaisa: 120000,
+        account: "Cash in hand",
+        split: { rent: 50000, meal: 50000, service: 20000 },
+        allocations: [],
+      }),
+      L,
+    );
+    expect(paid.facts.find((f) => f.label === "কোন account-এ কত")?.value).toBe(
+      "ভাড়া ও অ্যাডভান্স ৳500 · মিল ৳500 · সার্ভিস ৳200",
+    );
+
+    const order = describeAudit(
+      row(
+        "settings.payment_order",
+        "organization",
+        null,
+        { paymentOrder: "rent,meal,service" },
+        { paymentOrder: "meal,rent,service" },
+      ),
+      L,
+    );
+    expect(order.changes[0].to).toBe("মিল → ভাড়া ও অ্যাডভান্স → সার্ভিস");
+  });
+
   it("unknown action still readable", () => {
     const v = describeAudit(row("something.new_thing", "x", null, null, null), L);
     expect(sentenceText(v.sentence)).toContain("something new thing");

@@ -441,7 +441,8 @@ export async function computeMealCounts(
   orgId: string,
   period: Period,
   buildingIds: string[] | null,
-  opts: { studentIds?: string[]; until?: DateString; from?: DateString } = {},
+  /** allOn: count every meal as eaten except holidays ("how many meals were expected"). */
+  opts: { studentIds?: string[]; until?: DateString; from?: DateString; allOn?: boolean } = {},
 ): Promise<MealReportRow[]> {
   if (buildingIds && buildingIds.length === 0) return [];
   const start = periodStart(period);
@@ -519,9 +520,9 @@ export async function computeMealCounts(
     const counts = countMeals({
       period,
       intervals,
-      offs: offsByStudent.get(latest.studentId) ?? new Set(),
-      ons: onsByStudent.get(latest.studentId),
-      defaults: defaults.get(latest.studentId),
+      offs: (opts.allOn ? undefined : offsByStudent.get(latest.studentId)) ?? new Set(),
+      ons: opts.allOn ? undefined : onsByStudent.get(latest.studentId),
+      defaults: opts.allOn ? undefined : defaults.get(latest.studentId),
       holidaysAll,
       holidaysByBuilding,
       until: opts.until ?? latest.leftDate ?? undefined,

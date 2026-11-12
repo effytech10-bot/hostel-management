@@ -25,3 +25,6 @@ next-env.d.ts
 # antigravity
 .antigravity/
 
+# claude code (local skills, rules, templates)
+.claude/
+

@@ -11,10 +11,11 @@ import { formatTaka } from "@/lib/money";
 import { requireRole } from "@/server/auth/session";
 import { db } from "@/server/db/client";
 import { earliestEditablePeriod, getEffectiveRates, listRateHistory, SUGGESTED_RATES } from "@/server/services/rates";
-import { getMealCutoffHour } from "@/server/services/org-settings";
+import { getMealCutoffHour, getPaymentOrder } from "@/server/services/org-settings";
 import { listPaymentAccounts } from "@/server/services/payments";
 import { MealCutoffForm } from "./meal-cutoff-form";
 import { PaymentAccounts } from "./payment-accounts";
+import { PaymentOrderForm } from "./payment-order-form";
 import { RatesForm } from "./rates-form";
 
 export const metadata: Metadata = { title: "Settings" };
@@ -24,11 +25,12 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
   const { month } = await searchParams;
   const period = month && isValidPeriod(month) ? month : currentPeriod();
 
-  const [effective, history, accounts, cutoffHour] = await Promise.all([
+  const [effective, history, accounts, cutoffHour, paymentOrder] = await Promise.all([
     getEffectiveRates(db(), actor.orgId, period),
     listRateHistory(actor),
     listPaymentAccounts(actor, { includeInactive: true }),
     getMealCutoffHour(db(), actor.orgId),
+    getPaymentOrder(db(), actor.orgId),
   ]);
   const locked = period < earliestEditablePeriod();
   const hasOwnRow = effective?.fromPeriod === period;
@@ -130,6 +132,19 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
         </CardHeader>
         <CardContent>
           <MealCutoffForm cutoffHour={cutoffHour} />
+        </CardContent>
+      </Card>
+
+      <Card className="mt-6">
+        <CardHeader>
+          <CardTitle>Which account a payment fills first</CardTitle>
+          <CardDescription>
+            When the cashier types only the total, the money pays the dues of the three accounts in this order. Money
+            beyond all dues goes to the Rent account. The cashier can still change the three parts by hand.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <PaymentOrderForm order={paymentOrder.join(",")} />
         </CardContent>
       </Card>
 

@@ -17,10 +17,12 @@ import {
   tokenLines,
   tokens,
 } from "@/server/db/schema";
-import { tokenPaymentStatus, type LedgerLine, type TokenStatus } from "@/server/domain/billing";
+import { openDues, tokenPaymentStatus, type LedgerLine, type TokenStatus } from "@/server/domain/billing";
+import { fundDues } from "@/server/domain/finance";
 import { normalizeTokenQuery, tokenState, type TokenState } from "@/server/domain/tokens";
 import { AppError } from "@/server/errors";
 import { accessibleBuildingIds } from "./buildings";
+import { getPaymentOrder } from "./org-settings";
 
 export type { TokenState };
 
@@ -355,6 +357,9 @@ export async function getTokenView(actor: SessionUser, code: string) {
     latestCode: latest?.code ?? null,
     meal: settlement[0] ?? null,
     accounts,
+    /** What is unpaid in each of the three accounts, and the order a payment fills them (payment form). */
+    fundDues: fundDues(openDues(ledger.get(row.student.id) ?? [])),
+    paymentOrder: await getPaymentOrder(db(), actor.orgId),
   };
 }
 export type TokenView = Awaited<ReturnType<typeof getTokenView>>;

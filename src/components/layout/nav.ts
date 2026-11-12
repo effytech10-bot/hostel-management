@@ -7,6 +7,7 @@ export type NavIcon =
   | "meals"
   | "payments"
   | "tokens"
+  | "finance"
   | "reports"
   | "users"
   | "settings"
@@ -28,6 +29,7 @@ export const NAV: Record<MemberRole, NavItem[]> = {
     { label: "Meals", href: "/admin/meals", icon: "meals" },
     { label: "Payments", href: "/admin/payments", icon: "payments" },
     { label: "Tokens", href: "/admin/tokens", icon: "tokens" },
+    { label: "Finance", href: "/admin/finance", icon: "finance" },
     { label: "Reports", href: "/admin/reports", icon: "reports" },
     { label: "Users", href: "/admin/users", icon: "users" },
     { label: "Settings", href: "/admin/settings", icon: "settings" },

@@ -9,7 +9,11 @@ import { formatTaka } from "@/lib/money";
 // ---------------------------------------------------------------------------
 
 export const AUDIT_CATEGORIES = [
-  { key: "money", label: "টাকা ও পেমেন্ট", prefixes: ["payment.", "payment_account.", "refund.", "ledger."] },
+  {
+    key: "money",
+    label: "টাকা ও পেমেন্ট",
+    prefixes: ["payment.", "payment_account.", "refund.", "ledger.", "finance.", "expense_category."],
+  },
   { key: "token", label: "টোকেন", prefixes: ["billing.", "token."] },
   { key: "student", label: "ছাত্র", prefixes: ["student."] },
   { key: "meal", label: "মিল", prefixes: ["meal."] },
@@ -78,6 +82,9 @@ const HEAD: Record<string, string> = {
   other: "অন্যান্য",
   credit: "বাড়তি জমা",
 };
+
+const FUND_KEYS = ["rent", "meal", "service"] as const;
+const FUND: Record<string, string> = { rent: "ভাড়া ও অ্যাডভান্স", meal: "মিল", service: "সার্ভিস" };
 
 const METHOD: Record<string, string> = { cash: "ক্যাশ", bkash: "বিকাশ", nagad: "নগদ", rocket: "রকেট", bank: "ব্যাংক" };
 
@@ -297,6 +304,10 @@ export function describeAudit(row: AuditRow, L: AuditLookups): AuditView {
           tokenFact(a.token ?? p?.tokenCode, L),
           { label: "কোথায় নেওয়া হয়েছে", value: str(a.account) || "—" },
           str(a.trxId) && { label: "ট্রানজেকশন আইডি", value: str(a.trxId) },
+          a.split && {
+            label: "কোন account-এ কত",
+            value: FUND_KEYS.map((f) => `${FUND[f]} ${taka(obj(a.split)[f] ?? 0)}`).join(" · "),
+          },
           paidFor && { label: "কোন খাতে গেছে", value: paidFor },
           Number(a.leftoverPaisa) > 0 && {
             label: "বাড়তি টাকা",
@@ -359,6 +370,63 @@ export function describeAudit(row: AuditRow, L: AuditLookups): AuditView {
         ]),
       };
     }
+    case "finance.expense":
+    case "finance.owner_withdraw":
+    case "finance.owner_deposit": {
+      const what =
+        row.action === "finance.expense"
+          ? " খরচ লেখা হয়েছে: "
+          : row.action === "finance.owner_withdraw"
+            ? " মালিক তুলে নিয়েছেন"
+            : " মালিক নিজের টাকা জমা দিয়েছেন";
+      return {
+        ...base,
+        icon: row.action === "finance.expense" ? "adjust" : "account",
+        tone: row.action === "finance.owner_deposit" ? "ok" : "warn",
+        sentence: [
+          { b: taka(a.amountPaisa) },
+          what,
+          ...(row.action === "finance.expense" ? [{ b: str(a.title) }] : []),
+        ],
+        facts: compact([
+          { label: "ভাউচার", value: str(a.voucherNo) },
+          { label: "কোন account", value: FUND[str(a.fund)] ?? str(a.fund) },
+          str(a.category) && { label: "ক্যাটাগরি", value: str(a.category) },
+          {
+            label: row.action === "finance.owner_deposit" ? "কোথায় রাখা হয়েছে" : "কোথা থেকে দেওয়া হয়েছে",
+            value: str(a.account) || "—",
+          },
+          a.buildingId && { label: "বিল্ডিং", value: buildingName(a.buildingId, L) },
+          a.entryDate && { label: "তারিখ", value: bnDate(a.entryDate) },
+          str(a.note) && { label: "নোট", value: str(a.note) },
+        ]),
+      };
+    }
+    case "finance.void":
+      return {
+        ...base,
+        icon: "void",
+        tone: "bad",
+        sentence: [
+          { b: taka(b.amountPaisa) },
+          b.kind === "expense" ? " টাকার খরচ " : " টাকার এন্ট্রি ",
+          { b: str(b.title) },
+          " বাতিল করা হয়েছে। টাকাটা আবার account-এ ফিরে গেছে।",
+        ],
+        facts: compact([
+          { label: "বাতিলের কারণ", value: str(a.reason) || "—" },
+          { label: "ভাউচার", value: str(b.voucherNo) },
+          { label: "কোন account", value: FUND[str(b.fund)] ?? str(b.fund) },
+          b.entryDate && { label: "তারিখ", value: bnDate(b.entryDate) },
+        ]),
+      };
+    case "expense_category.create":
+      return {
+        ...base,
+        icon: "account",
+        tone: "info",
+        sentence: ["খরচের নতুন ক্যাটাগরি যোগ করা হয়েছে: ", { b: str(a.name) }],
+      };
     case "payment_account.create":
       return {
         ...base,
@@ -762,6 +830,21 @@ export function describeAudit(row: AuditRow, L: AuditLookups): AuditView {
         sentence: ["ছাত্ররা নিজে মিল বন্ধ / চালু করার সময়সীমা বদলানো হয়েছে"],
         changes: [{ label: "সময়সীমা", from: hourText(b.mealCutoffHour), to: hourText(a.mealCutoffHour) }],
       };
+
+    case "settings.payment_order": {
+      const orderText = (v: unknown) =>
+        str(v)
+          .split(",")
+          .map((f) => FUND[f] ?? f)
+          .join(" → ") || "(খালি)";
+      return {
+        ...base,
+        icon: "settings",
+        tone: "info",
+        sentence: ["পেমেন্টের টাকা কোন account আগে পাবে, সেই ক্রম বদলানো হয়েছে"],
+        changes: [{ label: "ক্রম", from: orderText(b.paymentOrder), to: orderText(a.paymentOrder) }],
+      };
+    }
 
     // ---- users -------------------------------------------------------------
     case "membership.create":
