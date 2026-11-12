@@ -25,7 +25,7 @@ rules for tokens, payments, admission and leaving. Read it before changing anyth
 3. **Money rules live in `src/server/domain` (pure, unit-tested) and `src/server/services`.** Do not move
    money logic into components. Change a rule only when the developer asks, and update its tests.
 4. **The paper token** (`src/components/tokens/token-card.tsx` + `token-card.css`) is the hostel's printed
-   format: Rent, Meal Deposit, Total, Pre. Meal Balance, Due:Advance/S.Charge, Due:Monthly Rent, To Be Paid.
+   format: Rent, Meal Deposit, Total, Pre. Meal Balance, Due:Advance, Due:S.Charge, Due:Monthly Rent, To Be Paid.
    Do not change its rows, labels or layout unless asked. The token page, print, receipt and student phone
    all render this same card.
 5. **Every write goes through a service that calls `writeAudit` in the same transaction.** New actions need
@@ -119,7 +119,7 @@ and the "service charge this month" switch. Do not re-add them.
   `period` without showing the range.
 - **Token lines:** "Advance due" and "Service charge due" carry no detail text; "Meal due" (unpaid meal money
   from older tokens) is shown separately from "Pre meal" by design. In the database advance and service charge
-  are separate heads; only the paper card adds them into one box ("Due:Advance/S.Charge"). The paper card's
+  are separate heads and, since 12 Nov 2026, separate rows on the paper card too ("Due:Advance", "Due:S.Charge"). The paper card's
   "Pre. Meal Balance" likewise adds Pre meal + Meal due, while its date range is only the pre meal window, so
   a student can misread it (seen on demo token `2611-207603A-005`). Not changed; ask the client first.
 - **Finance rules to confirm with the client** (built on these assumptions): meal income = meals eaten × rate;
