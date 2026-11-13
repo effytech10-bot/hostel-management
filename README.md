@@ -122,7 +122,7 @@ The hostel keeps its money in **three accounts**: **Rent & advance**, **Meal**, 
 - **Profit** of an account = earned − spent. Rent: rent charged. Meal: meals actually eaten × rates (not the
   deposit); the card also shows expected meals vs eaten. Service: service and other charges. Advance is the
   student's money and is never income.
-- **Screens:** Overview (earned / spent / profit / money in hand, a money-flow picture, one card per account,
+- **Screens:** Overview (earned / spent / profit / money in hand, one money-flow picture per account (start + in = out + end), one card per account,
   cash-bKash-bank balances), Cash book per account, Profit & loss, Balance sheet. Two checks are shown on screen:
   the three accounts together = cash + bKash + bank, and "has − owes" = profit + owner's money.
 - **Income statement** (Finance → Income statement): one statement per account for the month and since the

@@ -14,7 +14,7 @@ import { cn } from "@/lib/utils";
 import { METHOD_LABEL } from "@/lib/validation/payments";
 import type { SessionUser } from "@/server/auth/session";
 import {
-  buildFlow,
+  buildAccountFlow,
   FUND_COLOR,
   FUND_LABEL,
   FUND_SHORT,
@@ -210,14 +210,49 @@ async function Overview({
       <Card>
         <CardHeader>
           <div>
-            <CardTitle>Where the money came from and where it went · {month}</CardTitle>
+            <CardTitle>Where each account&apos;s money came from and where it went · {month}</CardTitle>
             <CardDescription>
-              Left: money in. Middle: the three accounts. Right: money out, and what stayed.
+              The three accounts are separate, so each has its own picture. Left: the balance at the start and the money
+              that came in. Right: the money that went out and the balance {when}. Thicker = more money; point at a band
+              to see the amount.
             </CardDescription>
           </div>
         </CardHeader>
-        <CardContent>
-          <MoneyFlow flow={buildFlow(d.accounts)} />
+        <CardContent className="flex flex-col">
+          {d.accounts.map((a) => {
+            const into = a.studentInPaisa + a.ownerInPaisa + Math.max(0, a.movedPaisa);
+            const out = a.expensePaisa + a.refundedPaisa + a.ownerOutPaisa + Math.max(0, -a.movedPaisa);
+            return (
+              <section key={a.fund} className="border-line-2 border-t pt-4 pb-5 first:border-t-0 first:pt-0">
+                <div className="mb-1 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+                  <h3 className="text-ink flex items-center gap-2 text-[15px] font-bold">
+                    <span aria-hidden className="size-2.5 rounded-full" style={{ background: FUND_COLOR[a.fund] }} />
+                    {FUND_LABEL[a.fund]}
+                  </h3>
+                  <p className="text-muted-foreground text-[12.5px] tabular-nums">
+                    Start <b className="text-ink font-semibold">{tk(a.openingPaisa)}</b> + in{" "}
+                    <b className="text-ink font-semibold">{tk(into)}</b> − out{" "}
+                    <b className="text-ink font-semibold">{tk(out)}</b> = {when}{" "}
+                    <b className="text-ink font-semibold">{tk(a.closingPaisa)}</b>
+                  </p>
+                </div>
+                <MoneyFlow
+                  flow={buildAccountFlow(a, { endLabel: d.isCurrent ? "Balance now" : "Balance at the end" })}
+                  legend={false}
+                  note={false}
+                  minHeight={180}
+                  label={`Money flow of the ${FUND_LABEL[a.fund]}`}
+                />
+              </section>
+            );
+          })}
+          {d.accounts.some((a) => Object.values(a.movedWith ?? {}).some((v) => v)) && (
+            <p className="text-muted-foreground border-line-2 border-t pt-3 text-[12.5px]">
+              <b className="text-ink-2 font-semibold">From / To another account:</b> nobody moved money by hand. A
+              student had extra money kept in one account, and their new token used it to pay a due that belongs to
+              another account. The same amount leaves one account and arrives in the other.
+            </p>
+          )}
         </CardContent>
       </Card>
 

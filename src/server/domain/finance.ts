@@ -331,6 +331,56 @@ export function buildFlow(movements: readonly FundMovement[], maxCategories = 6)
 }
 
 /**
+ * The flow of ONE account (the three accounts are separate units, so each gets its own picture):
+ * balance at the start + everything that came in = everything that went out + balance at the end.
+ * Money from / to another account (a student's extra money used for a due elsewhere) is its own named band.
+ */
+export function buildAccountFlow(
+  m: FundMovement & { openingPaisa: Paisa; closingPaisa: Paisa },
+  opts: { endLabel?: string; maxCategories?: number } = {},
+): Flow {
+  const base = buildFlow([m], opts.maxCategories ?? 5);
+  const f = `fund:${m.fund}`;
+  const links = base.links.filter((l) => l.from !== "earlier" && l.to !== "kept");
+  const add = (from: string, to: string, amountPaisa: Paisa) => {
+    if (amountPaisa > 0) links.push({ from, to, fund: m.fund, amountPaisa });
+  };
+  add("start", f, m.openingPaisa);
+  add(f, "start_short", -m.openingPaisa);
+  add(f, "end", m.closingPaisa);
+  add("end_short", f, -m.closingPaisa);
+  // Both sides of the account must be equal; anything that still does not add up is shown, never hidden.
+  const into = links.filter((l) => l.to === f).reduce((t, l) => t + l.amountPaisa, 0);
+  const outOf = links.filter((l) => l.from === f).reduce((t, l) => t + l.amountPaisa, 0);
+  add("diff_in", f, outOf - into);
+  add(f, "diff_out", into - outOf);
+
+  const used = (id: string) => links.some((l) => l.from === id || l.to === id);
+  const node = (id: string, label: string, side: "from" | "to"): FlowNode => ({
+    id,
+    label,
+    amountPaisa: links.filter((l) => l[side] === id).reduce((t, l) => t + l.amountPaisa, 0),
+  });
+  const keep = (n: FlowNode, side: "from" | "to") => ({ ...node(n.id, n.label, side) });
+  return {
+    left: [
+      ...(used("start") ? [node("start", "Balance at the start", "from")] : []),
+      ...base.left.filter((n) => n.id !== "earlier" && used(n.id)).map((n) => keep(n, "from")),
+      ...(used("end_short") ? [node("end_short", "Short (balance below zero)", "from")] : []),
+      ...(used("diff_in") ? [node("diff_in", "Not matched", "from")] : []),
+    ],
+    middle: used(f) ? [node(f, FUND_LABEL[m.fund], "to")] : [],
+    right: [
+      ...base.right.filter((n) => n.id !== "kept" && used(n.id)).map((n) => keep(n, "to")),
+      ...(used("start_short") ? [node("start_short", "Covered the earlier shortfall", "to")] : []),
+      ...(used("end") ? [node("end", opts.endLabel ?? "Balance at the end", "to")] : []),
+      ...(used("diff_out") ? [node("diff_out", "Not matched", "to")] : []),
+    ],
+    links,
+  };
+}
+
+/**
  * Which account a "netting" ledger row moved money from / to. Rows are written in pairs by the token engine
  * and the leave service: the head that received money says "Paid from <head>", the one that gave it
  * "Used for <head>". Returns the other account, or null when the text is not one of these.

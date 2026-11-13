@@ -9,33 +9,61 @@ const INK = "#161a2e";
 const MUTED = "#666d8c";
 const NEUTRAL = "#3a405c";
 
-type Placed = FlowNode & { y: number; h: number };
+type Placed = FlowNode & { y: number; h: number; ly: number };
+
+/** Label centres: next to their node, but never closer than two text lines to the one above. */
+function withLabels(nodes: Omit<Placed, "ly">[]): Placed[] {
+  let prev = -Infinity;
+  return nodes.map((n) => {
+    const ly = Math.max(n.y + n.h / 2, prev + 34);
+    prev = ly;
+    return { ...n, ly };
+  });
+}
 
 /**
  * Money in → the three accounts → money out, as ribbons whose thickness is the amount.
  * Colour = the account the money passed through. The same numbers are in the account cards below.
  */
-export function MoneyFlow({ flow }: { flow: Flow }) {
+export function MoneyFlow({
+  flow,
+  legend = true,
+  note = true,
+  minHeight = 240,
+  label = "Money flow: where money came from, which account it went to, and where it was spent",
+}: {
+  flow: Flow;
+  /** Colour key of the accounts (not needed when the picture shows one account). */
+  legend?: boolean;
+  /** The "From / To an account" explanation under the picture. */
+  note?: boolean;
+  minHeight?: number;
+  label?: string;
+}) {
   const columns = [flow.left, flow.middle, flow.right];
   const total = (nodes: FlowNode[]) => nodes.reduce((s, n) => s + n.amountPaisa, 0);
   const most = Math.max(...columns.map((c) => c.length));
-  const H = Math.max(240, most * 54);
+  const H = Math.max(minHeight, most * 54);
   // One scale for all three columns, so a ribbon keeps its thickness from end to end.
   const k = Math.min(...columns.map((c) => (H - GAP * Math.max(0, c.length - 1)) / Math.max(1, total(c))));
 
   const place = (nodes: FlowNode[]): Placed[] => {
     const used = nodes.reduce((s, n) => s + n.amountPaisa * k, 0) + GAP * Math.max(0, nodes.length - 1);
     let y = (H - used) / 2;
-    return nodes.map((n) => {
-      const p = { ...n, y, h: Math.max(2, n.amountPaisa * k) };
-      y += n.amountPaisa * k + GAP;
-      return p;
-    });
+    return withLabels(
+      nodes.map((n) => {
+        const p = { ...n, y, h: Math.max(2, n.amountPaisa * k) };
+        y += n.amountPaisa * k + GAP;
+        return p;
+      }),
+    );
   };
   const left = place(flow.left);
   const middle = place(flow.middle);
   const right = place(flow.right);
   const byId = new Map([...left, ...middle, ...right].map((n) => [n.id, n]));
+  // Room for labels pushed below the last node.
+  const bottom = Math.max(H, ...[...left, ...middle, ...right].map((n) => Math.max(n.y + n.h, n.ly + 20)));
   const order = [...left, ...middle, ...right].map((n) => n.id);
 
   // Stack each node's ribbons in the order of the nodes they connect to, so ribbons do not cross needlessly.
@@ -73,29 +101,31 @@ export function MoneyFlow({ flow }: { flow: Flow }) {
 
   return (
     <figure className="m-0">
-      <figcaption className="text-ink-2 mb-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-[12.5px] font-medium">
-        {funds.map((f) => (
-          <span key={f} className="inline-flex items-center gap-1.5">
-            <span aria-hidden className="size-2.5 rounded-[3px]" style={{ background: FUND_COLOR[f] }} />
-            {FUND_LABEL[f]}
+      {legend && (
+        <figcaption className="text-ink-2 mb-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-[12.5px] font-medium">
+          {funds.map((f) => (
+            <span key={f} className="inline-flex items-center gap-1.5">
+              <span aria-hidden className="size-2.5 rounded-[3px]" style={{ background: FUND_COLOR[f] }} />
+              {FUND_LABEL[f]}
+            </span>
+          ))}
+          <span className="text-muted-foreground ml-auto text-[12px]">
+            Thicker = more money. Point at a band to see the amount.
           </span>
-        ))}
-        <span className="text-muted-foreground ml-auto text-[12px]">
-          Thicker = more money. Point at a band to see the amount.
-        </span>
-      </figcaption>
+        </figcaption>
+      )}
       <div className="overflow-x-auto">
         <svg
-          viewBox={`0 -34 ${W} ${H + 42}`}
+          viewBox={`0 -34 ${W} ${bottom + 42}`}
           className="h-auto w-full min-w-[760px]"
           role="img"
-          aria-label="Money flow: where money came from, which account it went to, and where it was spent"
+          aria-label={label}
         >
           <text x={X.left + NODE_W} y={-20} textAnchor="end" fontSize="11" fontWeight="600" fill={MUTED}>
             MONEY IN
           </text>
           <text x={X.middle + NODE_W / 2} y={-20} textAnchor="middle" fontSize="11" fontWeight="600" fill={MUTED}>
-            ACCOUNTS
+            {flow.middle.length === 1 ? "ACCOUNT" : "ACCOUNTS"}
           </text>
           <text x={X.right} y={-20} fontSize="11" fontWeight="600" fill={MUTED}>
             MONEY OUT
@@ -115,10 +145,10 @@ export function MoneyFlow({ flow }: { flow: Flow }) {
           {left.map((n) => (
             <g key={n.id}>
               <rect x={X.left} y={n.y} width={NODE_W} height={n.h} rx="3" fill={NEUTRAL} />
-              <text x={X.left - 10} y={n.y + n.h / 2 - 3} textAnchor="end" fontSize="13" fontWeight="600" fill={INK}>
+              <text x={X.left - 10} y={n.ly - 3} textAnchor="end" fontSize="13" fontWeight="600" fill={INK}>
                 {n.label}
               </text>
-              <text x={X.left - 10} y={n.y + n.h / 2 + 13} textAnchor="end" fontSize="12.5" fill={MUTED}>
+              <text x={X.left - 10} y={n.ly + 13} textAnchor="end" fontSize="12.5" fill={MUTED}>
                 {formatTaka(n.amountPaisa)}
               </text>
             </g>
@@ -141,17 +171,17 @@ export function MoneyFlow({ flow }: { flow: Flow }) {
           {right.map((n) => (
             <g key={n.id}>
               <rect x={X.right} y={n.y} width={NODE_W} height={n.h} rx="3" fill={NEUTRAL} />
-              <text x={X.right + NODE_W + 10} y={n.y + n.h / 2 - 3} fontSize="13" fontWeight="600" fill={INK}>
+              <text x={X.right + NODE_W + 10} y={n.ly - 3} fontSize="13" fontWeight="600" fill={INK}>
                 {n.label}
               </text>
-              <text x={X.right + NODE_W + 10} y={n.y + n.h / 2 + 13} fontSize="12.5" fill={MUTED}>
+              <text x={X.right + NODE_W + 10} y={n.ly + 13} fontSize="12.5" fill={MUTED}>
                 {formatTaka(n.amountPaisa)}
               </text>
             </g>
           ))}
         </svg>
       </div>
-      {moved && (
+      {note && moved && (
         <p className="text-muted-foreground mt-2 text-[12.5px]">
           <b className="text-ink-2 font-semibold">From / To an account:</b> nobody moved money by hand. A student had
           extra money kept in one account (for example a payment above their dues), and their new token used it to pay a
