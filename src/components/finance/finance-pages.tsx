@@ -24,7 +24,12 @@ import {
 } from "@/server/domain/finance";
 import { formatMealUnits } from "@/server/domain/meals";
 import { listBuildings } from "@/server/services/buildings";
-import { IncomeStatementView } from "./income-statement-view";
+import {
+  IncomeStatementView,
+  parseStatementParams,
+  type StatementAccount,
+  type StatementScope,
+} from "./income-statement-view";
 import {
   getCashbook,
   getFinanceOverview,
@@ -111,10 +116,15 @@ export async function FinancePage({
   const period =
     monthParam && isValidPeriod(monthParam) && monthParam <= currentPeriod() ? monthParam : currentPeriod();
   const fund = (FUNDS.find((f) => f === one(searchParams.fund)) ?? "meal") as Fund;
-  const href = (p: { tab?: Tab; month?: Period; fund?: Fund }) => {
+  const statement = parseStatementParams({ acct: one(searchParams.acct), scope: one(searchParams.scope) });
+  const href = (p: { tab?: Tab; month?: Period; fund?: Fund; acct?: StatementAccount; scope?: StatementScope }) => {
     const t = p.tab ?? tab;
     const q = new URLSearchParams({ tab: t, month: p.month ?? period });
     if (t === "cashbook") q.set("fund", p.fund ?? fund);
+    if (t === "income") {
+      q.set("acct", p.acct ?? statement.account);
+      q.set("scope", p.scope ?? statement.scope);
+    }
     return `${BASE}?${q}`;
   };
 
@@ -130,6 +140,12 @@ export async function FinancePage({
         <form method="get" className="flex items-center gap-2">
           <input type="hidden" name="tab" value={tab} />
           {tab === "cashbook" && <input type="hidden" name="fund" value={fund} />}
+          {tab === "income" && (
+            <>
+              <input type="hidden" name="acct" value={statement.account} />
+              <input type="hidden" name="scope" value={statement.scope} />
+            </>
+          )}
           <Input
             type="month"
             name="month"
@@ -157,7 +173,15 @@ export async function FinancePage({
       {tab === "overview" && <Overview actor={actor} period={period} href={href} />}
       {tab === "expenses" && <Expenses actor={actor} period={period} />}
       {tab === "cashbook" && <Cashbook actor={actor} period={period} fund={fund} href={href} />}
-      {tab === "income" && <IncomeStatementView actor={actor} period={period} />}
+      {tab === "income" && (
+        <IncomeStatementView
+          actor={actor}
+          period={period}
+          account={statement.account}
+          scope={statement.scope}
+          href={href}
+        />
+      )}
       {tab === "statements" && <StatementsView actor={actor} period={period} />}
     </>
   );

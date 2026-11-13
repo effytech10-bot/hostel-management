@@ -125,9 +125,10 @@ The hostel keeps its money in **three accounts**: **Rent & advance**, **Meal**, 
 - **Screens:** Overview (earned / spent / profit / money in hand, a money-flow picture, one card per account,
   cash-bKash-bank balances), Cash book per account, Profit & loss, Balance sheet. Two checks are shown on screen:
   the three accounts together = cash + bKash + bank, and "has − owes" = profit + owner's money.
-- **Income statement** (Finance → Income statement): one statement per account for the month and since the
-  start: earned lines (rent of the month, rent given back, meals eaten, service and other charges, admin changes),
-  spent by category, profit / loss highlighted, collection bars, cash of the month as a waterfall, 6-month charts.
+- **Income statement** (Finance → Income statement): a classic accounting statement like a printed or Excel one.
+  Pick the account (Rent & advance, Meal, Service, or all together) and the span (the month or since the start).
+  INCOME lines (rent of the month, rent given back, meals eaten, service and other charges, admin changes) →
+  Total income; EXPENSES by category → Total expenses; then Net profit or Net loss (negatives in brackets).
   "Download Excel" (`/api/finance/income-statement?month=YYYY-MM`) gives the same as a formatted workbook:
   Summary, one sheet per account, expense details (`src/server/services/income-statement-xlsx.ts`).
 - **Money receipt** (`/receipts/<payment>`): the hostel's paper receipt with the same boxes (Rent, Meal, Pmb,
