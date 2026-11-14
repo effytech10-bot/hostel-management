@@ -107,9 +107,11 @@ rules for tokens, payments, admission and leaving. Read it before changing anyth
     - Money receipt boxes: Rent, Meal, Pmb (pre meal), Total M.b (meal part of this payment), L.Num (token
       ID), Amount, Due Amount, Adv., Service C.; "Received by" = who saved the payment.
     - Migration `drizzle/0012_finance.sql` is applied on live.
-    - Income statement tab (per account, month + since the start, charts) and its Excel download
-      (`domain/income-statement.ts`, `getIncomeStatement`, `income-statement-xlsx.ts`, `components/finance/
-statement-charts.tsx` = small server-rendered SVG charts; hover shows amounts via SVG `<title>`).
+    - Income statement tab: one classic accounting statement (INCOME → Total income, EXPENSES → Total
+      expenses, Net profit / (loss), amounts in Taka, negatives in brackets). Buttons pick the account
+      (`acct=rent|meal|service|all`) and the span (`scope=month|all`). Code: `domain/income-statement.ts`,
+      `getIncomeStatement`, `components/finance/income-statement-view.tsx`; Excel: `income-statement-xlsx.ts`.
+      Shared charts used elsewhere live in `components/charts/charts.tsx`.
 
 Removed on purpose: the separate baburchi bill (the column still exists in `billing_rates`, the form sends 0)
 and the "service charge this month" switch. Do not re-add them.

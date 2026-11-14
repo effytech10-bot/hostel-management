@@ -1,209 +1,214 @@
 import { Download } from "lucide-react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { KpiTile } from "@/components/ui/kpi";
 import { Note } from "@/components/ui/note";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { formatDate, formatPeriod, type Period } from "@/lib/dates";
+import { formatDate, formatPeriod, periodEnd, type Period } from "@/lib/dates";
 import { formatTaka } from "@/lib/money";
 import { cn } from "@/lib/utils";
 import type { SessionUser } from "@/server/auth/session";
-import { FUND_COLOR, FUND_LABEL, type Fund } from "@/server/domain/finance";
-import type { Amounts, StatementLine } from "@/server/domain/income-statement";
+import { FUND_COLOR, FUND_LABEL, FUNDS, type Fund } from "@/server/domain/finance";
+import type { StatementLine } from "@/server/domain/income-statement";
 import { getIncomeStatement, type IncomeStatement } from "@/server/services/finance";
-import { CashWaterfall, EarnedSpentColumns, ExpenseBars, PartOfWhole, ProfitTrend } from "./statement-charts";
 
-const tk = (p: number) => formatTaka(p);
+/**
+ * Income statement in the usual accounting layout (like a printed / Excel statement):
+ * INCOME lines → Total income, EXPENSES lines → Total expenses, then Net profit (loss).
+ * One account at a time (Rent & advance, Meal, Service) or all accounts together.
+ */
 
-function Dot({ fund }: { fund: Fund }) {
+export type StatementAccount = Fund | "all";
+export type StatementScope = "month" | "all";
+
+export const STATEMENT_ACCOUNTS: { key: StatementAccount; label: string }[] = [
+  ...FUNDS.map((f) => ({ key: f as StatementAccount, label: FUND_LABEL[f] })),
+  { key: "all", label: "All accounts" },
+];
+
+export function parseStatementParams(p: { acct?: string; scope?: string }) {
+  const account = (STATEMENT_ACCOUNTS.find((a) => a.key === p.acct)?.key ?? "rent") as StatementAccount;
+  const scope: StatementScope = p.scope === "all" ? "all" : "month";
+  return { account, scope };
+}
+
+/** Accounting style: 1,49,900.00 and a negative amount in brackets (40,700.00). */
+const amt = (paisa: number) => {
+  const t = formatTaka(Math.abs(paisa), { symbol: false, alwaysDecimals: true });
+  return paisa < 0 ? `(${t})` : t;
+};
+
+type Row = { key: string; label: string; note?: string; paisa: number };
+
+function pick(lines: StatementLine[], scope: StatementScope): Row[] {
+  return lines
+    .map((l) => ({
+      key: l.key,
+      label: l.label,
+      // The meals note counts this month's meals only.
+      note: scope === "all" && l.key.startsWith("meals") ? undefined : l.note,
+      paisa: scope === "month" ? l.monthPaisa : l.allPaisa,
+    }))
+    .filter((r) => r.paisa !== 0);
+}
+
+/** All accounts together: lines with the same name are added up. */
+function merge(lists: StatementLine[][]): StatementLine[] {
+  const out: StatementLine[] = [];
+  for (const l of lists.flat()) {
+    const same = out.find((x) => x.label === l.label);
+    if (same) {
+      same.monthPaisa += l.monthPaisa;
+      same.allPaisa += l.allPaisa;
+    } else out.push({ ...l, key: `${l.key}-${out.length}` });
+  }
+  return out;
+}
+
+export function statementOf(s: Pick<IncomeStatement, "accounts">, account: StatementAccount, scope: StatementScope) {
+  const accounts = account === "all" ? s.accounts : s.accounts.filter((a) => a.fund === account);
+  const income = pick(merge(accounts.map((a) => a.income)), scope);
+  const expenses = pick(merge(accounts.map((a) => a.expenses)), scope);
+  const totalIncome = income.reduce((t, r) => t + r.paisa, 0);
+  const totalExpenses = expenses.reduce((t, r) => t + r.paisa, 0);
+  return { income, expenses, totalIncome, totalExpenses, net: totalIncome - totalExpenses };
+}
+
+// ---------------------------------------------------------------------------
+// Rows of the statement: label | amount of each line | totals
+// ---------------------------------------------------------------------------
+
+const GRID =
+  "grid grid-cols-[minmax(0,1fr)_5.6rem_6.2rem] sm:grid-cols-[minmax(0,1fr)_9.5rem_9.5rem] items-baseline gap-x-2 sm:gap-x-3";
+
+function Section({ children }: { children: React.ReactNode }) {
+  return <div className="text-ink pt-6 pb-1 text-[15px] font-extrabold tracking-[0.04em] uppercase">{children}</div>;
+}
+
+function Item({ row, last }: { row: Row; last: boolean }) {
   return (
-    <span
-      aria-hidden
-      className="inline-block size-2.5 shrink-0 rounded-full"
-      style={{ background: FUND_COLOR[fund] }}
-    />
+    <div className={cn(GRID, "py-[5px]")}>
+      <div className="text-ink-2 min-w-0 pl-3 text-[13px] sm:pl-8 sm:text-[14px]">
+        {row.label}
+        {row.note && <span className="text-muted-foreground ml-2 hidden text-[11.5px] md:inline">({row.note})</span>}
+      </div>
+      <div
+        className={cn(
+          "text-ink text-right text-[13px] tabular-nums sm:text-[14px]",
+          last && "border-ink border-b pb-1",
+        )}
+      >
+        {amt(row.paisa)}
+      </div>
+      <div />
+    </div>
   );
 }
 
-function Line({ l, sign = 1 }: { l: StatementLine; sign?: 1 | -1 }) {
+function Empty({ text }: { text: string }) {
   return (
-    <TableRow>
-      <TableCell className="pl-5">
-        <span className="text-ink-2">{l.label}</span>
-        {l.note && <span className="text-muted-foreground block text-[11.5px]">{l.note}</span>}
-      </TableCell>
-      <TableCell className="text-right tabular-nums">{tk(sign * l.monthPaisa)}</TableCell>
-      <TableCell className="text-muted-foreground text-right tabular-nums">{tk(sign * l.allPaisa)}</TableCell>
-    </TableRow>
+    <div className={cn(GRID, "py-[5px]")}>
+      <div className="text-muted-foreground pl-3 text-[13px] italic sm:pl-8">{text}</div>
+      <div className="border-ink text-muted-foreground border-b pb-1 text-right text-[14px] tabular-nums">{amt(0)}</div>
+      <div />
+    </div>
   );
 }
 
-function Total({ label, a, tone }: { label: string; a: Amounts; tone: "earned" | "spent" }) {
+function Total({ label, paisa, line }: { label: string; paisa: number; line?: "single" | "double" }) {
   return (
-    <TableRow className={tone === "earned" ? "bg-ok-bg/60" : "bg-bad-bg/60"}>
-      <TableCell className="font-bold">{label}</TableCell>
-      <TableCell className={cn("text-right font-bold tabular-nums", tone === "earned" ? "text-ok" : "text-bad")}>
-        {tk(a.monthPaisa)}
-      </TableCell>
-      <TableCell className="text-right font-semibold tabular-nums">{tk(a.allPaisa)}</TableCell>
-    </TableRow>
+    <div className={cn(GRID, "py-[6px]")}>
+      <div className="text-ink text-[13.5px] font-bold sm:text-[14.5px]">{label}</div>
+      <div />
+      <div
+        className={cn(
+          "text-ink text-right text-[13.5px] font-bold tabular-nums sm:text-[14.5px]",
+          line === "single" && "border-ink border-b pb-1",
+          line === "double" && "border-ink border-b-[3px] border-double pb-1",
+        )}
+      >
+        {amt(paisa)}
+      </div>
+    </div>
   );
 }
 
-function Heading({ children }: { children: React.ReactNode }) {
+// ---------------------------------------------------------------------------
+// Page
+// ---------------------------------------------------------------------------
+
+export async function IncomeStatementView({
+  actor,
+  period,
+  account,
+  scope,
+  href,
+}: {
+  actor: SessionUser;
+  period: Period;
+  account: StatementAccount;
+  scope: StatementScope;
+  href: (p: { acct?: StatementAccount; scope?: StatementScope }) => string;
+}) {
+  const s = await getIncomeStatement(actor, period);
+  const st = statementOf(s, account, scope);
+  const accountName = STATEMENT_ACCOUNTS.find((a) => a.key === account)!.label;
+  const upTo = s.asOf < periodEnd(period) ? ` (up to ${formatDate(s.asOf)})` : "";
+  const when =
+    scope === "month"
+      ? `For the month of ${formatPeriod(period)}${upTo}`
+      : `From the start up to ${formatDate(s.asOf)}`;
+
   return (
-    <TableRow className="hover:bg-transparent">
-      <TableCell colSpan={3} className="text-muted-foreground pt-4 text-[11.5px] font-bold tracking-[0.06em] uppercase">
-        {children}
-      </TableCell>
-    </TableRow>
-  );
-}
-
-function ProfitRow({ a }: { a: Amounts }) {
-  const good = a.monthPaisa >= 0;
-  return (
-    <TableRow className={cn("border-t-2", good ? "bg-ok-bg border-ok-line" : "bg-bad-bg border-bad-line")}>
-      <TableCell className="text-[15px] font-bold">{good ? "Profit" : "Loss"} (earned − spent)</TableCell>
-      <TableCell className={cn("text-right text-[16px] font-bold tabular-nums", good ? "text-ok" : "text-bad")}>
-        {tk(a.monthPaisa)}
-      </TableCell>
-      <TableCell className={cn("text-right font-bold tabular-nums", a.allPaisa >= 0 ? "text-ok" : "text-bad")}>
-        {tk(a.allPaisa)}
-      </TableCell>
-    </TableRow>
-  );
-}
-
-function AccountStatement({ a, s }: { a: IncomeStatement["accounts"][number]; s: IncomeStatement }) {
-  const good = a.profit.monthPaisa >= 0;
-  return (
-    <Card className="overflow-hidden" id={`acc-${a.fund}`}>
-      <div className="h-1.5" style={{ background: FUND_COLOR[a.fund] }} />
-      <CardHeader>
-        <div>
-          <CardTitle className="flex items-center gap-2 text-[17px]">
-            <Dot fund={a.fund} />
-            {FUND_LABEL[a.fund]} · income statement
-          </CardTitle>
-          <CardDescription>
-            {formatPeriod(s.period)} (up to {formatDate(s.asOf)}) and everything since the start
-          </CardDescription>
-        </div>
-        <span
-          className={cn(
-            "rounded-full border px-3 py-1 text-[13px] font-bold tabular-nums",
-            good ? "border-ok-line bg-ok-bg text-ok" : "border-bad-line bg-bad-bg text-bad",
-          )}
-        >
-          {good ? "Profit" : "Loss"} {tk(a.profit.monthPaisa)}
-        </span>
-      </CardHeader>
-      <CardContent className="grid gap-6 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]">
-        <div className="min-w-0">
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead />
-                  <TableHead className="text-right">{formatPeriod(s.period)}</TableHead>
-                  <TableHead className="text-right">Since the start</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                <Heading>Earned</Heading>
-                {a.income.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={3} className="text-muted-foreground pl-5 text-[13px]">
-                      Nothing earned yet
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  a.income.map((l) => <Line key={l.key} l={l} />)
-                )}
-                <Total label="Total earned" a={a.earned} tone="earned" />
-                <Heading>Spent</Heading>
-                {a.expenses.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={3} className="text-muted-foreground pl-5 text-[13px]">
-                      No expenses typed for this account
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  a.expenses.map((l) => <Line key={l.key} l={l} />)
-                )}
-                <Total label="Total spent" a={a.spent} tone="spent" />
-                <ProfitRow a={a.profit} />
-              </TableBody>
-            </Table>
-          </div>
-
-          <div className="mt-5 flex flex-col gap-3">
-            {a.progress.map((p) => (
-              <PartOfWhole
-                key={p.label}
-                label={p.label}
-                part={p.part}
-                whole={p.whole}
-                fund={a.fund}
-                format={p.unit === "meals" ? (v) => `${v}` : tk}
-              />
-            ))}
-          </div>
-
-          <dl className="border-line-2 mt-4 grid gap-1.5 border-t pt-3 text-[12.5px]">
-            {a.memo.map((m) => (
-              <div key={m.label} className="flex justify-between gap-3">
-                <dt className="text-muted-foreground">{m.label}</dt>
-                <dd
+    <div className="flex flex-col gap-4">
+      {/* Choose the account and the time span */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <nav aria-label="Account" className="border-line bg-surface flex flex-wrap gap-1 rounded-[11px] border p-1">
+            {STATEMENT_ACCOUNTS.map((a) => {
+              const active = a.key === account;
+              return (
+                <Link
+                  key={a.key}
+                  href={href({ acct: a.key })}
+                  aria-current={active ? "page" : undefined}
                   className={cn(
-                    "text-ink font-medium tabular-nums",
-                    m.tone === "bad" && "text-bad",
-                    m.tone === "ok" && "text-ok",
+                    "inline-flex items-center gap-2 rounded-[8px] px-3 py-1.5 text-[13px] font-semibold transition-colors",
+                    active ? "bg-brand text-white shadow-sm" : "text-ink-2 hover:bg-surface-2",
                   )}
                 >
-                  {m.value}
-                </dd>
-              </div>
+                  {a.key !== "all" && (
+                    <span
+                      aria-hidden
+                      className={cn("size-2 rounded-full", active && "ring-2 ring-white/70")}
+                      style={{ background: FUND_COLOR[a.key] }}
+                    />
+                  )}
+                  {a.label}
+                </Link>
+              );
+            })}
+          </nav>
+          <nav aria-label="Time span" className="border-line bg-surface flex gap-1 rounded-[11px] border p-1">
+            {(
+              [
+                ["month", formatPeriod(period)],
+                ["all", "Since the start"],
+              ] as const
+            ).map(([k, label]) => (
+              <Link
+                key={k}
+                href={href({ scope: k })}
+                aria-current={k === scope ? "page" : undefined}
+                className={cn(
+                  "rounded-[8px] px-3 py-1.5 text-[13px] font-semibold transition-colors",
+                  k === scope ? "bg-surface-3 text-ink" : "text-muted-foreground hover:bg-surface-2",
+                )}
+              >
+                {label}
+              </Link>
             ))}
-          </dl>
+          </nav>
         </div>
-
-        <div className="flex min-w-0 flex-col gap-5">
-          <section>
-            <h4 className="text-ink mb-1 text-[13px] font-bold">Earned and spent, month by month</h4>
-            <EarnedSpentColumns fund={a.fund} trend={s.trend} />
-          </section>
-          <section>
-            <h4 className="text-ink mb-1 text-[13px] font-bold">
-              Money in this account during {formatPeriod(s.period)}
-            </h4>
-            <p className="text-muted-foreground mb-2 text-[11.5px]">
-              Green came in, red went out. The last bar is the balance.
-            </p>
-            <CashWaterfall steps={a.cash} />
-          </section>
-          <section>
-            <h4 className="text-ink mb-2 text-[13px] font-bold">Where the money was spent</h4>
-            <ExpenseBars fund={a.fund} rows={a.expenses} />
-          </section>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-export async function IncomeStatementView({ actor, period }: { actor: SessionUser; period: Period }) {
-  const s = await getIncomeStatement(actor, period);
-  const good = s.totals.profit.monthPaisa >= 0;
-  return (
-    <div className="flex flex-col gap-5">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <Note variant="info" className="max-w-3xl flex-1">
-          Each account&apos;s own income statement: what it earned, what it spent, and the profit. Advance and the
-          owner&apos;s own money are not income. Meal income is the meals actually eaten, not the deposit.
-        </Note>
-        <Button asChild className="gap-1.5">
+        <Button asChild variant="outline" className="ml-auto gap-1.5">
           <a href={`/api/finance/income-statement?month=${s.period}`}>
             <Download className="size-4" />
             Download Excel
@@ -212,121 +217,45 @@ export async function IncomeStatementView({ actor, period }: { actor: SessionUse
       </div>
 
       {s.ratesMissing && (
-        <Note variant="warn">
-          Some months have meals but no meal rates in Settings; their meal income counts as ৳0.
-        </Note>
+        <Note variant="warn">Some months have meals but no meal rates in Settings; their meal income counts as 0.</Note>
       )}
 
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        <KpiTile label={`Earned · ${formatPeriod(s.period)}`} value={tk(s.totals.earned.monthPaisa)} tone="green" />
-        <KpiTile
-          label="Spent"
-          value={tk(s.totals.spent.monthPaisa)}
-          tone={s.totals.spent.monthPaisa > 0 ? "red" : "default"}
-        />
-        <KpiTile
-          label={good ? "Profit" : "Loss"}
-          value={tk(s.totals.profit.monthPaisa)}
-          tone={good ? "green" : "red"}
-        />
-        <KpiTile label="Profit since the start" value={tk(s.totals.profit.allPaisa)} />
-      </div>
+      {/* The statement itself */}
+      <article className="bg-surface shadow-card mx-auto w-full max-w-[860px] overflow-hidden rounded-[6px] border-[3px] border-[#1b2559]">
+        <header className="bg-[#1b2559] px-5 py-6 text-center text-white sm:py-7">
+          <p className="text-[19px] font-extrabold tracking-[0.03em] uppercase sm:text-[24px]">{actor.orgName}</p>
+          <p className="mt-1 text-[16px] font-bold sm:text-[19px]">Income Statement · {accountName}</p>
+          <p className="mt-0.5 text-[14px] font-semibold sm:text-[16px]">{when}</p>
+          <p className="mt-1 text-[12.5px] text-white/85 italic">(Amounts in Taka)</p>
+        </header>
 
-      <Card>
-        <CardHeader>
-          <div>
-            <CardTitle>Profit of each account, month by month</CardTitle>
-            <CardDescription>Last 6 months. Point at a dot to see the amount.</CardDescription>
-          </div>
-        </CardHeader>
-        <CardContent className="grid gap-5 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
-          <ProfitTrend trend={s.trend} />
-          <div className="flex flex-col gap-2">
-            {s.accounts.map((a) => (
-              <a
-                key={a.fund}
-                href={`#acc-${a.fund}`}
-                className="border-line hover:bg-surface-2 flex items-center justify-between gap-3 rounded-[10px] border px-3 py-2.5"
-              >
-                <span className="flex items-center gap-2 text-[13.5px] font-semibold">
-                  <Dot fund={a.fund} />
-                  {FUND_LABEL[a.fund]}
-                </span>
-                <span className="text-right text-[12px]">
-                  <span className="text-muted-foreground block">
-                    earned {tk(a.earned.monthPaisa)} · spent {tk(a.spent.monthPaisa)}
-                  </span>
-                  <b className={cn("text-[14px] tabular-nums", a.profit.monthPaisa >= 0 ? "text-ok" : "text-bad")}>
-                    {a.profit.monthPaisa >= 0 ? "Profit" : "Loss"} {tk(a.profit.monthPaisa)}
-                  </b>
-                </span>
-              </a>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
-      {s.accounts.map((a) => (
-        <AccountStatement key={a.fund} a={a} s={s} />
-      ))}
-
-      <Card>
-        <CardHeader>
-          <div>
-            <CardTitle>Every expense and owner entry · {formatPeriod(s.period)}</CardTitle>
-            <CardDescription>Cancelled entries are shown crossed out; they do not count.</CardDescription>
-          </div>
-        </CardHeader>
-        <CardContent className="overflow-x-auto px-0">
-          {s.entries.length === 0 ? (
-            <p className="text-muted-foreground px-6 text-[13px]">Nothing typed this month.</p>
+        <div className="px-3 pt-1 pb-7 sm:px-8">
+          <Section>Income</Section>
+          {st.income.length === 0 ? (
+            <Empty text="No income" />
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Voucher</TableHead>
-                  <TableHead>Account</TableHead>
-                  <TableHead>What</TableHead>
-                  <TableHead>Paid from</TableHead>
-                  <TableHead>By</TableHead>
-                  <TableHead className="text-right">Amount</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {s.entries.map((e) => (
-                  <TableRow key={e.id} className={e.voidedAt ? "opacity-55" : undefined}>
-                    <TableCell className="whitespace-nowrap tabular-nums">{formatDate(e.entryDate)}</TableCell>
-                    <TableCell className="font-mono text-[12px]">{e.voucherNo}</TableCell>
-                    <TableCell>
-                      <span className="inline-flex items-center gap-1.5">
-                        <Dot fund={e.fund} />
-                        {e.fundLabel}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      {e.title}
-                      <span className="text-muted-foreground block text-[11.5px]">
-                        {e.kind === "expense"
-                          ? e.category
-                          : e.kind === "owner_withdraw"
-                            ? "Owner took out"
-                            : "Owner put in"}
-                        {e.voidedAt ? ` · cancelled: ${e.voidReason ?? ""}` : ""}
-                      </span>
-                    </TableCell>
-                    <TableCell>{e.accountName}</TableCell>
-                    <TableCell className="text-muted-foreground">{e.byName ?? ""}</TableCell>
-                    <TableCell className={cn("text-right tabular-nums", e.voidedAt && "line-through")}>
-                      {tk(e.amountPaisa)}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+            st.income.map((r, i) => <Item key={r.key} row={r} last={i === st.income.length - 1} />)
           )}
-        </CardContent>
-      </Card>
+          <Total label="Total income" paisa={st.totalIncome} />
+
+          <Section>Expenses</Section>
+          {st.expenses.length === 0 ? (
+            <Empty text="No expenses" />
+          ) : (
+            st.expenses.map((r, i) => <Item key={r.key} row={r} last={i === st.expenses.length - 1} />)
+          )}
+          <Total label="Total expenses" paisa={st.totalExpenses} line="single" />
+
+          <div className="h-2" />
+          <Total label={st.net >= 0 ? "Net profit" : "Net loss"} paisa={st.net} line="double" />
+        </div>
+      </article>
+
+      <p className="text-muted-foreground mx-auto w-full max-w-[860px] text-[12px] leading-relaxed">
+        Income is what the account charged; meal income is the meals actually eaten × the meal rates. Advance, meal
+        deposits and the owner&apos;s own money are not income. Expenses are the ones typed in Finance for the account.
+        Amounts in brackets are negative.
+      </p>
     </div>
   );
 }
