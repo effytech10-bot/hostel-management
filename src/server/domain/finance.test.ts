@@ -3,6 +3,7 @@ import { parseTaka as tk } from "@/lib/money";
 import type { Due } from "./billing";
 import {
   allocateByFund,
+  buildAccountFlow,
   buildFlow,
   byFund,
   chargedIncome,
@@ -261,6 +262,49 @@ describe("money flow picture", () => {
     expect(flow.right.find((n) => n.id === "kept")?.amountPaisa).toBe(tk("10000"));
     expect(flow.left.find((n) => n.id === "earlier")?.amountPaisa).toBe(tk("6000"));
     expect(flow.left.reduce((s, n) => s + n.amountPaisa, 0)).toBe(flow.right.reduce((s, n) => s + n.amountPaisa, 0));
+  });
+
+  it("one account alone: start + in = out + end, with the other account named", () => {
+    const flow = buildAccountFlow({
+      ...movement({
+        fund: "rent",
+        studentInPaisa: tk("86750"),
+        movedPaisa: -tk("5262.50"),
+        movedWith: { meal: -tk("5262.50") },
+        expenses: [{ name: "House rent", amountPaisa: tk("100000") }],
+      }),
+      openingPaisa: tk("40000"),
+      closingPaisa: tk("21487.50"),
+    });
+    expect(flow.middle).toEqual([{ id: "fund:rent", label: "Rent & advance account", amountPaisa: tk("126750") }]);
+    expect(flow.left.map((n) => [n.id, n.amountPaisa])).toEqual([
+      ["start", tk("40000")],
+      ["students", tk("86750")],
+    ]);
+    expect(flow.right.map((n) => [n.id, n.amountPaisa])).toEqual([
+      ["cat:House rent", tk("100000")],
+      ["to:meal", tk("5262.50")],
+      ["end", tk("21487.50")],
+    ]);
+    expect(flow.right.find((n) => n.id === "to:meal")?.label).toBe("To Meal account");
+  });
+
+  it("one account: a balance below zero and a mismatch are shown, not hidden", () => {
+    const short = buildAccountFlow({
+      ...movement({ fund: "service", expenses: [{ name: "Repair", amountPaisa: tk("500") }] }),
+      openingPaisa: tk("200"),
+      closingPaisa: -tk("300"),
+    });
+    expect(short.left.map((n) => [n.id, n.amountPaisa])).toEqual([
+      ["start", tk("200")],
+      ["end_short", tk("300")],
+    ]);
+    const off = buildAccountFlow({
+      ...movement({ fund: "meal", studentInPaisa: tk("100") }),
+      openingPaisa: 0,
+      closingPaisa: tk("90"),
+    });
+    expect(off.right.find((n) => n.id === "diff_out")?.amountPaisa).toBe(tk("10"));
   });
 
   it("small categories are grouped as Other expenses", () => {

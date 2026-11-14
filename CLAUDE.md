@@ -97,7 +97,7 @@ rules for tokens, payments, admission and leaving. Read it before changing anyth
       money beyond all dues goes to Meal (kept as meal deposit). The total never changes when the cashier edits a
       part: the accounts after it take the difference up to their dues, the rest goes to Meal (`rebalanceParts`).
       Inside one account the oldest month is paid first (`allocateByFund`).
-    - Screens: Overview (earned / spent / profit / money in hand, money-flow diagram, one card per account,
+    - Screens: Overview (earned / spent / profit / money in hand, one money-flow picture per account (`buildAccountFlow`: start + in = out + end), one card per account,
       cash-bKash-bank balances), Expenses & owner money, Cash book per account, Profit & loss, Balance sheet.
       Meal card compares expected meals with meals eaten; Rent card compares rent charged with rent received.
     - Profit: Rent = rent charged, Meal = meals eaten × rate (not the deposit), Service = service + other
